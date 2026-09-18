@@ -666,7 +666,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             } else if (cl.frame.ps.weapon == WP_SABER ||
                     cl.frame.ps.weapon == WP_STUN_BATON) {
                 //Does weapon velocity trigger attack
-                if (vr.velocitytriggered && !vr.remote_turret) {
+                // In tabletop the visible saber belongs to the animated avatar,
+                // not to the tracked hand. Use stock third-person attacks so
+                // the blade and its collision trace stay together.
+                if (!tabletopActive && vr.velocitytriggered && !vr.remote_turret) {
                     if (vr.velocitytriggeractive)
                     {
                         static bool fired = false;
@@ -853,9 +856,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 {   // Exit scope only when using binoculars or nightvision
                     sendButtonActionSimple("exitscope");
                 }
-                else if (cl.frame.ps.weapon == WP_SABER && vr.velocitytriggered)
+                else if (cl.frame.ps.weapon == WP_SABER &&
+                         (vr.velocitytriggered || tabletopActive))
                 {
-                    //B button toggles saber on/off in first person
+                    //B toggles the saber instead of throwing it in tabletop.
                     if (primaryButton2New && !primaryButton2Old) {
                         sendButtonActionSimple("togglesaber");
                     }
@@ -870,9 +874,7 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             static bool firing = false;
             static bool throwing = false;
 
-            int thirdPerson = Cvar_VariableIntegerValue("cg_thirdPerson");
-
-            if (cl.frame.ps.weapon == WP_SABER && !thirdPerson && !vr.remote_turret &&
+            if (cl.frame.ps.weapon == WP_SABER && !thirdPersonActive && !vr.remote_turret &&
                 vr.cgzoommode == 0 && cl.frame.ps.stats[STAT_HEALTH] > 0)
             {
                 static bool previous_throwing = false;
@@ -892,7 +894,7 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                     sendButtonAction("+altattack", throwing);
                 }
             }
-            else if (!vr.velocitytriggered || vr.remote_turret) // Don't fire velocity triggered weapons
+            else if (!vr.velocitytriggered || vr.remote_turret || tabletopActive)
             {
                 //Fire Primary - Doesn't trigger the saber
                 if ((pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) !=

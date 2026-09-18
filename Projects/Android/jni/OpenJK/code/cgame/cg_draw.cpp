@@ -4644,6 +4644,8 @@ void CG_ClearTabletopTransform( void )
 	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
 	vr->tabletop_scale = 0.0f;
 	vr->tabletop_forward_yaw = 0.0f;
+	vr->tabletop_transform_valid = false;
+	++vr->tabletop_transform_serial;
 }
 
 static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out )
@@ -4719,6 +4721,8 @@ static void CG_ResetTabletopTransform( void )
 
 	vr->tabletop_scale = cg_tabletopTransform.visualScale;
 	CG_UpdateTabletopMovementYaw();
+	vr->tabletop_transform_valid = true;
+	++vr->tabletop_transform_serial;
 	cgi_Cvar_Set("r_fastsky", "2");
 }
 

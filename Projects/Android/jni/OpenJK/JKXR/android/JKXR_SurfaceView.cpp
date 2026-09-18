@@ -224,11 +224,14 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 {
 	static bool tabletopYawValid = false;
 	static float tabletopMoveYaw = 0.0f;
-	const bool tabletopActive = Cvar_VariableIntegerValue("cg_tabletop") != 0;
+	static unsigned int tabletopTransformSerial = 0;
+	const bool tabletopConfigured = Cvar_VariableIntegerValue("cg_tabletop") != 0;
+	const bool tabletopActive = tabletopConfigured && vr.tabletop_transform_valid;
 
-	if (!tabletopActive)
+	if (!tabletopConfigured || tabletopTransformSerial != vr.tabletop_transform_serial)
 	{
 		tabletopYawValid = false;
+		tabletopTransformSerial = vr.tabletop_transform_serial;
 	}
 
 	if (vr.remote_turret) {
@@ -293,6 +296,18 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		*roll = 0.0f;
 	}
 #endif
+	else if (tabletopConfigured && !tabletopActive) {
+		// A level load clears and then rebuilds the physical tabletop anchor.
+		// Do not emit one frame using the previous map's movement basis.
+		*forward = 0.0f;
+		*pos_forward = 0.0f;
+		*up = 0.0f;
+		*side = 0.0f;
+		*pos_side = 0.0f;
+		*yaw = vr.clientviewangles[YAW];
+		*pitch = 0.0f;
+		*roll = 0.0f;
+	}
 	else if (tabletopActive) {
 		const float stickX = remote_movementSideways;
 		const float stickY = remote_movementForward;

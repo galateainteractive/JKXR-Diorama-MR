@@ -79,6 +79,8 @@ typedef struct {
     float  tabletop_grip[2];
     float  tabletop_scale;
     float  tabletop_forward_yaw; // world yaw that points from the HMD toward the avatar
+    bool   tabletop_transform_valid;
+    unsigned int tabletop_transform_serial; // changes whenever a map rebuilds the tabletop basis
 
     vec3_t clientviewangles; //orientation in the client - we use this in the cgame
     float snapTurn; // how much turn has been applied to the yaw by joystick
