@@ -24,7 +24,8 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
 - loads e reinícios de mapa invalidam explicitamente a referência anterior dos
   controles antes de reconstruí-la para a nova maquete;
 - no modo tabletop, o gatilho executa o ataque primário animado do personagem,
-  B liga/desliga o sabre e os gestos físicos de golpe/arremesso ficam desativados;
+  B conserva o ataque alternativo/arremesso e os gestos físicos de golpe ficam
+  desativados para manter a lâmina e a colisão presas ao avatar;
 - aberturas e cutscenes usam a tela cinematográfica estável do JKXR, sem aplicar
   a separação estereoscópica ampliada da miniatura;
 - modo reversível por cvars, sem alterar os dados originais do jogo.

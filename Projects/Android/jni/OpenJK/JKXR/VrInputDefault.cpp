@@ -857,9 +857,9 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                     sendButtonActionSimple("exitscope");
                 }
                 else if (cl.frame.ps.weapon == WP_SABER &&
-                         (vr.velocitytriggered || tabletopActive))
+                         vr.velocitytriggered && !tabletopActive)
                 {
-                    //B toggles the saber instead of throwing it in tabletop.
+                    //B toggles the physically controlled saber in first person.
                     if (primaryButton2New && !primaryButton2Old) {
                         sendButtonActionSimple("togglesaber");
                     }
