@@ -495,6 +495,7 @@ int VR_SetRefreshRate(int refreshRate)
 void VR_FrameSetup()
 {
 	static float refresh = 0;
+	const bool tabletopActive = Cvar_VariableIntegerValue("cg_tabletop") != 0;
 	if (refresh != vr_refresh->value)
 	{
 		refresh = vr_refresh->value;
@@ -502,7 +503,11 @@ void VR_FrameSetup()
 	}
 
 	//get any cvar values required here
-	vr.immersive_cinematics = (vr_immersive_cinematics->value != 0.0f);
+	// A tabletop eye separation is intentionally much larger in game units.
+	// Reusing it for scripted cameras makes the two images impossible to fuse.
+	// Keep cinematics on JKXR's stable quad layer while tabletop mode is on.
+	vr.immersive_cinematics = !tabletopActive &&
+		(vr_immersive_cinematics->value != 0.0f);
 }
 
 bool VR_GetVRProjection(int eye, float zNear, float zFar, float zZoomX, float zZoomY, float* projection)
@@ -624,7 +629,8 @@ float VR_GetEyeStereoSeparation(int eye)
 	// does not register it, so the default of 0 here keeps that game unchanged.
 	tabletopCvar = Cvar_Get("cg_tabletop", "0", 0);
 	tabletopScaleCvar = Cvar_Get("cg_tabletopScale", "0.04", 0);
-	if (tabletopCvar && tabletopCvar->integer && tabletopScaleCvar)
+	if (tabletopCvar && tabletopCvar->integer && tabletopScaleCvar &&
+		!vr.cin_camera && !vr.misc_camera && !vr.using_screen_layer)
 	{
 		const float visualScale = vr.tabletop_scale > 0.0f
 			? Com_Clamp(0.01f, 0.20f, vr.tabletop_scale)

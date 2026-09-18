@@ -2225,7 +2225,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 			cg.refdef.override_fov = true;
 		}
 
-		cg.refdef.worldscale = cg_tabletop.integer
+		cg.refdef.worldscale = cg_tabletop.integer && !in_camera && !in_misccamera
 			? cg_worldScale.value / Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value)
 			: cg_worldScale.value;
 

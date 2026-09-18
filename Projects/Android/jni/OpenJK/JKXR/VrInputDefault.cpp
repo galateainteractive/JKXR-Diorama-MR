@@ -954,9 +954,21 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             vr.player_moving = (fabs(x) + fabs(y)) > 0.05f;
 
-            //Adjust to be off-hand controller oriented
+            // Normal JKXR locomotion is oriented by the off-hand controller.
+            // Tabletop instead needs the raw stick axes: its world yaw is
+            // calculated from the physical headset-to-avatar relationship.
+            // Rotating here as well makes movement change when the user merely
+            // turns their wrist.
             vec2_t v;
-            rotateAboutOrigin(x, y, controllerYawHeading, v);
+            if (tabletopActive)
+            {
+                v[0] = x;
+                v[1] = y;
+            }
+            else
+            {
+                rotateAboutOrigin(x, y, controllerYawHeading, v);
+            }
 
             // If in third person, use digital input (North, North-East, East, South-East etc)
             // for movement as it allows execution of player special moves correctly in JKA
