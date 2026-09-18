@@ -46,28 +46,10 @@ import java.util.Vector;
 	// Load the gles3jni library right away to make sure JNI_OnLoad() gets called as the very first thing.
 	static
 	{
-		game = "jo";
-
-		BufferedReader br;
-		try {
-			br = new BufferedReader(new FileReader("/sdcard/JKXR/commandline.txt"));
-			String s;
-			StringBuilder sb = new StringBuilder(0);
-			while ((s = br.readLine()) != null)
-				sb.append(s + " ");
-			br.close();
-
-			if (sb.toString().contains("ja"))
-			{
-				game = "ja";
-			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		// This prototype is intentionally a Jedi Academy build.  Upstream JKXR
+		// defaults to Outcast when commandline.txt has not been created yet,
+		// which makes a fresh sideload load the wrong native library.
+		game = "ja";
 
 		System.loadLibrary("openxr_loader");
 		System.loadLibrary( "openjk_" + game );
@@ -210,7 +192,7 @@ import java.util.Vector;
 		new File("/sdcard/JKXR/JK3/base").mkdirs();
 
 		//Copy the command line params file
-		copy_asset("/sdcard/JKXR", "commandline.txt", false);
+		copy_asset("/sdcard/JKXR", "commandline.txt", true);
 
 		//Our assets
 		copy_asset("/sdcard/JKXR/JK2/base", "z_vr_assets_base.pk3", true);
@@ -260,7 +242,7 @@ import java.util.Vector;
 		}
 
 		//Read these from a file and pass through
-		commandLineParams = new String("jo");
+		commandLineParams = new String("ja");
 
 		//See if user is trying to use command line params
 		if (new File("/sdcard/JKXR/commandline.txt").exists()) // should exist!

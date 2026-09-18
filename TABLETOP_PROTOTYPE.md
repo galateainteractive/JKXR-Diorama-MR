@@ -1,7 +1,8 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. O Jedi Outcast e o caminho normal do JKXR continuam disponíveis.
+miniatura. Este APK V0 abre diretamente o Jedi Academy; o código do Jedi
+Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
 
@@ -38,11 +39,18 @@ Os limites são aplicados no código mesmo se o console receber outro valor.
 ## Instalação e teste
 
 O APK não contém os arquivos comerciais de Jedi Academy. Instale o APK e siga
-o procedimento de dados do JKXR/SideQuest usando uma cópia legal do jogo.
+o procedimento abaixo usando uma cópia legal do jogo. Na instalação de PC do
+Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
+`assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
 menu do Quest aparece como **JKXR Tabletop V0** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
+
+O primeiro início solicita acesso aos arquivos e cria automaticamente
+`/sdcard/JKXR/JK3/base`. Depois disso, feche o aplicativo, conecte o Quest ao PC
+e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
+pasta do jogo.
 
 No primeiro teste:
 
