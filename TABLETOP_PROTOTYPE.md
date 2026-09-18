@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V1.2 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V1.3 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -14,8 +14,9 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
 - física, colisões, IA, missões, scripts e saves sem mudança de escala;
 - um grip arrasta a maquete e dois grips arrastam, giram e mudam sua escala;
 - passthrough nativo `XR_FB_passthrough`, com o fundo do céu em alpha zero;
-- movimento 360 graus relativo à posição do headset ao redor da maquete: o
-  personagem vira e anda de frente na direção apontada pelo analógico;
+- movimento 360 graus recalculado entre a posição atual do headset e a posição
+  atual do personagem: para baixo ele vem até o observador, para cima se afasta
+  e esquerda/direita permanecem laterais mesmo ao caminhar ao redor da mesa;
 - modo reversível por cvars, sem alterar os dados originais do jogo.
 
 O personagem agora se move dentro da âncora capturada ao carregar a fase. A
@@ -47,7 +48,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V1.2** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V1.3** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -55,7 +56,7 @@ O primeiro início solicita acesso aos arquivos e cria automaticamente
 e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
-Como alternativa, use o instalador Windows `JKXR-Tabletop-V1.2-Installer.exe`.
+Como alternativa, use o instalador Windows `JKXR-Tabletop-V1.3-Installer.exe`.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -70,7 +71,7 @@ No primeiro teste:
 6. segure um grip para arrastar; segure os dois para girar e redimensionar;
 7. use `cg_tabletop 0` e `cg_tabletop 1` para comparar os dois caminhos.
 
-## Limitações conhecidas do V1.2
+## Limitações conhecidas do V1.3
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - PVS, LOD, névoa e recorte de paredes/tetos ainda precisam de tratamento;
@@ -86,4 +87,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v1.2.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v1.3.apk`.

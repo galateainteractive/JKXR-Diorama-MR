@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("0.3.0.0")]
-[assembly: AssemblyFileVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
+[assembly: AssemblyFileVersion("0.4.0.0")]
 
 namespace JKXRTabletopInstaller
 {
@@ -51,7 +51,7 @@ namespace JKXRTabletopInstaller
 
         public InstallerForm()
         {
-            Text = "JKXR Tabletop V1.2 — Instalador";
+            Text = "JKXR Tabletop V1.3 — Instalador";
             ClientSize = new Size(820, 700);
             MinimumSize = new Size(760, 640);
             StartPosition = FormStartPosition.CenterScreen;
@@ -70,7 +70,7 @@ namespace JKXRTabletopInstaller
         private void BuildInterface()
         {
             Label title = new Label();
-            title.Text = "JKXR Tabletop V1.2";
+            title.Text = "JKXR Tabletop V1.3";
             title.Font = new Font("Segoe UI Semibold", 21F, FontStyle.Bold);
             title.ForeColor = Color.FromArgb(29, 43, 72);
             title.AutoSize = true;
@@ -320,7 +320,7 @@ namespace JKXRTabletopInstaller
                 progress.Value = 100;
                 AppendLog("Instalação e verificação concluídas.");
                 MessageBox.Show(this,
-                    "JKXR Tabletop V1.2 foi instalado com sucesso.\n\n" +
+                    "JKXR Tabletop V1.3 foi instalado com sucesso.\n\n" +
                     "O Jedi Academy será aberto no Quest. Coloque o headset e conclua qualquer solicitação de permissão que aparecer.",
                     "Instalação concluída", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -343,7 +343,7 @@ namespace JKXRTabletopInstaller
             AdbResult state = AdbClient.Run(device.Serial, "get-state", 15000);
             RequireSuccess(state, "O Quest deixou de responder. Reconecte o cabo USB.");
 
-            SetProgress(18, "Instalando o APK JKXR Tabletop V1.2...");
+            SetProgress(18, "Instalando o APK JKXR Tabletop V1.3...");
             AdbResult install = AdbClient.Run(device.Serial,
                 "install -r -d " + AdbClient.Quote(AdbBundle.ApkPath), 180000);
             RequireSuccess(install,
@@ -391,11 +391,11 @@ namespace JKXRTabletopInstaller
                 AppendLogThreadSafe("Verificado: " + name + " (" + localSize + " bytes)");
             }
 
-            SetProgress(96, "Abrindo o JKXR Tabletop V1.2...");
+            SetProgress(96, "Abrindo o JKXR Tabletop V1.3...");
             AdbClient.Run(device.Serial, "shell am force-stop com.drbeef.jkxr", 15000);
             AdbResult launch = AdbClient.Run(device.Serial,
                 "shell monkey -p com.drbeef.jkxr -c android.intent.category.LAUNCHER 1", 30000);
-            RequireSuccess(launch, "Os arquivos foram instalados, mas não consegui abrir o aplicativo automaticamente. Abra JKXR Tabletop V1.2 pela Biblioteca > Fontes desconhecidas.");
+            RequireSuccess(launch, "Os arquivos foram instalados, mas não consegui abrir o aplicativo automaticamente. Abra JKXR Tabletop V1.3 pela Biblioteca > Fontes desconhecidas.");
         }
 
         private void RequireSuccess(AdbResult result, string friendlyMessage)
@@ -750,7 +750,7 @@ namespace JKXRTabletopInstaller
                 Extract("Installer.AdbWinApi.dll", "AdbWinApi.dll");
                 Extract("Installer.AdbWinUsbApi.dll", "AdbWinUsbApi.dll");
                 Extract("Installer.ADB-NOTICE.txt", "ADB-NOTICE.txt");
-                ApkPath = Extract("Installer.JKXRTabletop.apk", "JKXR-tabletop-v1.2.apk");
+                ApkPath = Extract("Installer.JKXRTabletop.apk", "JKXR-tabletop-v1.3.apk");
             }
         }
 

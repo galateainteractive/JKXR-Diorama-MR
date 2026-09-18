@@ -4658,24 +4658,36 @@ static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out
 static void CG_UpdateTabletopMovementYaw( void )
 {
 	vec3_t relativeHead;
-	float observerX;
-	float observerY;
+	vec3_t gameHead;
+	vec3_t headToPlayer;
 	const float rotation = DEG2RAD(cg_tabletopTransform.baseYaw
 		- cg_tabletopTransform.hmdFirstYaw) - cg_tabletopTransform.mapYaw;
 	const float c = cosf(rotation);
 	const float s = sinf(rotation);
+	const float worldScale = cg_worldScale.value /
+		Com_Clamp(0.01f, 0.20f, cg_tabletopTransform.visualScale);
+	const float minimumDistance = 0.05f * worldScale;
 
 	VectorSubtract(vr->hmdposition, cg_tabletopTransform.physicalAnchor,
 		relativeHead);
-	observerX = -c * relativeHead[2] + s * relativeHead[0];
-	observerY = -c * relativeHead[0] - s * relativeHead[2];
+	gameHead[0] = cg_tabletopTransform.gameAnchor[0]
+		+ (-c * relativeHead[2] + s * relativeHead[0]) * worldScale;
+	gameHead[1] = cg_tabletopTransform.gameAnchor[1]
+		+ (-c * relativeHead[0] - s * relativeHead[2]) * worldScale;
+	gameHead[2] = cg_tabletopTransform.gameAnchor[2]
+		+ relativeHead[1] * worldScale;
+	VectorSubtract(cg.predicted_player_state.origin, gameHead, headToPlayer);
 
-	// Keep the previous direction if the observer is directly over the
-	// miniature, where a radial direction would be numerically unstable.
-	if (observerX * observerX + observerY * observerY > 0.0025f)
+	// Recompute the controls from the observer to the avatar, not from the
+	// observer to the fixed tabletop pivot.  As the avatar crosses the level,
+	// stick-down therefore always brings it toward the physical headset and
+	// walking around the table changes the basis naturally.
+	if (headToPlayer[0] * headToPlayer[0]
+		+ headToPlayer[1] * headToPlayer[1]
+		> minimumDistance * minimumDistance)
 	{
 		vr->tabletop_forward_yaw =
-			RAD2DEG(atan2f(-observerY, -observerX));
+			RAD2DEG(atan2f(headToPlayer[1], headToPlayer[0]));
 	}
 }
 
