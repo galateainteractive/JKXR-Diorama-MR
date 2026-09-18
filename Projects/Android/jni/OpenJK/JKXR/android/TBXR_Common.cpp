@@ -136,6 +136,7 @@ const char* const optionalExtensionNames[] = {
 		XR_KHR_ANDROID_THREAD_SETTINGS_EXTENSION_NAME,
 		XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME,
 		XR_FB_COLOR_SPACE_EXTENSION_NAME,
+		XR_FB_PASSTHROUGH_EXTENSION_NAME,
 		XR_PICO_CONFIGS_EXT_EXTENSION_NAME};
 
 const uint32_t numRequiredExtensions =
@@ -147,7 +148,20 @@ static qboolean openXrExtPerformanceSettings = qfalse;
 static qboolean openXrExtAndroidThreadSettings = qfalse;
 static qboolean openXrExtFBDisplayRefreshRate = qfalse;
 static qboolean openXrExtFBColorSpace = qfalse;
+static qboolean openXrExtFBPassthrough = qfalse;
 static qboolean openXrExtPicoConfigs = qfalse;
+
+static XrPassthroughFB tabletopPassthrough = XR_NULL_HANDLE;
+static XrPassthroughLayerFB tabletopPassthroughLayer = XR_NULL_HANDLE;
+static qboolean tabletopPassthroughActive = qfalse;
+static PFN_xrCreatePassthroughFB pfnCreatePassthroughFB = NULL;
+static PFN_xrDestroyPassthroughFB pfnDestroyPassthroughFB = NULL;
+static PFN_xrPassthroughStartFB pfnPassthroughStartFB = NULL;
+static PFN_xrPassthroughPauseFB pfnPassthroughPauseFB = NULL;
+static PFN_xrCreatePassthroughLayerFB pfnCreatePassthroughLayerFB = NULL;
+static PFN_xrDestroyPassthroughLayerFB pfnDestroyPassthroughLayerFB = NULL;
+static PFN_xrPassthroughLayerPauseFB pfnPassthroughLayerPauseFB = NULL;
+static PFN_xrPassthroughLayerResumeFB pfnPassthroughLayerResumeFB = NULL;
 
 static qboolean TBXR_StringContainsNoCase(const char* haystack, const char* needle)
 {
@@ -208,6 +222,10 @@ static void TBXR_SetOptionalExtensionFlag(const char* extensionName)
 	{
 		openXrExtFBColorSpace = qtrue;
 	}
+	else if (strcmp(extensionName, XR_FB_PASSTHROUGH_EXTENSION_NAME) == 0)
+	{
+		openXrExtFBPassthrough = qtrue;
+	}
 	else if (strcmp(extensionName, XR_PICO_CONFIGS_EXT_EXTENSION_NAME) == 0)
 	{
 		openXrExtPicoConfigs = qtrue;
@@ -262,6 +280,7 @@ static uint32_t TBXR_BuildEnabledExtensionList(const char** enabledExtensionName
 	openXrExtAndroidThreadSettings = qfalse;
 	openXrExtFBDisplayRefreshRate = qfalse;
 	openXrExtFBColorSpace = qfalse;
+	openXrExtFBPassthrough = qfalse;
 	openXrExtPicoConfigs = qfalse;
 
 	for (uint32_t i = 0; i < numOptionalExtensions; i++)
@@ -279,6 +298,126 @@ static uint32_t TBXR_BuildEnabledExtensionList(const char** enabledExtensionName
 
 	free(supportedExtensions);
 	return enabledExtensionCount;
+}
+
+static void TBXR_InitTabletopPassthrough()
+{
+	if (!openXrExtFBPassthrough)
+	{
+		ALOGV("XR_FB_passthrough unavailable; tabletop will use a VR background.");
+		return;
+	}
+
+	xrGetInstanceProcAddr(gAppState.Instance, "xrCreatePassthroughFB",
+		(PFN_xrVoidFunction*)&pfnCreatePassthroughFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrDestroyPassthroughFB",
+		(PFN_xrVoidFunction*)&pfnDestroyPassthroughFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrPassthroughStartFB",
+		(PFN_xrVoidFunction*)&pfnPassthroughStartFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrPassthroughPauseFB",
+		(PFN_xrVoidFunction*)&pfnPassthroughPauseFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrCreatePassthroughLayerFB",
+		(PFN_xrVoidFunction*)&pfnCreatePassthroughLayerFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrDestroyPassthroughLayerFB",
+		(PFN_xrVoidFunction*)&pfnDestroyPassthroughLayerFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrPassthroughLayerPauseFB",
+		(PFN_xrVoidFunction*)&pfnPassthroughLayerPauseFB);
+	xrGetInstanceProcAddr(gAppState.Instance, "xrPassthroughLayerResumeFB",
+		(PFN_xrVoidFunction*)&pfnPassthroughLayerResumeFB);
+
+	if (!pfnCreatePassthroughFB || !pfnDestroyPassthroughFB ||
+		!pfnPassthroughStartFB || !pfnPassthroughPauseFB ||
+		!pfnCreatePassthroughLayerFB || !pfnDestroyPassthroughLayerFB ||
+		!pfnPassthroughLayerPauseFB || !pfnPassthroughLayerResumeFB)
+	{
+		ALOGE("XR_FB_passthrough entry points are incomplete.");
+		openXrExtFBPassthrough = qfalse;
+		return;
+	}
+
+	XrPassthroughCreateInfoFB passthroughInfo = {};
+	passthroughInfo.type = XR_TYPE_PASSTHROUGH_CREATE_INFO_FB;
+	XrResult result = pfnCreatePassthroughFB(
+		gAppState.Session, &passthroughInfo, &tabletopPassthrough);
+	if (XR_FAILED(result))
+	{
+		ALOGE("xrCreatePassthroughFB failed: %d", result);
+		openXrExtFBPassthrough = qfalse;
+		return;
+	}
+
+	XrPassthroughLayerCreateInfoFB layerInfo = {};
+	layerInfo.type = XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB;
+	layerInfo.passthrough = tabletopPassthrough;
+	layerInfo.purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB;
+	result = pfnCreatePassthroughLayerFB(
+		gAppState.Session, &layerInfo, &tabletopPassthroughLayer);
+	if (XR_FAILED(result))
+	{
+		ALOGE("xrCreatePassthroughLayerFB failed: %d", result);
+		pfnDestroyPassthroughFB(tabletopPassthrough);
+		tabletopPassthrough = XR_NULL_HANDLE;
+		openXrExtFBPassthrough = qfalse;
+		return;
+	}
+
+	ALOGV("Tabletop passthrough layer is ready.");
+}
+
+static void TBXR_UpdateTabletopPassthrough()
+{
+	const qboolean requested = (qboolean)(openXrExtFBPassthrough &&
+		tabletopPassthrough != XR_NULL_HANDLE &&
+		tabletopPassthroughLayer != XR_NULL_HANDLE &&
+		Cvar_VariableIntegerValue("cg_tabletop") != 0);
+
+	if (requested == tabletopPassthroughActive)
+	{
+		return;
+	}
+
+	if (requested)
+	{
+		XrResult result = pfnPassthroughStartFB(tabletopPassthrough);
+		if (XR_SUCCEEDED(result))
+		{
+			result = pfnPassthroughLayerResumeFB(tabletopPassthroughLayer);
+		}
+		if (XR_FAILED(result))
+		{
+			pfnPassthroughPauseFB(tabletopPassthrough);
+			ALOGE("Could not activate tabletop passthrough: %d", result);
+			return;
+		}
+		tabletopPassthroughActive = qtrue;
+		ALOGV("Tabletop passthrough activated.");
+	}
+	else
+	{
+		pfnPassthroughLayerPauseFB(tabletopPassthroughLayer);
+		pfnPassthroughPauseFB(tabletopPassthrough);
+		tabletopPassthroughActive = qfalse;
+	}
+}
+
+static void TBXR_DestroyTabletopPassthrough()
+{
+	if (tabletopPassthroughActive)
+	{
+		pfnPassthroughLayerPauseFB(tabletopPassthroughLayer);
+		pfnPassthroughPauseFB(tabletopPassthrough);
+		tabletopPassthroughActive = qfalse;
+	}
+	if (tabletopPassthroughLayer != XR_NULL_HANDLE && pfnDestroyPassthroughLayerFB)
+	{
+		pfnDestroyPassthroughLayerFB(tabletopPassthroughLayer);
+		tabletopPassthroughLayer = XR_NULL_HANDLE;
+	}
+	if (tabletopPassthrough != XR_NULL_HANDLE && pfnDestroyPassthroughFB)
+	{
+		pfnDestroyPassthroughFB(tabletopPassthrough);
+		tabletopPassthrough = XR_NULL_HANDLE;
+	}
 }
 
 
@@ -1093,6 +1232,13 @@ void ovrApp_HandleSessionStateChanges(ovrApp* app, XrSessionState state) {
 	} else if (state == XR_SESSION_STATE_STOPPING) {
 		assert(app->SessionActive);
 
+		if (tabletopPassthroughActive)
+		{
+			pfnPassthroughLayerPauseFB(tabletopPassthroughLayer);
+			pfnPassthroughPauseFB(tabletopPassthrough);
+			tabletopPassthroughActive = qfalse;
+		}
+
 		OXR(xrEndSession(app->Session));
 		app->SessionActive = false;
 	}
@@ -1574,10 +1720,13 @@ void TBXR_EnterVR( ) {
 	spaceCreateInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
 	spaceCreateInfo.poseInReferenceSpace.orientation.w = 1.0f;
 	OXR(xrCreateReferenceSpace(gAppState.Session, &spaceCreateInfo, &gAppState.ViewSpace));
+
+	TBXR_InitTabletopPassthrough();
 }
 
 void TBXR_LeaveVR( ) {
 	if (gAppState.Session) {
+		TBXR_DestroyTabletopPassthrough();
 		OXR(xrDestroySpace(gAppState.ViewSpace));
 		OXR(xrDestroySpace(gAppState.LocalSpace));
 		OXR(xrDestroySpace(gAppState.StageSpace));
@@ -2047,8 +2196,9 @@ void TBXR_ClearFrameBuffer(int width, int height)
 	glEnable( GL_SCISSOR_TEST );
 	glViewport( 0, 0, width, height );
 
-	//Black
-	glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	// Transparent pixels reveal the passthrough compositor layer in tabletop.
+	glClearColor( 0.0f, 0.0f, 0.0f,
+		tabletopPassthroughActive ? 0.0f : 1.0f );
 
 	glScissor( 0, 0, width, height );
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -2063,6 +2213,7 @@ void TBXR_ClearFrameBuffer(int width, int height)
 
 void TBXR_prepareEyeBuffer(int eye )
 {
+	TBXR_UpdateTabletopPassthrough();
 	vr.eye = eye;
 	ovrFramebuffer* frameBuffer = &(gAppState.Renderer.FrameBuffer[eye]);
 	ovrFramebuffer_Acquire(frameBuffer);
@@ -2083,11 +2234,14 @@ void TBXR_finishEyeBuffer(int eye )
 
 	ovrFramebuffer *frameBuffer = &(renderer->FrameBuffer[eye]);
 
-	// Clear the alpha channel, other way OpenXR would not transfer the framebuffer fully
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	if (!tabletopPassthroughActive)
+	{
+		// Opaque VR mode requires a fully covered projection texture.
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+		glClearColor(0.0, 0.0, 0.0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	}
 
 	ovrFramebuffer_Release(&gAppState.Renderer.NullFrameBuffer);
 
@@ -2143,6 +2297,17 @@ void TBXR_submitFrame()
 	XrCompositionLayerProjection projection_layer;
 	XrCompositionLayerProjectionView projection_layer_elements[2] = {};
 	XrCompositionLayerQuad quad_layer;
+	XrCompositionLayerPassthroughFB passthrough_layer = {};
+
+	if (tabletopPassthroughActive)
+	{
+		passthrough_layer.type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB;
+		passthrough_layer.flags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+		passthrough_layer.space = XR_NULL_HANDLE;
+		passthrough_layer.layerHandle = tabletopPassthroughLayer;
+		layers[layerCount++] =
+			(const XrCompositionLayerBaseHeader*)&passthrough_layer;
+	}
 
 	if (!VR_UseScreenLayer()) 
 	{

@@ -1,22 +1,23 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V0 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V1 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
 
-- câmera tabletop em terceira pessoa, acompanhando o jogador;
+- câmera tabletop em terceira pessoa com âncora física fixa;
 - escala visual inicial `0.04` (aproximadamente 1:25);
 - âncora inicial a `1.25 m` à frente e `0.55 m` abaixo do headset;
 - paralaxe 6DoF: mover fisicamente a cabeça muda o ponto de vista da maquete;
 - IPD/estéreo convertido para a mesma escala visual;
 - física, colisões, IA, missões, scripts e saves sem mudança de escala;
+- um grip arrasta a maquete e dois grips arrastam, giram e mudam sua escala;
+- passthrough nativo `XR_FB_passthrough`, com céu/portal de céu suprimidos;
 - modo reversível por cvars, sem alterar os dados originais do jogo.
 
-Este V0 ainda não ativa passthrough. A primeira validação é propositalmente da
-câmera, escala e jogabilidade. O passo seguinte será adicionar a composição
-OpenXR de passthrough e tratar paredes/tetos que obstruam a visão de maquete.
+O personagem agora se move dentro da âncora capturada ao carregar a fase. A
+câmera só muda com o movimento físico do headset ou com um gesto de grip.
 
 ## Controles de ajuste
 
@@ -44,7 +45,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V0** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V1** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -52,7 +53,7 @@ O primeiro início solicita acesso aos arquivos e cria automaticamente
 e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
-Como alternativa, use o instalador Windows `JKXR-Tabletop-V0-Installer.exe`.
+Como alternativa, use o instalador Windows `JKXR-Tabletop-V1-Installer.exe`.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -63,15 +64,14 @@ No primeiro teste:
 2. recentralize o Quest olhando para a direção onde a maquete deve ficar;
 3. olhe um pouco para baixo; o personagem deve aparecer no centro da cena;
 4. mova a cabeça lateralmente para verificar a paralaxe 6DoF;
-5. caminhe, lute e atravesse uma porta para conferir o acompanhamento;
-6. use `cg_tabletop 0` e `cg_tabletop 1` para comparar os dois caminhos.
+5. caminhe para confirmar que o personagem se afasta dentro da maquete parada;
+6. segure um grip para arrastar; segure os dois para girar e redimensionar;
+7. use `cg_tabletop 0` e `cg_tabletop 1` para comparar os dois caminhos.
 
-## Limitações conhecidas do V0
+## Limitações conhecidas do V1
 
-- sem passthrough/MR ainda: o fundo continua sendo o mundo do jogo;
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
-- PVS, LOD, névoa, céu e recorte ainda não têm tratamento tabletop;
-- a âncora segue o jogador; não há ainda gesto de agarrar/girar/escalar;
+- PVS, LOD, névoa e recorte de paredes/tetos ainda precisam de tratamento;
 - HUD e menus continuam usando o compositor 2D original do JKXR;
 - cenas especiais, veículos e câmeras de script precisam de teste no Quest.
 
@@ -84,4 +84,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v0.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v1.apk`.

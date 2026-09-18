@@ -4617,59 +4617,234 @@ CG_DrawActive
 Perform all drawing needed to completely fill the screen
 =====================
 */
+typedef struct tabletopTransform_s
+{
+	qboolean initialized;
+	qboolean gestureActive;
+	int gestureHands;
+	int lastUpdateTime;
+	vec3_t gameAnchor;
+	vec3_t physicalAnchor;
+	vec3_t gestureStartMidpoint;
+	vec3_t gestureStartAnchor;
+	float baseYaw;
+	float hmdFirstYaw;
+	float mapYaw;
+	float visualScale;
+	float gestureStartDistance;
+	float gestureStartAngle;
+	float gestureStartScale;
+	float gestureStartYaw;
+} tabletopTransform_t;
+
+static tabletopTransform_t cg_tabletopTransform;
+
+void CG_ClearTabletopTransform( void )
+{
+	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
+	vr->tabletop_scale = 0.0f;
+}
+
+static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out )
+{
+	const float c = cosf(yaw);
+	const float s = sinf(yaw);
+	out[0] = c * in[0] - s * in[2];
+	out[1] = in[1];
+	out[2] = s * in[0] + c * in[2];
+}
+
+static void CG_ResetTabletopTransform( void )
+{
+	const float forward = Com_Clamp(0.25f, 3.0f, cg_tabletopForward.value);
+	const float down = Com_Clamp(0.10f, 1.50f, cg_tabletopDown.value);
+	const float yaw = DEG2RAD(vr->hmdorientation[YAW]);
+
+	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
+	cg_tabletopTransform.initialized = qtrue;
+	cg_tabletopTransform.lastUpdateTime = cg.time;
+	cg_tabletopTransform.baseYaw = cg.refdef.viewangles[YAW]
+		- (vr->hmdorientation[YAW] - vr->hmdorientation_first[YAW]);
+	cg_tabletopTransform.hmdFirstYaw = vr->hmdorientation_first[YAW];
+	cg_tabletopTransform.visualScale =
+		Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
+
+	VectorCopy(cg.predicted_player_state.origin,
+		cg_tabletopTransform.gameAnchor);
+	cg_tabletopTransform.gameAnchor[2] += DEFAULT_PLAYER_HEIGHT * 0.5f;
+
+	// Place the game anchor in front of and below the headset.  This physical
+	// point remains fixed while the character moves through the level.
+	VectorCopy(vr->hmdposition, cg_tabletopTransform.physicalAnchor);
+	cg_tabletopTransform.physicalAnchor[0] -= sinf(yaw) * forward;
+	cg_tabletopTransform.physicalAnchor[1] -= down;
+	cg_tabletopTransform.physicalAnchor[2] -= cosf(yaw) * forward;
+
+	vr->tabletop_scale = cg_tabletopTransform.visualScale;
+	cgi_Cvar_Set("r_fastsky", "1");
+}
+
+static void CG_UpdateTabletopTransform( void )
+{
+	qboolean held[2];
+	int handCount;
+	vec3_t midpoint;
+	vec3_t separation;
+	float distance;
+	float angle;
+
+	if (!cg_tabletopTransform.initialized ||
+		cg.time + 1000 < cg_tabletopTransform.lastUpdateTime)
+	{
+		CG_ResetTabletopTransform();
+	}
+
+	// Stereo replay calls cgame once; the fallback calls it once per eye.  Do
+	// not advance a hand gesture twice for the same game frame.
+	if (cg_tabletopTransform.lastUpdateTime == cg.time)
+	{
+		return;
+	}
+	cg_tabletopTransform.lastUpdateTime = cg.time;
+
+	held[0] = (qboolean)(vr->tabletop_hand_active[0] &&
+		vr->tabletop_grip[0] >= 0.65f);
+	held[1] = (qboolean)(vr->tabletop_hand_active[1] &&
+		vr->tabletop_grip[1] >= 0.65f);
+	handCount = (held[0] ? 1 : 0) + (held[1] ? 1 : 0);
+
+	if (handCount == 0)
+	{
+		cg_tabletopTransform.gestureActive = qfalse;
+		return;
+	}
+
+	if (handCount == 2)
+	{
+		VectorAdd(vr->tabletop_hand_position[0],
+			vr->tabletop_hand_position[1], midpoint);
+		VectorScale(midpoint, 0.5f, midpoint);
+	}
+	else
+	{
+		VectorCopy(vr->tabletop_hand_position[held[0] ? 0 : 1], midpoint);
+	}
+
+	VectorSubtract(vr->tabletop_hand_position[1],
+		vr->tabletop_hand_position[0], separation);
+	distance = VectorLength(separation);
+	angle = atan2f(separation[0], separation[2]);
+
+	if (!cg_tabletopTransform.gestureActive ||
+		cg_tabletopTransform.gestureHands != handCount)
+	{
+		cg_tabletopTransform.gestureActive = qtrue;
+		cg_tabletopTransform.gestureHands = handCount;
+		VectorCopy(midpoint, cg_tabletopTransform.gestureStartMidpoint);
+		VectorCopy(cg_tabletopTransform.physicalAnchor,
+			cg_tabletopTransform.gestureStartAnchor);
+		cg_tabletopTransform.gestureStartDistance = distance;
+		cg_tabletopTransform.gestureStartAngle = angle;
+		cg_tabletopTransform.gestureStartScale =
+			cg_tabletopTransform.visualScale;
+		cg_tabletopTransform.gestureStartYaw = cg_tabletopTransform.mapYaw;
+		return;
+	}
+
+	if (handCount == 1)
+	{
+		vec3_t delta;
+		VectorSubtract(midpoint, cg_tabletopTransform.gestureStartMidpoint, delta);
+		VectorAdd(cg_tabletopTransform.gestureStartAnchor, delta,
+			cg_tabletopTransform.physicalAnchor);
+	}
+	else
+	{
+		vec3_t startOffset;
+		vec3_t rotatedOffset;
+		float scaleRatio = 1.0f;
+		float rotationDelta = angle - cg_tabletopTransform.gestureStartAngle;
+
+		while (rotationDelta > M_PI)
+		{
+			rotationDelta -= M_PI * 2.0f;
+		}
+		while (rotationDelta < -M_PI)
+		{
+			rotationDelta += M_PI * 2.0f;
+		}
+
+		if (cg_tabletopTransform.gestureStartDistance > 0.04f)
+		{
+			cg_tabletopTransform.visualScale = Com_Clamp(0.01f, 0.20f,
+				cg_tabletopTransform.gestureStartScale *
+				distance / cg_tabletopTransform.gestureStartDistance);
+			scaleRatio = cg_tabletopTransform.visualScale /
+				cg_tabletopTransform.gestureStartScale;
+		}
+		cg_tabletopTransform.mapYaw =
+			cg_tabletopTransform.gestureStartYaw + rotationDelta;
+
+		VectorSubtract(cg_tabletopTransform.gestureStartAnchor,
+			cg_tabletopTransform.gestureStartMidpoint, startOffset);
+		VectorScale(startOffset, scaleRatio, startOffset);
+		CG_RotateTabletopTrackingYaw(startOffset, rotationDelta, rotatedOffset);
+		VectorAdd(midpoint, rotatedOffset,
+			cg_tabletopTransform.physicalAnchor);
+
+		vr->tabletop_scale = cg_tabletopTransform.visualScale;
+		cgi_Cvar_Set("cg_tabletopScale",
+			va("%.5f", cg_tabletopTransform.visualScale));
+	}
+}
+
 static float CG_TabletopWorldScale( void )
 {
-	const float visualScale = Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
+	const float visualScale = cg_tabletopTransform.initialized
+		? cg_tabletopTransform.visualScale
+		: Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
 	return cg_worldScale.value / visualScale;
 }
 
 static void CG_ApplyTabletopView( void )
 {
-	vec3_t anchor;
-	vec3_t tableAngles;
-	vec3_t tableForward;
-	vec3_t headOffset;
+	vec3_t relativeHead;
+	vec3_t gameOffset;
 	const float worldScale = CG_TabletopWorldScale();
-	const float baseYaw = cg.refdef.viewangles[YAW]
-		- (vr->hmdorientation[YAW] - vr->hmdorientation_first[YAW]);
+	const float rotation = DEG2RAD(cg_tabletopTransform.baseYaw
+		- cg_tabletopTransform.hmdFirstYaw) - cg_tabletopTransform.mapYaw;
+	const float c = cosf(rotation);
+	const float s = sinf(rotation);
 
-	// Keep gameplay in its original coordinate system.  Only the render camera
-	// is mapped into a miniature world centred on the predicted player.
-	VectorCopy(cg.predicted_player_state.origin, anchor);
-	anchor[2] += DEFAULT_PLAYER_HEIGHT * 0.5f;
+	VectorSubtract(vr->hmdposition, cg_tabletopTransform.physicalAnchor,
+		relativeHead);
+	gameOffset[0] = (-c * relativeHead[2] + s * relativeHead[0]) * worldScale;
+	gameOffset[1] = (-c * relativeHead[0] - s * relativeHead[2]) * worldScale;
+	gameOffset[2] = relativeHead[1] * worldScale;
+	VectorAdd(cg_tabletopTransform.gameAnchor, gameOffset, cg.refdef.vieworg);
 
-	VectorSet(tableAngles, 0.0f, baseYaw, 0.0f);
-	AngleVectors(tableAngles, tableForward, NULL, NULL);
-
-	VectorCopy(anchor, cg.refdef.vieworg);
-	VectorMA(cg.refdef.vieworg,
-		-Com_Clamp(0.25f, 3.0f, cg_tabletopForward.value) * worldScale,
-		tableForward, cg.refdef.vieworg);
-	cg.refdef.vieworg[2] +=
-		Com_Clamp(0.10f, 1.50f, cg_tabletopDown.value) * worldScale;
-
-	// Reuse JKXR's tracking-space conversion, then replace its normal scale
-	// with the tabletop visual scale.  This supplies true 6DoF parallax without
-	// changing tracked-controller gameplay calculations.
-	BG_ConvertFromVR(vr->hmdposition_offset, NULL, headOffset);
-	if (cg_worldScale.value > 0.001f)
-	{
-		VectorScale(headOffset, worldScale / cg_worldScale.value, headOffset);
-	}
-	VectorAdd(cg.refdef.vieworg, headOffset, cg.refdef.vieworg);
+	// Apply the inverse world yaw to the view basis as well as its position.
+	cg.refdef.viewangles[YAW] -= RAD2DEG(cg_tabletopTransform.mapYaw);
+	AnglesToAxis(cg.refdef.viewangles, cg.refdef.viewaxis);
 }
 
 void CG_DrawActive( stereoFrame_t stereoView ) {
 	float		separation;
 	vec3_t		baseOrg;
 	const qboolean tabletopActive = (qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
-	const float renderWorldScale = tabletopActive ? CG_TabletopWorldScale() : cg_worldScale.value;
+	float renderWorldScale;
 
 	// optionally draw the info screen instead
 	if ( !cg.snap ) {
 		CG_DrawInformation();
 		return;
 	}
+
+	if (tabletopActive)
+	{
+		CG_UpdateTabletopTransform();
+	}
+	renderWorldScale = tabletopActive ? CG_TabletopWorldScale() : cg_worldScale.value;
 
 	if (!vr->item_selector) {
 		CG_DrawCrosshair3D(0);
@@ -4737,7 +4912,14 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 		cg.refdef.rdflags |= RDF_ForceSightOn;
 	}
 
-	cg.refdef.rdflags |= RDF_DRAWSKYBOX;
+	if (!tabletopActive)
+	{
+		cg.refdef.rdflags |= RDF_DRAWSKYBOX;
+	}
+	else
+	{
+		cg.refdef.rdflags &= ~RDF_DRAWSKYBOX;
+	}
 
 	// draw 3D view
 	cgi_R_RenderScene( &cg.refdef );

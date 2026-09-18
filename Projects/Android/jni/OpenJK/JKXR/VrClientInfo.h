@@ -72,6 +72,13 @@ typedef struct {
     vec3_t hmdorientation_snap;
     vec3_t hmdorientation_first; // only updated when in first person
 
+    // Raw StageSpace controller state for manipulating the tabletop itself.
+    // This intentionally bypasses the weapon-hand coordinate conversions.
+    bool   tabletop_hand_active[2];
+    vec3_t tabletop_hand_position[2];
+    float  tabletop_grip[2];
+    float  tabletop_scale;
+
     vec3_t clientviewangles; //orientation in the client - we use this in the cgame
     float snapTurn; // how much turn has been applied to the yaw by joystick
     float clientview_yaw_last; // Don't use this, it is just for calculating delta!

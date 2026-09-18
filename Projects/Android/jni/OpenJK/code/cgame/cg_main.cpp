@@ -2241,6 +2241,7 @@ Called after every level change or subsystem restart
 */
 void CG_Init( int serverCommandSequence ) {
 	cgs.serverCommandSequence = serverCommandSequence;
+	CG_ClearTabletopTransform();
 
 	cgi_Cvar_Set( "cg_drawHUD", "1" );
 

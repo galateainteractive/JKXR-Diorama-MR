@@ -2281,7 +2281,10 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		}
 	}
 
-	CG_DrawSkyBoxPortal();
+	if (!cg_tabletop.integer)
+	{
+		CG_DrawSkyBoxPortal();
+	}
 
 	// NOTE: this may completely override the camera
 	CG_RunEmplacedWeapon();

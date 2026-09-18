@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
-    [string]$ApkPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v0.apk',
+    [string]$ApkPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v1.apk',
     [string]$AndroidSdk = 'D:\Android\Sdk',
-    [string]$OutputPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Tabletop-V0-Installer.exe'
+    [string]$OutputPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Tabletop-V1-Installer.exe'
 )
 
 $ErrorActionPreference = 'Stop'

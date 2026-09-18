@@ -11,8 +11,14 @@ $gradle = 'D:\Android\Gradle\gradle-8.5\bin\gradle.bat'
 $gradleHome = 'D:\Android\CodexGradle\jkxr-gradle-home'
 $artifactDirectory = 'D:\Codex\jkxr-tabletop-mr\artifacts'
 $sourceApk = Join-Path $androidProject 'build\outputs\apk\release\jkxr-release.apk'
-$targetApk = Join-Path $artifactDirectory 'JKXR-tabletop-v0.apk'
+$targetApk = Join-Path $artifactDirectory 'JKXR-tabletop-v1.apk'
 $localProperties = Join-Path $androidProject 'local.properties'
+$hadLocalProperties = Test-Path -LiteralPath $localProperties
+$originalLocalProperties = if ($hadLocalProperties) {
+    [System.IO.File]::ReadAllBytes($localProperties)
+} else {
+    $null
+}
 
 foreach ($requiredPath in @(
     (Join-Path $javaHome 'bin\java.exe'),
@@ -47,6 +53,11 @@ try {
 }
 finally {
     Pop-Location
+    if ($hadLocalProperties) {
+        [System.IO.File]::WriteAllBytes($localProperties, $originalLocalProperties)
+    } elseif (Test-Path -LiteralPath $localProperties) {
+        Remove-Item -LiteralPath $localProperties -Force
+    }
 }
 
 if (-not (Test-Path -LiteralPath $sourceApk)) {

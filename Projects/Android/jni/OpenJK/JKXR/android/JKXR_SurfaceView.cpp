@@ -586,7 +586,9 @@ float VR_GetEyeStereoSeparation(int eye)
 	tabletopScaleCvar = Cvar_Get("cg_tabletopScale", "0.04", 0);
 	if (tabletopCvar && tabletopCvar->integer && tabletopScaleCvar)
 	{
-		const float visualScale = Com_Clamp(0.01f, 0.20f, tabletopScaleCvar->value);
+		const float visualScale = vr.tabletop_scale > 0.0f
+			? Com_Clamp(0.01f, 0.20f, vr.tabletop_scale)
+			: Com_Clamp(0.01f, 0.20f, tabletopScaleCvar->value);
 		worldScale /= visualScale;
 	}
 
@@ -746,6 +748,34 @@ void VR_HapticEvent(const char* event, int position, int flags, int intensity, f
 
 void VR_HandleControllerInput() {
 	TBXR_UpdateControllers();
+
+	// Preserve raw room-space hand state before the normal gameplay input code
+	// remaps handedness and weapon poses.  Grips belong exclusively to the
+	// miniature while tabletop mode is active.
+	vr.tabletop_hand_active[0] = leftRemoteTracking_new.Active;
+	vr.tabletop_hand_active[1] = rightRemoteTracking_new.Active;
+	VectorSet(vr.tabletop_hand_position[0],
+		leftRemoteTracking_new.GripPose.position.x,
+		leftRemoteTracking_new.GripPose.position.y,
+		leftRemoteTracking_new.GripPose.position.z);
+	VectorSet(vr.tabletop_hand_position[1],
+		rightRemoteTracking_new.GripPose.position.x,
+		rightRemoteTracking_new.GripPose.position.y,
+		rightRemoteTracking_new.GripPose.position.z);
+	vr.tabletop_grip[0] = leftTrackedRemoteState_new.GripTrigger;
+	vr.tabletop_grip[1] = rightTrackedRemoteState_new.GripTrigger;
+
+	if (Cvar_VariableIntegerValue("cg_tabletop") != 0)
+	{
+		leftTrackedRemoteState_new.Buttons &= ~xrButton_GripTrigger;
+		rightTrackedRemoteState_new.Buttons &= ~xrButton_GripTrigger;
+		leftTrackedRemoteState_old.Buttons &= ~xrButton_GripTrigger;
+		rightTrackedRemoteState_old.Buttons &= ~xrButton_GripTrigger;
+		leftTrackedRemoteState_new.GripTrigger = 0.0f;
+		rightTrackedRemoteState_new.GripTrigger = 0.0f;
+		vr.item_selector = 0;
+		vr.weapon_stabilised = false;
+	}
 
 	//Call additional control schemes here
 	switch (vr_control_scheme->integer)
