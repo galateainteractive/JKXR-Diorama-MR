@@ -52,6 +52,11 @@ O primeiro início solicita acesso aos arquivos e cria automaticamente
 e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
+Como alternativa, use o instalador Windows `JKXR-Tabletop-V0-Installer.exe`.
+Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
+instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
+no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
+
 No primeiro teste:
 
 1. inicie Jedi Academy e carregue uma fase normal;
