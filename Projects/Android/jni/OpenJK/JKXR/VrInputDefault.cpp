@@ -39,7 +39,9 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 	vr.right_handed = vr_control_scheme->value < 10 ||
             vr_control_scheme->value == 99; // Always right-handed for weapon calibration
 
-    bool thirdPersonActive = !!((int) Cvar_VariableValue("cg_thirdPerson"));
+    const bool tabletopActive = !!((int) Cvar_VariableValue("cg_tabletop"));
+    bool thirdPersonActive = tabletopActive ||
+        !!((int) Cvar_VariableValue("cg_thirdPerson"));
 
     static bool dominantGripPushed = false;
 
@@ -958,7 +960,8 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             // If in third person, use digital input (North, North-East, East, South-East etc)
             // for movement as it allows execution of player special moves correctly in JKA
-            if (thirdPersonActive && vr_3rdperson_digital_direction->integer)
+            if (!tabletopActive && thirdPersonActive &&
+                vr_3rdperson_digital_direction->integer)
             {
                 float angle = RAD2DEG(atan2f(v[1], v[0])) + 22.5;
                 int segment = angle / 45.0f;

@@ -443,6 +443,7 @@ to actually render the visible surfaces for this view
 */
 static void RB_BeginDrawingView (void) {
 	int clearBits = GL_DEPTH_BUFFER_BIT;
+	const float clearAlpha = (r_fastsky->integer == 2) ? 0.0f : 1.0f;
 
 	// sync with gl if needed
 	if ( r_finish->integer == 1 && !glState.finishCalled ) {
@@ -483,11 +484,11 @@ static void RB_BeginDrawingView (void) {
 				if (tr.world && tr.world->globalFog != -1)
 				{
 					const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
-					qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], 1.0f );
+					qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
 				}
 				else
 				{
-					qglClearColor ( 0.3f, 0.3f, 0.3f, 1.0 );
+					qglClearColor ( 0.3f, 0.3f, 0.3f, clearAlpha );
 				}
 			}
 		}
@@ -500,11 +501,11 @@ static void RB_BeginDrawingView (void) {
 			if (tr.world && tr.world->globalFog != -1)
 			{
 				const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
-				qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], 1.0f );
+				qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
 			}
 			else
 			{
-				qglClearColor( 0.3f, 0.3f, 0.3f, 1 );	// FIXME: get color of sky
+				qglClearColor( 0.3f, 0.3f, 0.3f, clearAlpha );	// FIXME: get color of sky
 			}
 			clearBits |= GL_COLOR_BUFFER_BIT;	// FIXME: only if sky shaders have been used
 		}
@@ -516,7 +517,7 @@ static void RB_BeginDrawingView (void) {
 		{ //this is because of a bug in multiple scenes I think, it needs to clear for the second scene but it doesn't normally.
 			const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
 
-			qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], 1.0f );
+			qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
 			clearBits |= GL_COLOR_BUFFER_BIT;
 		}
 	}

@@ -78,6 +78,7 @@ typedef struct {
     vec3_t tabletop_hand_position[2];
     float  tabletop_grip[2];
     float  tabletop_scale;
+    float  tabletop_forward_yaw; // world yaw that points from the HMD toward the miniature
 
     vec3_t clientviewangles; //orientation in the client - we use this in the cgame
     float snapTurn; // how much turn has been applied to the yaw by joystick

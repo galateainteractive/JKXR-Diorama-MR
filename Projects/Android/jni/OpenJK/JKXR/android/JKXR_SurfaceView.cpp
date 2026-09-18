@@ -222,6 +222,15 @@ void VR_SetHMDPosition(float x, float y, float z )
 void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side, float *up,
 				float *yaw, float *pitch, float *roll)
 {
+	static bool tabletopYawValid = false;
+	static float tabletopMoveYaw = 0.0f;
+	const bool tabletopActive = Cvar_VariableIntegerValue("cg_tabletop") != 0;
+
+	if (!tabletopActive)
+	{
+		tabletopYawValid = false;
+	}
+
 	if (vr.remote_turret) {
 		*forward = 0.0f;
 		*pos_forward = 0.0f;
@@ -284,6 +293,37 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		*roll = 0.0f;
 	}
 #endif
+	else if (tabletopActive) {
+		const float stickX = remote_movementSideways;
+		const float stickY = remote_movementForward;
+		const float magnitude = Com_Clamp(0.0f, 1.0f,
+			sqrtf(stickX * stickX + stickY * stickY));
+
+		if (!tabletopYawValid)
+		{
+			tabletopMoveYaw = vr.clientviewangles[YAW];
+			tabletopYawValid = true;
+		}
+
+		if (magnitude > 0.05f)
+		{
+			// Positive stick Y points away from the observer and into the
+			// miniature. Positive stick X is screen-right, which is -90 degrees
+			// in Quake's movement basis. The cgame supplies the observer basis
+			// after applying the current tabletop rotation.
+			tabletopMoveYaw = vr.tabletop_forward_yaw +
+				RAD2DEG(atan2f(-stickX, stickY));
+		}
+
+		*forward = magnitude;
+		*pos_forward = 0.0f;
+		*up = 0.0f;
+		*side = 0.0f;
+		*pos_side = 0.0f;
+		*yaw = tabletopMoveYaw;
+		*pitch = 0.0f;
+		*roll = 0.0f;
+	}
 	else if (!vr.third_person) {
 		*forward = remote_movementForward;
 		*pos_forward = positional_movementForward;

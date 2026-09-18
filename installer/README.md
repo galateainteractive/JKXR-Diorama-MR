@@ -1,4 +1,4 @@
-# Instalador Windows — JKXR Tabletop V1
+# Instalador Windows — JKXR Tabletop V1.1
 
 O instalador é um executável Windows autônomo que incorpora o APK do protótipo
 e as ferramentas ADB oficiais do Android SDK. Ele não incorpora arquivos do
@@ -23,7 +23,7 @@ Com o APK já gerado em `D:\Codex\jkxr-tabletop-mr\artifacts`:
 .\installer\build-installer.ps1
 ```
 
-O resultado é `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Tabletop-V1-Installer.exe`.
+O resultado é `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Tabletop-V1.1-Installer.exe`.
 O build usa o compilador .NET Framework 4.8 do Windows, portanto o executável
 não exige instalação separada do .NET moderno.
 

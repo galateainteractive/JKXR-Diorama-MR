@@ -4643,6 +4643,7 @@ void CG_ClearTabletopTransform( void )
 {
 	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
 	vr->tabletop_scale = 0.0f;
+	vr->tabletop_forward_yaw = 0.0f;
 }
 
 static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out )
@@ -4652,6 +4653,30 @@ static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out
 	out[0] = c * in[0] - s * in[2];
 	out[1] = in[1];
 	out[2] = s * in[0] + c * in[2];
+}
+
+static void CG_UpdateTabletopMovementYaw( void )
+{
+	vec3_t relativeHead;
+	float observerX;
+	float observerY;
+	const float rotation = DEG2RAD(cg_tabletopTransform.baseYaw
+		- cg_tabletopTransform.hmdFirstYaw) - cg_tabletopTransform.mapYaw;
+	const float c = cosf(rotation);
+	const float s = sinf(rotation);
+
+	VectorSubtract(vr->hmdposition, cg_tabletopTransform.physicalAnchor,
+		relativeHead);
+	observerX = -c * relativeHead[2] + s * relativeHead[0];
+	observerY = -c * relativeHead[0] - s * relativeHead[2];
+
+	// Keep the previous direction if the observer is directly over the
+	// miniature, where a radial direction would be numerically unstable.
+	if (observerX * observerX + observerY * observerY > 0.0025f)
+	{
+		vr->tabletop_forward_yaw =
+			RAD2DEG(atan2f(-observerY, -observerX));
+	}
 }
 
 static void CG_ResetTabletopTransform( void )
@@ -4681,7 +4706,8 @@ static void CG_ResetTabletopTransform( void )
 	cg_tabletopTransform.physicalAnchor[2] -= cosf(yaw) * forward;
 
 	vr->tabletop_scale = cg_tabletopTransform.visualScale;
-	cgi_Cvar_Set("r_fastsky", "1");
+	CG_UpdateTabletopMovementYaw();
+	cgi_Cvar_Set("r_fastsky", "2");
 }
 
 static void CG_UpdateTabletopTransform( void )
@@ -4706,6 +4732,7 @@ static void CG_UpdateTabletopTransform( void )
 		return;
 	}
 	cg_tabletopTransform.lastUpdateTime = cg.time;
+	CG_UpdateTabletopMovementYaw();
 
 	held[0] = (qboolean)(vr->tabletop_hand_active[0] &&
 		vr->tabletop_grip[0] >= 0.65f);
@@ -4796,6 +4823,8 @@ static void CG_UpdateTabletopTransform( void )
 		cgi_Cvar_Set("cg_tabletopScale",
 			va("%.5f", cg_tabletopTransform.visualScale));
 	}
+
+	CG_UpdateTabletopMovementYaw();
 }
 
 static float CG_TabletopWorldScale( void )
