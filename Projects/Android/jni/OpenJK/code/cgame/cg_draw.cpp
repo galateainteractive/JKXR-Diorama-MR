@@ -4852,8 +4852,16 @@ static void CG_ApplyTabletopView( void )
 	gameOffset[2] = relativeHead[1] * worldScale;
 	VectorAdd(cg_tabletopTransform.gameAnchor, gameOffset, cg.refdef.vieworg);
 
-	// Apply the inverse world yaw to the view basis as well as its position.
-	cg.refdef.viewangles[YAW] -= RAD2DEG(cg_tabletopTransform.mapYaw);
+	// The normal third-person path derives this yaw from the player's current
+	// view angle.  Tabletop locomotion deliberately turns that view angle so
+	// the avatar faces the stick direction; reusing it here would rotate the
+	// entire miniature along with the avatar.  Rebuild the camera orientation
+	// solely from the fixed room anchor and the live HMD pose instead.
+	cg.refdef.viewangles[PITCH] = vr->hmdorientation[PITCH];
+	cg.refdef.viewangles[YAW] = cg_tabletopTransform.baseYaw
+		+ (vr->hmdorientation[YAW] - cg_tabletopTransform.hmdFirstYaw)
+		- RAD2DEG(cg_tabletopTransform.mapYaw);
+	cg.refdef.viewangles[ROLL] = vr->hmdorientation[ROLL];
 	AnglesToAxis(cg.refdef.viewangles, cg.refdef.viewaxis);
 }
 
