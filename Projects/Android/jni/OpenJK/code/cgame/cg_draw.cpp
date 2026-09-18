@@ -4620,10 +4620,15 @@ Perform all drawing needed to completely fill the screen
 typedef struct tabletopTransform_s
 {
 	qboolean initialized;
+	qboolean resumeResetPending;
+	qboolean playerStateValid;
 	qboolean gestureActive;
 	int gestureHands;
 	int lastUpdateTime;
+	int lastSnapshotServerTime;
+	int lastDeltaYaw;
 	vec3_t gameAnchor;
+	vec3_t lastPlayerOrigin;
 	vec3_t physicalAnchor;
 	vec3_t gestureStartMidpoint;
 	vec3_t gestureStartAnchor;
@@ -4710,6 +4715,13 @@ static void CG_ResetTabletopTransform( void )
 
 	VectorCopy(cg.predicted_player_state.origin,
 		cg_tabletopTransform.gameAnchor);
+	VectorCopy(cg.predicted_player_state.origin,
+		cg_tabletopTransform.lastPlayerOrigin);
+	cg_tabletopTransform.playerStateValid = qtrue;
+	cg_tabletopTransform.lastSnapshotServerTime = cg.snap
+		? cg.snap->serverTime : cg.time;
+	cg_tabletopTransform.lastDeltaYaw =
+		cg.predicted_player_state.delta_angles[YAW];
 	cg_tabletopTransform.gameAnchor[2] += DEFAULT_PLAYER_HEIGHT * 0.5f;
 
 	// Place the game anchor in front of and below the headset.  This physical
@@ -4734,9 +4746,33 @@ static void CG_UpdateTabletopTransform( void )
 	vec3_t separation;
 	float distance;
 	float angle;
+	qboolean playerDiscontinuity = qfalse;
+
+	if (cg_tabletopTransform.initialized &&
+		cg_tabletopTransform.playerStateValid)
+	{
+		vec3_t playerDelta;
+		const int snapshotServerTime = cg.snap
+			? cg.snap->serverTime : cg.time;
+		const float deltaYawChange = fabsf(AngleDelta(
+			SHORT2ANGLE(cg.predicted_player_state.delta_angles[YAW]),
+			SHORT2ANGLE(cg_tabletopTransform.lastDeltaYaw)));
+
+		VectorSubtract(cg.predicted_player_state.origin,
+			cg_tabletopTransform.lastPlayerOrigin, playerDelta);
+		// Same-map loads, scripted doors and mission transitions do not always
+		// recreate cgame. Treat their time/origin/yaw discontinuity as a fresh
+		// tabletop lifecycle, just as a full application restart would.
+		playerDiscontinuity = (qboolean)(
+			snapshotServerTime < cg_tabletopTransform.lastSnapshotServerTime ||
+			VectorLengthSquared(playerDelta) > 512.0f * 512.0f ||
+			deltaYawChange > 90.0f);
+	}
 
 	if (!cg_tabletopTransform.initialized ||
-		cg.time + 1000 < cg_tabletopTransform.lastUpdateTime)
+		cg_tabletopTransform.resumeResetPending ||
+		playerDiscontinuity ||
+		cg.time < cg_tabletopTransform.lastUpdateTime)
 	{
 		CG_ResetTabletopTransform();
 	}
@@ -4748,6 +4784,13 @@ static void CG_UpdateTabletopTransform( void )
 		return;
 	}
 	cg_tabletopTransform.lastUpdateTime = cg.time;
+	cg_tabletopTransform.lastSnapshotServerTime = cg.snap
+		? cg.snap->serverTime : cg.time;
+	cg_tabletopTransform.lastDeltaYaw =
+		cg.predicted_player_state.delta_angles[YAW];
+	VectorCopy(cg.predicted_player_state.origin,
+		cg_tabletopTransform.lastPlayerOrigin);
+	cg_tabletopTransform.playerStateValid = qtrue;
 	CG_UpdateTabletopMovementYaw();
 
 	held[0] = (qboolean)(vr->tabletop_hand_active[0] &&
@@ -4891,6 +4934,13 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 	if ( !cg.snap ) {
 		CG_DrawInformation();
 		return;
+	}
+
+	if (cg_tabletop.integer && !tabletopActive)
+	{
+		// Scripted cameras and cutscenes temporarily leave tabletop rendering.
+		// Re-entering gameplay must not reuse their pre-transition control frame.
+		cg_tabletopTransform.resumeResetPending = qtrue;
 	}
 
 	if (tabletopActive)
