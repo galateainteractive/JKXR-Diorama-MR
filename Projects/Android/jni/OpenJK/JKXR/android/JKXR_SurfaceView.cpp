@@ -301,7 +301,10 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 
 		if (!tabletopYawValid)
 		{
-			tabletopMoveYaw = vr.clientviewangles[YAW];
+			// clientviewangles is the command yaw.  The game later adds the
+			// player-state delta yaw to obtain the actual world heading.
+			tabletopMoveYaw = vr.clientviewangles[YAW] +
+				SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
 			tabletopYawValid = true;
 		}
 
@@ -320,7 +323,10 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		*up = 0.0f;
 		*side = 0.0f;
 		*pos_side = 0.0f;
-		*yaw = tabletopMoveYaw;
+		// tabletopMoveYaw is already a world-space direction.  JKA adds
+		// delta_angles[YAW] inside PM_UpdateViewAngles, so remove it here or
+		// spawn/script camera deltas rotate locomotion a second time.
+		*yaw = tabletopMoveYaw - SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
 		*pitch = 0.0f;
 		*roll = 0.0f;
 	}
