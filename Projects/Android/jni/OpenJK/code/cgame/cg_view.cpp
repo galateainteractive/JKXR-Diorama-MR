@@ -2124,7 +2124,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	}
 	// decide on third person view
 	cg.renderingThirdPerson = (qboolean)(
-		cg_thirdPerson.integer
+		cg_tabletop.integer
+		|| cg_thirdPerson.integer
 		|| (cg.snap->ps.stats[STAT_HEALTH] <= 0)
 		|| (cg.snap->ps.eFlags&EF_HELD_BY_SAND_CREATURE)
 //		|| (
@@ -2136,7 +2137,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	vr->third_person = cg.renderingThirdPerson;
 	vr->dualsabers = player->client->ps.dualSabers && cg.snap->ps.weapon == WP_SABER;
 
-	if ( cg.zoomMode )
+	if ( cg.zoomMode && !cg_tabletop.integer )
 	{
 		// zoomed characters should never do third person stuff??
 		cg.renderingThirdPerson = qfalse;
@@ -2224,7 +2225,9 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 			cg.refdef.override_fov = true;
 		}
 
-		cg.refdef.worldscale = cg_worldScale.value;
+		cg.refdef.worldscale = cg_tabletop.integer
+			? cg_worldScale.value / Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value)
+			: cg_worldScale.value;
 
 		bool usingScope = (cg.zoomMode == 2 || cg.zoomMode == 4);
 		//Normal 1st person view angles

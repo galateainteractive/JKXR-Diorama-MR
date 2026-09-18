@@ -566,6 +566,8 @@ float VR_GetEyeStereoSeparation(int eye)
 	float ipd;
 	float worldScale = 33.5f;
 	cvar_t *worldScaleCvar;
+	cvar_t *tabletopCvar;
+	cvar_t *tabletopScaleCvar;
 
 	if (!gAppState.SessionActive || gAppState.Views == NULL)
 	{
@@ -576,6 +578,16 @@ float VR_GetEyeStereoSeparation(int eye)
 	if (worldScaleCvar)
 	{
 		worldScale = worldScaleCvar->value;
+	}
+
+	// Jedi Academy registers cg_tabletop with a default of 1.  Jedi Outcast
+	// does not register it, so the default of 0 here keeps that game unchanged.
+	tabletopCvar = Cvar_Get("cg_tabletop", "0", 0);
+	tabletopScaleCvar = Cvar_Get("cg_tabletopScale", "0.04", 0);
+	if (tabletopCvar && tabletopCvar->integer && tabletopScaleCvar)
+	{
+		const float visualScale = Com_Clamp(0.01f, 0.20f, tabletopScaleCvar->value);
+		worldScale /= visualScale;
 	}
 
 	left = &gAppState.Views[0].pose.position;

@@ -4617,9 +4617,53 @@ CG_DrawActive
 Perform all drawing needed to completely fill the screen
 =====================
 */
+static float CG_TabletopWorldScale( void )
+{
+	const float visualScale = Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
+	return cg_worldScale.value / visualScale;
+}
+
+static void CG_ApplyTabletopView( void )
+{
+	vec3_t anchor;
+	vec3_t tableAngles;
+	vec3_t tableForward;
+	vec3_t headOffset;
+	const float worldScale = CG_TabletopWorldScale();
+	const float baseYaw = cg.refdef.viewangles[YAW]
+		- (vr->hmdorientation[YAW] - vr->hmdorientation_first[YAW]);
+
+	// Keep gameplay in its original coordinate system.  Only the render camera
+	// is mapped into a miniature world centred on the predicted player.
+	VectorCopy(cg.predicted_player_state.origin, anchor);
+	anchor[2] += DEFAULT_PLAYER_HEIGHT * 0.5f;
+
+	VectorSet(tableAngles, 0.0f, baseYaw, 0.0f);
+	AngleVectors(tableAngles, tableForward, NULL, NULL);
+
+	VectorCopy(anchor, cg.refdef.vieworg);
+	VectorMA(cg.refdef.vieworg,
+		-Com_Clamp(0.25f, 3.0f, cg_tabletopForward.value) * worldScale,
+		tableForward, cg.refdef.vieworg);
+	cg.refdef.vieworg[2] +=
+		Com_Clamp(0.10f, 1.50f, cg_tabletopDown.value) * worldScale;
+
+	// Reuse JKXR's tracking-space conversion, then replace its normal scale
+	// with the tabletop visual scale.  This supplies true 6DoF parallax without
+	// changing tracked-controller gameplay calculations.
+	BG_ConvertFromVR(vr->hmdposition_offset, NULL, headOffset);
+	if (cg_worldScale.value > 0.001f)
+	{
+		VectorScale(headOffset, worldScale / cg_worldScale.value, headOffset);
+	}
+	VectorAdd(cg.refdef.vieworg, headOffset, cg.refdef.vieworg);
+}
+
 void CG_DrawActive( stereoFrame_t stereoView ) {
 	float		separation;
 	vec3_t		baseOrg;
+	const qboolean tabletopActive = (qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
+	const float renderWorldScale = tabletopActive ? CG_TabletopWorldScale() : cg_worldScale.value;
 
 	// optionally draw the info screen instead
 	if ( !cg.snap ) {
@@ -4648,10 +4692,10 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 		separation = 0;
 		break;
 	case STEREO_LEFT:
-		separation = cg_worldScale.value * (-cg_stereoSeparation.value / 2);
+		separation = renderWorldScale * (-cg_stereoSeparation.value / 2);
 		break;
 	case STEREO_RIGHT:
-		separation = cg_worldScale.value * (cg_stereoSeparation.value / 2);
+		separation = renderWorldScale * (cg_stereoSeparation.value / 2);
 		break;
 	default:
 		separation = 0;
@@ -4659,7 +4703,11 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 	}
 
 	//Immersive cinematic sequence 6DoF
-	if ((in_camera && vr->immersive_cinematics) || vr->emplaced_gun || cg.renderingThirdPerson || vr->in_vehicle)
+	if (tabletopActive)
+	{
+		CG_ApplyTabletopView();
+	}
+	else if ((in_camera && vr->immersive_cinematics) || vr->emplaced_gun || cg.renderingThirdPerson || vr->in_vehicle)
 	{
 		BG_ConvertFromVR(vr->hmdposition_offset, cg.refdef.vieworg, cg.refdef.vieworg);
 	}
@@ -4678,7 +4726,7 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 		cgi_R_LAGoggles();
 	}
 
-	if (!vr->emplaced_gun && !in_misccamera && !in_camera) {
+	if (!tabletopActive && !vr->emplaced_gun && !in_misccamera && !in_camera) {
 		//Vertical Positional Movement
 		cg.refdef.vieworg[2] -= DEFAULT_PLAYER_HEIGHT;
 		cg.refdef.vieworg[2] += (vr->hmdposition[1] + cg_heightAdjust.value) * cg_worldScale.value;

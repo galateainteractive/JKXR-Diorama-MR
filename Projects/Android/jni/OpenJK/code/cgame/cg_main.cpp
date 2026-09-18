@@ -322,6 +322,10 @@ vmCvar_t	cg_zProj;
 vmCvar_t	cg_stereoSeparation;
 vmCvar_t	cg_worldScale;
 vmCvar_t	cg_heightAdjust;
+vmCvar_t	cg_tabletop;
+vmCvar_t	cg_tabletopScale;
+vmCvar_t	cg_tabletopForward;
+vmCvar_t	cg_tabletopDown;
 vmCvar_t 	cg_developer;
 vmCvar_t 	cg_timescale;
 vmCvar_t	cg_skippingcin;
@@ -399,6 +403,10 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_stereoSeparation, "cg_stereoSeparation", "0.065", CVAR_ARCHIVE  },
 	{ &cg_worldScale, "cg_worldScale", "33.5", CVAR_ARCHIVE  },
 	{ &cg_heightAdjust, "cg_heightAdjust", "0.0", CVAR_ARCHIVE  },
+	{ &cg_tabletop, "cg_tabletop", "1", CVAR_ARCHIVE  },
+	{ &cg_tabletopScale, "cg_tabletopScale", "0.04", CVAR_ARCHIVE  },
+	{ &cg_tabletopForward, "cg_tabletopForward", "1.25", CVAR_ARCHIVE  },
+	{ &cg_tabletopDown, "cg_tabletopDown", "0.55", CVAR_ARCHIVE  },
 #ifdef _WIN32
 	{ &cg_shadows, "cg_shadows", "2", CVAR_ARCHIVE  },
 #else
