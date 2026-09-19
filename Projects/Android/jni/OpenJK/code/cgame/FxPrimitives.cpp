@@ -117,6 +117,10 @@ void CParticle::Die()
 bool CParticle::Cull()
 {
 	vec3_t	dir;
+	if (cg_tabletop.integer)
+	{
+		return false;
+	}
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
@@ -621,6 +625,10 @@ void CParticle::UpdateAlpha()
 bool COrientedParticle::Cull()
 {
 	vec3_t	dir;
+	if (cg_tabletop.integer)
+	{
+		return false;
+	}
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
@@ -964,6 +972,10 @@ bool CElectricity::Update()
 bool CTail::Cull()
 {
 	vec3_t	dir;
+	if (cg_tabletop.integer)
+	{
+		return false;
+	}
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
@@ -1857,6 +1869,10 @@ bool CTrail::Update()
 bool CPoly::Cull()
 {
 	vec3_t	dir;
+	if (cg_tabletop.integer)
+	{
+		return false;
+	}
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );

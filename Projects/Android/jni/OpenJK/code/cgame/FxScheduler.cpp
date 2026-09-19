@@ -1189,7 +1189,13 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int 
 
 		if ( prim->mCullRange )
 		{
-			if ( DistanceSquared( origin, cg.refdef.vieworg ) > prim->mCullRange )  // cull range has already been squared
+			// In tabletop the player is the simulation focus.  The observer may
+			// stand anywhere around the miniature, so headset distance must not
+			// stop nearby doors, fires, or other world FX from being spawned.
+			const vec_t *cullOrigin = cg_tabletop.integer
+				? cg.predicted_player_state.origin
+				: cg.refdef.vieworg;
+			if ( DistanceSquared( origin, cullOrigin ) > prim->mCullRange )  // cull range has already been squared
 			{
 				// is too far away, so don't add this primitive group
 				continue;

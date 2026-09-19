@@ -1019,12 +1019,24 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
             }
 
-            //Use Force - off hand trigger
+            // Use Force - off hand trigger. Tabletop has no reliable embodied
+            // hand gesture or selector while the grips manipulate the map, so
+            // make the tutorial-critical Push power deterministic.
             {
                 if ((pOffTrackedRemoteNew->Buttons & xrButton_Trigger) !=
                     (pOffTrackedRemoteOld->Buttons & xrButton_Trigger))
                 {
-                    sendButtonAction("+useforce", (pOffTrackedRemoteNew->Buttons & xrButton_Trigger));
+                    if (tabletopActive)
+                    {
+                        if (pOffTrackedRemoteNew->Buttons & xrButton_Trigger)
+                        {
+                            sendButtonActionSimple(va("useGivenForce %i", FP_PUSH));
+                        }
+                    }
+                    else
+                    {
+                        sendButtonAction("+useforce", (pOffTrackedRemoteNew->Buttons & xrButton_Trigger));
+                    }
                 }
             }
 
