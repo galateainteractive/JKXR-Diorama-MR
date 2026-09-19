@@ -2158,6 +2158,8 @@ void CG_DrawMiscEnts(void)
 	refEntity_t	refEnt;
 	vec3_t		difference;
 	vec3_t		cullOrigin;
+	const vec_t *visibilityOrigin = (cg_tabletop.integer && !in_camera && !in_misccamera)
+		? cg.predicted_player_state.origin : cg.refdef.vieworg;
 
 	memset (&refEnt, 0, sizeof(refEnt));
 	refEnt.reType = RT_MODEL;
@@ -2168,9 +2170,9 @@ void CG_DrawMiscEnts(void)
 		VectorCopy(MiscEnt->origin, cullOrigin);
 		cullOrigin[2] += MiscEnt->zOffset+1.0f;
 
-		if (gi.inPVS(cg.refdef.vieworg, cullOrigin))
+		if (gi.inPVS(visibilityOrigin, cullOrigin))
 		{
-			VectorSubtract(MiscEnt->origin, cg.refdef.vieworg, difference);
+			VectorSubtract(MiscEnt->origin, visibilityOrigin, difference);
 			if (VectorLengthSquared(difference)-(MiscEnt->radius) <= 8192*8192/*RMG_distancecull.value*/)
 			{ //fixme: need access to the real cull dist here
 				refEnt.hModel = MiscEnt->hModel;

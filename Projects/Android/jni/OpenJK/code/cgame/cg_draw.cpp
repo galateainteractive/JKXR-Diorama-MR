@@ -3055,6 +3055,10 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 		{
 			VectorCopy(vr->tabletop_force_angles, weaponangles);
 		}
+		else if (type == 1 && vr->tabletop_weapon_aim_valid)
+		{
+			VectorCopy(vr->tabletop_weapon_angles, weaponangles);
+		}
 		else
 		{
 			VectorCopy(cg_entities[0].lerpAngles, weaponangles);
@@ -4681,10 +4685,11 @@ void CG_ClearTabletopTransform( void )
 	vr->tabletop_forward_yaw = 0.0f;
 	vr->tabletop_transform_valid = false;
 	vr->tabletop_force_aim_valid = false;
+	vr->tabletop_weapon_aim_valid = false;
 	++vr->tabletop_transform_serial;
 }
 
-static void CG_UpdateTabletopForceAim( void )
+static void CG_UpdateTabletopAim( void )
 {
 	// QuatToYawPitchRoll expresses a controller pointing toward room -Z as
 	// game +X. Apply the same yaw used by the tabletop room-to-game transform
@@ -4696,6 +4701,13 @@ static void CG_UpdateTabletopForceAim( void )
 		cg_tabletopTransform.baseYaw - cg_tabletopTransform.hmdFirstYaw
 		- RAD2DEG(cg_tabletopTransform.mapYaw);
 	vr->tabletop_force_aim_valid = true;
+
+	VectorCopy(vr->weaponangles[ANGLES_ADJUSTED],
+		vr->tabletop_weapon_angles);
+	vr->tabletop_weapon_angles[YAW] +=
+		cg_tabletopTransform.baseYaw - cg_tabletopTransform.hmdFirstYaw
+		- RAD2DEG(cg_tabletopTransform.mapYaw);
+	vr->tabletop_weapon_aim_valid = true;
 }
 
 static void CG_TabletopGameToTrackingOffset( const vec3_t gamePoint,
@@ -4965,6 +4977,35 @@ static float CG_TabletopWorldScale( void )
 	return cg_worldScale.value / visualScale;
 }
 
+qboolean CG_TabletopHandToGame( qboolean weaponHand, vec3_t out )
+{
+	vec3_t relativeHand;
+	vec3_t gameOffset;
+	const int hand = weaponHand
+		? (vr->right_handed ? 1 : 0)
+		: (vr->right_handed ? 0 : 1);
+	const float worldScale = CG_TabletopWorldScale();
+	const float rotation = DEG2RAD(cg_tabletopTransform.baseYaw
+		- cg_tabletopTransform.hmdFirstYaw) - cg_tabletopTransform.mapYaw;
+	const float c = cosf(rotation);
+	const float s = sinf(rotation);
+
+	if (!cg_tabletopTransform.initialized ||
+		!vr->tabletop_transform_valid ||
+		!vr->tabletop_hand_active[hand])
+	{
+		return qfalse;
+	}
+
+	VectorSubtract(vr->tabletop_hand_position[hand],
+		cg_tabletopTransform.physicalAnchor, relativeHand);
+	gameOffset[0] = (-c * relativeHand[2] + s * relativeHand[0]) * worldScale;
+	gameOffset[1] = (-c * relativeHand[0] - s * relativeHand[2]) * worldScale;
+	gameOffset[2] = relativeHand[1] * worldScale;
+	VectorAdd(cg_tabletopTransform.gameAnchor, gameOffset, out);
+	return qtrue;
+}
+
 static void CG_ApplyTabletopView( void )
 {
 	vec3_t relativeHead;
@@ -4997,9 +5038,20 @@ static void CG_ApplyTabletopView( void )
 
 void CG_PrepareTabletopView( void )
 {
+	static int previousTabletopState = -1;
 	const qboolean tabletopActive =
 		(qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
 	cg.refdef.tabletopFocusValid = qfalse;
+
+	if (previousTabletopState >= 0 &&
+		previousTabletopState != (cg_tabletop.integer != 0))
+	{
+		CG_ClearTabletopTransform();
+		// Restore the stock sky when entering original VR, and make it
+		// transparent again when returning to mixed-reality tabletop mode.
+		cgi_Cvar_Set("r_fastsky", cg_tabletop.integer ? "2" : "0");
+	}
+	previousTabletopState = (cg_tabletop.integer != 0);
 
 	if (cg_tabletop.integer && !tabletopActive)
 	{
@@ -5012,7 +5064,7 @@ void CG_PrepareTabletopView( void )
 	{
 		CG_UpdateTabletopTransform();
 		CG_ApplyTabletopView();
-		CG_UpdateTabletopForceAim();
+		CG_UpdateTabletopAim();
 		cg.refdef.tabletopFocusValid = qtrue;
 		VectorCopy(cg.predicted_player_state.origin,
 			cg.refdef.tabletopFocus);
@@ -5020,6 +5072,7 @@ void CG_PrepareTabletopView( void )
 	else
 	{
 		vr->tabletop_force_aim_valid = false;
+		vr->tabletop_weapon_aim_valid = false;
 	}
 }
 

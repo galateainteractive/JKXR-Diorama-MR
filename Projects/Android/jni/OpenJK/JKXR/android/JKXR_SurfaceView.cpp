@@ -313,6 +313,10 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		const float stickY = remote_movementForward;
 		const float magnitude = Com_Clamp(0.0f, 1.0f,
 			sqrtf(stickX * stickX + stickY * stickY));
+		const int weapon = cl.frame.ps.weapon;
+		const bool handAimedWeapon = vr.tabletop_weapon_aim_valid &&
+			weapon != WP_NONE && weapon != WP_SABER &&
+			weapon != WP_MELEE && weapon != WP_THERMAL;
 
 		if (!tabletopYawValid)
 		{
@@ -333,16 +337,31 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 				RAD2DEG(atan2f(-stickX, stickY));
 		}
 
-		*forward = magnitude;
+		if (handAimedWeapon)
+		{
+			// Keep locomotion observer-relative while the avatar and its real shot
+			// direction follow the dominant hand.  Decompose the desired world
+			// movement into that hand-facing command basis.
+			const float relativeMove = DEG2RAD(AngleDelta(
+				tabletopMoveYaw, vr.tabletop_weapon_angles[YAW]));
+			*forward = magnitude * cosf(relativeMove);
+			*side = -magnitude * sinf(relativeMove);
+		}
+		else
+		{
+			*forward = magnitude;
+			*side = 0.0f;
+		}
 		*pos_forward = 0.0f;
 		*up = 0.0f;
-		*side = 0.0f;
 		*pos_side = 0.0f;
 		// tabletopMoveYaw is already a world-space direction.  JKA adds
 		// delta_angles[YAW] inside PM_UpdateViewAngles, so remove it here or
 		// spawn/script camera deltas rotate locomotion a second time.
-		*yaw = tabletopMoveYaw - SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
-		*pitch = 0.0f;
+		*yaw = (handAimedWeapon
+			? vr.tabletop_weapon_angles[YAW]
+			: tabletopMoveYaw) - SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
+		*pitch = handAimedWeapon ? vr.tabletop_weapon_angles[PITCH] : 0.0f;
 		*roll = 0.0f;
 	}
 	else if (!vr.third_person) {

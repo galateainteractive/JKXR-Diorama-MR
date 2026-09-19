@@ -3526,7 +3526,9 @@ static qboolean CG_PlayerShadow( centity_t *const cent, float *const shadowPlane
 		VectorCopy(cent->lerpOrigin,rootOrigin);
 	}
 
-	if ( DistanceSquared( cg.refdef.vieworg, rootOrigin ) > cg_shadowCullDistance.value * cg_shadowCullDistance.value )
+	const vec_t *shadowFocus = (cg_tabletop.integer && !in_camera && !in_misccamera)
+		? cg.predicted_player_state.origin : cg.refdef.vieworg;
+	if ( DistanceSquared( shadowFocus, rootOrigin ) > cg_shadowCullDistance.value * cg_shadowCullDistance.value )
 	{
 		// Shadow is too far away, don't do any traces, don't do any marks...blah
 		return qfalse;

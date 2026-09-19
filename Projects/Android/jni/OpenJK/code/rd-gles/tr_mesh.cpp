@@ -38,8 +38,17 @@ float ProjectRadius( float r, vec3_t location )
 	float width;
 	float depth;
 
-	c = DotProduct( tr.viewParms.ori.axis[0], tr.viewParms.ori.origin );
-	dist = DotProduct( tr.viewParms.ori.axis[0], location ) - c;
+	if ( tr.refdef.tabletopFocusValid )
+	{
+		// LOD belongs to the avatar's active region, not to the external
+		// observer.  The HMD remains the projection/frustum camera.
+		dist = Distance( tr.refdef.tabletopFocus, location );
+	}
+	else
+	{
+		c = DotProduct( tr.viewParms.ori.axis[0], tr.viewParms.ori.origin );
+		dist = DotProduct( tr.viewParms.ori.axis[0], location ) - c;
+	}
 
 	if ( dist <= 0 )
 		return 0;

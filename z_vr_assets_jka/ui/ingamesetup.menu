@@ -2718,6 +2718,41 @@
 			} 
 		}
 
+		itemDef
+		{
+			name				tabletop_mode
+			group				difficulty
+			type				ITEM_TYPE_MULTI
+			text				"Modo de jogo"
+			cvar				"cg_tabletop"
+			cvarFloatList
+			{
+				"VR original" 0
+				"Maquete MR" 1
+			}
+			rect				260 286 340 14
+			textalign			ITEM_ALIGN_RIGHT
+			textalignx			174
+			textaligny			0
+			font				4
+			textscale			1
+			forecolor			.615 .615 .956 1
+			visible				0
+			descText			"Alterna entre a maquete em realidade mista e o modo VR original."
+			action
+			{
+				play			"sound/interface/button1.wav"
+			}
+			mouseenter
+			{
+				show			highlight8
+			}
+			mouseexit
+			{
+				hide			highlight8
+			}
+		}
+
 		itemDef 
 		{	
 			name				none

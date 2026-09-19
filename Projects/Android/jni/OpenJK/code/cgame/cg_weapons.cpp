@@ -3075,29 +3075,35 @@ void CG_DrawItemSelector( void )
 	BG_CalculateVRPositionInWorld(cg.itemSelectorOrigin, cg.itemSelectorOffset, angles, wheelOrigin, wheelAngles);
 	if (tabletopSelector)
 	{
-		// Keep radial UI head-relative instead of shrinking and drifting with the
-		// tabletop scene.  Selection still follows the appropriate controller ray.
+		// Keep the wheel readable in front of the observer, but originate its
+		// selection beam at the appropriate physical hand in miniature space.
 		VectorCopy(cg.refdef.viewangles, wheelAngles);
-		VectorCopy(cg.refdef.vieworg, controllerOrigin);
 		if (cg.itemSelectorType >= ST_FORCE_POWER &&
 			vr->tabletop_force_aim_valid)
 		{
 			VectorCopy(vr->tabletop_force_angles, controllerAngles);
 		}
-		else if (vr->tabletop_force_aim_valid)
+		else if (vr->tabletop_weapon_aim_valid)
 		{
-			const float tabletopYawCorrection =
-				vr->tabletop_force_angles[YAW] -
-				vr->offhandangles[ANGLES_ADJUSTED][YAW];
-			VectorCopy(vr->weaponangles[ANGLES_ADJUSTED], controllerAngles);
-			controllerAngles[YAW] += tabletopYawCorrection;
+			VectorCopy(vr->tabletop_weapon_angles, controllerAngles);
+		}
+		if (!CG_TabletopHandToGame(
+			(qboolean)(cg.itemSelectorType < ST_FORCE_POWER), controllerOrigin))
+		{
+			VectorCopy(cg.refdef.vieworg, controllerOrigin);
 		}
 	}
 
 	AngleVectors(wheelAngles, wheelForward, wheelRight, wheelUp);
-	VectorCopy(controllerOrigin, wheelOrigin);
-
-	VectorCopy(wheelOrigin, beamOrigin);
+	if (tabletopSelector)
+	{
+		VectorCopy(cg.refdef.vieworg, wheelOrigin);
+	}
+	else
+	{
+		VectorCopy(controllerOrigin, wheelOrigin);
+	}
+	VectorCopy(controllerOrigin, beamOrigin);
 	VectorMA(wheelOrigin, (dist * frac), wheelForward, wheelOrigin);
 	VectorCopy(wheelOrigin, selectorOrigin);
 

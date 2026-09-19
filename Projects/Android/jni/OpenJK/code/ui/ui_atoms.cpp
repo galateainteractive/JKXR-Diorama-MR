@@ -285,6 +285,7 @@ void UI_Init( int apiVersion, uiimport_t *uiimport, qboolean inGameLoad )
 	ui.Cvar_Create( "cg_hudScale", "2.5", CVAR_ARCHIVE );
 	ui.Cvar_Create( "cg_hudStereo", "20", CVAR_ARCHIVE );
 	ui.Cvar_Create( "cg_hudYOffset", "0.0", CVAR_ARCHIVE );
+	ui.Cvar_Create( "cg_tabletop", "1", CVAR_ARCHIVE );
 	ui.Cvar_Create( "g_TeamBeefDirectorsCut", "1", CVAR_ARCHIVE );
 #ifdef JK2_MODE
 	ui.Cvar_Create( "g_saberRealisticCombat", "1", CVAR_ARCHIVE );

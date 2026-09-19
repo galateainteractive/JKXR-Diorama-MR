@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-		android:versionCode="77"
-		android:versionName="1.1.28-tabletop-v1.7" android:installLocation="auto" >
+		android:versionCode="78"
+		android:versionName="1.1.28-tabletop-v2.6" android:installLocation="auto" >
 
 	<!-- Tell the system this app requires OpenGL ES 3.1. -->
 	<uses-feature android:glEsVersion="0x00030002" android:required="true"/>
