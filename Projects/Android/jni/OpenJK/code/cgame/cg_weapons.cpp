@@ -3029,9 +3029,20 @@ void CG_DrawItemSelector( void )
 		}
 	}
 
+	const qboolean tabletopSelector = (qboolean)(cg_tabletop.integer &&
+		!in_camera && !in_misccamera);
+	float selectorScale = 1.0f;
 	float dist = 10.0f;
 	float radius = 4.4f;
-	float scale = 0.05f;
+	if (tabletopSelector)
+	{
+		// The stock wheel is authored in normal game units next to a full-scale
+		// VR hand.  Compensate for the miniature world so it keeps a comfortable
+		// physical size, and place it farther from the eyes than the hand wheel.
+		selectorScale = cg.refdef.worldscale / cg_worldScale.value;
+		dist = 28.0f * selectorScale;
+		radius = 8.0f * selectorScale;
+	}
 
 	float frac = (cg.time - cg.itemSelectorTime) / 20.0f;
 	if (frac > 1.0f)
@@ -3062,6 +3073,26 @@ void CG_DrawItemSelector( void )
 	VectorClear(angles);
 	angles[YAW] = vr->hmdorientation[YAW];
 	BG_CalculateVRPositionInWorld(cg.itemSelectorOrigin, cg.itemSelectorOffset, angles, wheelOrigin, wheelAngles);
+	if (tabletopSelector)
+	{
+		// Keep radial UI head-relative instead of shrinking and drifting with the
+		// tabletop scene.  Selection still follows the appropriate controller ray.
+		VectorCopy(cg.refdef.viewangles, wheelAngles);
+		VectorCopy(cg.refdef.vieworg, controllerOrigin);
+		if (cg.itemSelectorType >= ST_FORCE_POWER &&
+			vr->tabletop_force_aim_valid)
+		{
+			VectorCopy(vr->tabletop_force_angles, controllerAngles);
+		}
+		else if (vr->tabletop_force_aim_valid)
+		{
+			const float tabletopYawCorrection =
+				vr->tabletop_force_angles[YAW] -
+				vr->offhandangles[ANGLES_ADJUSTED][YAW];
+			VectorCopy(vr->weaponangles[ANGLES_ADJUSTED], controllerAngles);
+			controllerAngles[YAW] += tabletopYawCorrection;
+		}
+	}
 
 	AngleVectors(wheelAngles, wheelForward, wheelRight, wheelUp);
 	VectorCopy(controllerOrigin, wheelOrigin);
@@ -3129,7 +3160,8 @@ void CG_DrawItemSelector( void )
 	}
 
 	//cgi_R_AddRefEntityToScene( &beam );
-	FX_AddLine(beamOrigin, selectorOrigin, 1.0f, 0.1f, 0.0f,
+	FX_AddLine(beamOrigin, selectorOrigin, 1.0f * selectorScale,
+		0.1f * selectorScale, 0.0f,
 		0.5f, 0.5f,
 		sRGB, sRGB,
 		10, cgi_R_RegisterShader("gfx/misc/whiteline2"),
@@ -3144,7 +3176,7 @@ void CG_DrawItemSelector( void )
 			VectorCopy(wheelOrigin, sprite.origin);
 			sprite.reType = RT_SPRITE;
 			sprite.customShader = cg_weapons[cg.weaponSelect].weaponIcon;
-			sprite.radius = 1.8f;
+			sprite.radius = 1.8f * selectorScale;
 			memset(sprite.shaderRGBA, 0xff, 4);
 			cgi_R_AddRefEntityToScene(&sprite);
 		}
@@ -3171,7 +3203,7 @@ void CG_DrawItemSelector( void )
 					break;
 			}
 
-			sprite.radius = 1.8f;
+			sprite.radius = 1.8f * selectorScale;
 			memset(sprite.shaderRGBA, 0xff, 4);
 			cgi_R_AddRefEntityToScene(&sprite);
 		}
@@ -3184,7 +3216,7 @@ void CG_DrawItemSelector( void )
 			VectorCopy(wheelOrigin, sprite.origin);
 			sprite.reType = RT_SPRITE;
 			sprite.customShader = force_icons[showPowers[cg.forcepowerSelect]];
-			sprite.radius = 1.8f;
+			sprite.radius = 1.8f * selectorScale;
 			memset(sprite.shaderRGBA, 0xff, 4);
 			cgi_R_AddRefEntityToScene(&sprite);
 		}
@@ -3195,12 +3227,13 @@ void CG_DrawItemSelector( void )
 		memset(&sprite, 0, sizeof(sprite));
 		vec3_t right;
 		AngleVectors(wheelAngles, NULL, right, NULL);
-		float offset = ((float) s * 6.0f) + (((float) s * 0.3f) *
-				sinf(DEG2RAD(AngleNormalize360(cg.time - cg.itemSelectorTime))));
+		float offset = (((float) s * 6.0f) + (((float) s * 0.3f) *
+				sinf(DEG2RAD(AngleNormalize360(cg.time - cg.itemSelectorTime))))) *
+			selectorScale;
 		VectorMA(wheelOrigin, offset, right, sprite.origin);
 		sprite.reType = RT_SPRITE;
 		sprite.customShader = cgs.media.binocularArrow;
-		sprite.radius = 0.6f;
+		sprite.radius = 0.6f * selectorScale;
 		sprite.rotation = 180.0f * ((s - 1.0f) / 2.0f);
 		memset(sprite.shaderRGBA, 0xff, 4);
 		cgi_R_AddRefEntityToScene(&sprite);
@@ -3268,14 +3301,14 @@ void CG_DrawItemSelector( void )
 				AngleVectors(angles, forward, NULL, up);
 
 				VectorMA(wheelOrigin, (radius * frac), up, iconOrigin);
-				VectorMA(iconOrigin, 0.2f, forward, iconBackground);
-				VectorMA(iconOrigin, -0.2f, forward, iconForeground);
+				VectorMA(iconOrigin, 0.2f * selectorScale, forward, iconBackground);
+				VectorMA(iconOrigin, -0.2f * selectorScale, forward, iconForeground);
 
 				{
 					vec3_t diff;
 					VectorSubtract(selectorOrigin, iconOrigin, diff);
 					float length = VectorLength(diff);
-					if (length <= 1.0f &&
+					if (length <= 1.0f * selectorScale &&
 						frac == 1.0f &&
 						selectable) {
 						if (cg.itemSelectorSelection != itemId) {
@@ -3293,11 +3326,12 @@ void CG_DrawItemSelector( void )
 					refEntity_t sprite;
 					memset(&sprite, 0, sizeof(sprite));
 					VectorCopy(iconOrigin, sprite.origin);
-					sprite.origin[2] += 2.5f + (0.5f * sinf(DEG2RAD(
-							AngleNormalize360(cg.time - cg.itemSelectorTime))));
+					sprite.origin[2] += (2.5f + (0.5f * sinf(DEG2RAD(
+							AngleNormalize360(cg.time - cg.itemSelectorTime))))) *
+						selectorScale;
 					sprite.reType = RT_SPRITE;
 					sprite.customShader = cgs.media.binocularArrow;
-					sprite.radius = 0.6f;
+					sprite.radius = 0.6f * selectorScale;
 					sprite.rotation = -90.0f;
 					sprite.shaderRGBA[0] = 255;
 					sprite.shaderRGBA[1] = 255;
@@ -3310,7 +3344,7 @@ void CG_DrawItemSelector( void )
 					refEntity_t sprite;
 					memset(&sprite, 0, sizeof(sprite));
 
-					float sRadius = 1.3f;
+					float sRadius = 1.3f * selectorScale;
 
 					VectorCopy(iconOrigin, sprite.origin);
 					sprite.reType = RT_SPRITE;
