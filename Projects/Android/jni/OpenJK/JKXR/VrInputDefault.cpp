@@ -1019,9 +1019,9 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
             }
 
-            // Use Force - off hand trigger. Tabletop has no reliable embodied
-            // hand gesture or selector while the grips manipulate the map, so
-            // make the tutorial-critical Push power deterministic.
+            // Use Force - off hand trigger.  Tabletop starts with Push, and the
+            // game-side trace switches to Pull when the shared hand cursor is
+            // pointing at a pull-only target.
             {
                 if ((pOffTrackedRemoteNew->Buttons & xrButton_Trigger) !=
                     (pOffTrackedRemoteOld->Buttons & xrButton_Trigger))

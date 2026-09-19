@@ -2342,6 +2342,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	}
 	//FIXME: first person crouch-uncrouch STILL FUCKS UP THE AREAMASK!!!
 	//if ( !VectorCompare2( cg.refdef.vieworg, cg.snap->ps.serverViewOrg ) && !gi.inPVS( cg.refdef.vieworg, cg.snap->ps.serverViewOrg ) )
+	if ( !cg_tabletop.integer || in_camera || in_misccamera )
 	{//actual view org and server's view org don't match and aren't same PVS, rebuild the areamask
 		//Com_Printf( S_COLOR_RED"%s != %s\n", vtos(cg.refdef.vieworg), vtos(cg.snap->ps.serverViewOrg) );
 		cgi_CM_SnapPVS( cg.refdef.vieworg, cg.snap->areamask );
@@ -2512,7 +2513,18 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		CG_AddTestModel();
 	}
 
-	memcpy( cg.refdef.areamask, cg.snap->areamask, sizeof( cg.refdef.areamask ) );
+	if ( cg_tabletop.integer && !in_camera && !in_misccamera )
+	{
+		// The room-scale camera can be outside the BSP area occupied by the
+		// miniature.  Building the portal-area mask from that camera makes whole
+		// rooms, foliage and their occupants pop in only when the headset is moved
+		// close.  Visibility for tabletop play belongs to the avatar's area.
+		cgi_CM_SnapPVS( cg.predicted_player_state.origin, cg.refdef.areamask );
+	}
+	else
+	{
+		memcpy( cg.refdef.areamask, cg.snap->areamask, sizeof( cg.refdef.areamask ) );
+	}
 
 	// update audio positions
 	//This is done from the vieworg to get origin for non-attenuated sounds

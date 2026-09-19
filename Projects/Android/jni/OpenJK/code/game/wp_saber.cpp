@@ -9012,6 +9012,57 @@ qboolean WP_ForceThrowable( gentity_t *ent, gentity_t *forwardEnt, gentity_t *se
 	return qtrue;
 }
 
+qboolean WP_TabletopForceTargetRequiresPull( gentity_t *self )
+{
+	trace_t tr;
+	vec3_t forward, end;
+	int radius;
+
+	if ( !self || !self->client || !cg_tabletop.integer ||
+		!vr->tabletop_force_aim_valid )
+	{
+		return qfalse;
+	}
+
+	radius = forcePushPullRadius[self->client->ps.forcePowerLevel[FP_PUSH]];
+	if ( forcePushPullRadius[self->client->ps.forcePowerLevel[FP_PULL]] > radius )
+	{
+		radius = forcePushPullRadius[self->client->ps.forcePowerLevel[FP_PULL]];
+	}
+	if ( !radius )
+	{
+		return qfalse;
+	}
+
+	AngleVectors( vr->tabletop_force_angles, forward, NULL, NULL );
+	VectorMA( self->client->renderInfo.eyePoint, radius, forward, end );
+	gi.trace( &tr, self->client->renderInfo.eyePoint, vec3_origin, vec3_origin,
+		end, self->s.number,
+		MASK_OPAQUE|CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_ITEM|CONTENTS_CORPSE,
+		(EG2_Collision)0, 0 );
+
+	if ( tr.entityNum < ENTITYNUM_WORLD )
+	{
+		gentity_t *target = &g_entities[tr.entityNum];
+		if ( target->inuse )
+		{
+			if ( target->flags & FL_FORCE_PULLABLE_ONLY )
+			{
+				return qtrue;
+			}
+			if ( target->classname &&
+				!Q_stricmp( "func_static", target->classname ) &&
+				(target->spawnflags & 2/*F_PULL*/) &&
+				!(target->spawnflags & 1/*F_PUSH*/) )
+			{
+				return qtrue;
+			}
+		}
+	}
+
+	return qfalse;
+}
+
 static qboolean ShouldPlayerResistForceThrow( gentity_t *player, gentity_t *attacker, qboolean pull )
 {
 	if ( player->health <= 0 )

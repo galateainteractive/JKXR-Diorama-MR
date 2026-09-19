@@ -4792,6 +4792,7 @@ extern void ForceTelepathy(gentity_t *ent);
 extern void ForceAbsorb(gentity_t *ent);
 extern void ForceHeal(gentity_t *ent);
 extern void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimByViewAngles );
+extern qboolean WP_TabletopForceTargetRequiresPull( gentity_t *self );
 static void ProcessGenericCmd(gentity_t *ent, byte cmd)
 {
 	switch(cmd) {
@@ -4804,7 +4805,10 @@ static void ProcessGenericCmd(gentity_t *ent, byte cmd)
 		ForceSpeed( ent );
 		break;
 	case GENCMD_FORCE_THROW:
-		ForceThrowEx(ent, qfalse, qfalse, qtrue);
+		// The tabletop trigger is a direct spatial interaction.  Preserve Push
+		// as its default, but automatically use Pull for a pull-only object under
+		// the shared hand cursor (for example yavin2's tutorial lever).
+		ForceThrowEx(ent, WP_TabletopForceTargetRequiresPull(ent), qfalse, qtrue);
 		break;
 	case GENCMD_FORCE_PULL:
 		ForceThrowEx(ent, qtrue, qfalse, qtrue);

@@ -494,6 +494,7 @@ void R_RotateForViewer (void)
 static void SetFarClip( void )
 {
 	float	farthestCornerDistance = 0;
+	float	tabletopMinimumFar = 0;
 	int		i;
 
 	// if not rendering the world (icons, menus, etc)
@@ -549,6 +550,18 @@ static void SetFarClip( void )
 	// The sky renders at zFar so need to move it out a little
 	// ...and make sure there is a minimum zfar to prevent problems
 	tr.viewParms.zFar = Com_Clamp(2048.0f, tr.distanceCull * (1.732), sqrtf( farthestCornerDistance ));
+	if ( tr.refdef.tabletopFocusValid )
+	{
+		// The normal far clip follows the camera.  In tabletop mode the camera
+		// may be thousands of game units away from the miniature, so reserve the
+		// normal map draw distance around the avatar as well as the gap to it.
+		tabletopMinimumFar = Distance( tr.viewParms.ori.origin,
+			tr.refdef.tabletopFocus ) + tr.distanceCull * 1.02f;
+		if ( tr.viewParms.zFar < tabletopMinimumFar )
+		{
+			tr.viewParms.zFar = tabletopMinimumFar;
+		}
+	}
 }
 
 
@@ -690,7 +703,15 @@ void R_SetupFrustum (void) {
 		if (i==4)
 		{
 			// far plane does not go through the view point, it goes alot farther..
-			tr.viewParms.frustum[i].dist -= tr.distanceCull*1.02f; // a little slack so we don't cull stuff
+			float farDistance = tr.distanceCull * 1.02f;
+			if ( tr.refdef.tabletopFocusValid )
+			{
+				// Keep the entire normal draw radius around the avatar, regardless
+				// of how far the physical headset is from the miniature.
+				farDistance += Distance( tr.viewParms.ori.origin,
+					tr.refdef.tabletopFocus );
+			}
+			tr.viewParms.frustum[i].dist -= farDistance; // a little slack so we don't cull stuff
 		}
 		SetPlaneSignbits( &tr.viewParms.frustum[i] );
 	}
