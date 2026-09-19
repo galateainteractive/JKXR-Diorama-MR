@@ -597,6 +597,17 @@ int CG_GetCameraPos( vec3_t camerapos ) {
 		VectorCopy(client_camera.origin, camerapos);
 		return 1;
 	}
+	else if ( cg_tabletop.integer && !in_misccamera && cg.snap )
+	{
+		// The renderer observes the miniature from the HMD, but the server uses
+		// this camera position to decide which movers and NPCs enter the client
+		// snapshot.  Returning the external HMD here made doors and enemies pop
+		// according to observer proximity.  Keep simulation visibility anchored
+		// to the avatar's actual eyes instead.
+		VectorCopy( cg.predicted_player_state.origin, camerapos );
+		camerapos[2] += cg.predicted_player_state.viewheight;
+		return 1;
+	}
 	else if ( cg_entities[0].gent && cg_entities[0].gent->client && cg_entities[0].gent->client->ps.viewEntity > 0 && cg_entities[0].gent->client->ps.viewEntity < ENTITYNUM_WORLD )
 	//else if ( cg.snap && cg.snap->ps.viewEntity > 0 && cg.snap->ps.viewEntity < ENTITYNUM_WORLD )
 	{//in an entity camera view
