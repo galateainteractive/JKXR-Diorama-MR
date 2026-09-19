@@ -1484,7 +1484,30 @@ void RB_DrawSurfaceSprites( shaderStage_t *stage, shaderCommands_t *input)
 //			R_WorldPointToEntity (backEnd.viewParms.ori.origin, ssViewOrigin);
 			R_WorldNormalToEntity (backEnd.viewParms.ori.axis[1], ssViewRight);
 			R_WorldNormalToEntity (backEnd.viewParms.ori.axis[2], ssViewUp);
-			VectorCopy(backEnd.ori.viewOrigin, ssViewOrigin);
+			if (backEnd.refdef.tabletopFocusValid)
+			{
+				vec3_t delta;
+				float axisLength = 1.0f;
+
+				// Terrain foliage is frequently submitted as an RT_MODEL entity,
+				// not as world geometry. Convert the avatar focus to this model's
+				// local coordinates just as R_RotateForEntity converts the camera.
+				VectorSubtract(backEnd.refdef.tabletopFocus,
+					backEnd.ori.origin, delta);
+				if (backEnd.currentEntity->e.reType == RT_MODEL &&
+					backEnd.currentEntity->e.nonNormalizedAxes)
+				{
+					axisLength = VectorLength(backEnd.currentEntity->e.axis[0]);
+					axisLength = axisLength ? 1.0f / axisLength : 0.0f;
+				}
+				ssViewOrigin[0] = DotProduct(delta, backEnd.ori.axis[0]) * axisLength;
+				ssViewOrigin[1] = DotProduct(delta, backEnd.ori.axis[1]) * axisLength;
+				ssViewOrigin[2] = DotProduct(delta, backEnd.ori.axis[2]) * axisLength;
+			}
+			else
+			{
+				VectorCopy(backEnd.ori.viewOrigin, ssViewOrigin);
+			}
 //			R_WorldToLocal(backEnd.viewParms.ori.axis[1], ssViewRight);
 //			R_WorldToLocal(backEnd.viewParms.ori.axis[2], ssViewUp);
 		}

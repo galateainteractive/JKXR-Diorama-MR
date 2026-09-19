@@ -3048,11 +3048,17 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 	vec3_t forward, weaponangles, origin;
 	if (tabletopActive)
 	{
-		// Force and weapon traces belong to the avatar in tabletop.  Tracing from
-		// the tracked hand creates a full-sized VR cursor detached from the model
-		// and does not represent the direction used by gameplay.
+		// Keep both traces rooted at the avatar. Force aim, however, follows the
+		// physical off hand through tabletop space and is shared with ForceThrow.
 		VectorCopy(g_entities[0].client->renderInfo.eyePoint, origin);
-		VectorCopy(cg_entities[0].lerpAngles, weaponangles);
+		if (type == 0 && vr->tabletop_force_aim_valid)
+		{
+			VectorCopy(vr->tabletop_force_angles, weaponangles);
+		}
+		else
+		{
+			VectorCopy(cg_entities[0].lerpAngles, weaponangles);
+		}
 	}
 	else if (type == 0)
 	{
@@ -3135,7 +3141,14 @@ static void CG_ScanForCrosshairEntity( qboolean scanAll )
 		else
 		{
 			VectorCopy( g_entities[0].client->renderInfo.eyePoint, start );
-			AngleVectors( cg_entities[0].lerpAngles, d_f, d_rt, d_up );
+			if (cg_tabletop.integer && vr->tabletop_force_aim_valid)
+			{
+				AngleVectors(vr->tabletop_force_angles, d_f, d_rt, d_up);
+			}
+			else
+			{
+				AngleVectors( cg_entities[0].lerpAngles, d_f, d_rt, d_up );
+			}
 		}
 
 		VectorMA( start, 2048, d_f, end );//4028 is max for mind trick
@@ -4667,7 +4680,22 @@ void CG_ClearTabletopTransform( void )
 	vr->tabletop_scale = 0.0f;
 	vr->tabletop_forward_yaw = 0.0f;
 	vr->tabletop_transform_valid = false;
+	vr->tabletop_force_aim_valid = false;
 	++vr->tabletop_transform_serial;
+}
+
+static void CG_UpdateTabletopForceAim( void )
+{
+	// QuatToYawPitchRoll expresses a controller pointing toward room -Z as
+	// game +X. Apply the same yaw used by the tabletop room-to-game transform
+	// so the physical off hand points through the miniature. Gameplay and the
+	// cursor both consume this shared ray; its origin remains the avatar.
+	VectorCopy(vr->offhandangles[ANGLES_ADJUSTED],
+		vr->tabletop_force_angles);
+	vr->tabletop_force_angles[YAW] +=
+		cg_tabletopTransform.baseYaw - cg_tabletopTransform.hmdFirstYaw
+		- RAD2DEG(cg_tabletopTransform.mapYaw);
+	vr->tabletop_force_aim_valid = true;
 }
 
 static void CG_TabletopGameToTrackingOffset( const vec3_t gamePoint,
@@ -4984,9 +5012,14 @@ void CG_PrepareTabletopView( void )
 	{
 		CG_UpdateTabletopTransform();
 		CG_ApplyTabletopView();
+		CG_UpdateTabletopForceAim();
 		cg.refdef.tabletopFocusValid = qtrue;
 		VectorCopy(cg.predicted_player_state.origin,
 			cg.refdef.tabletopFocus);
+	}
+	else
+	{
+		vr->tabletop_force_aim_valid = false;
 	}
 }
 

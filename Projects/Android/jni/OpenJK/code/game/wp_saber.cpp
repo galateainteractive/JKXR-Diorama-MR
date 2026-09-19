@@ -9239,7 +9239,19 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 	G_Sound( self, soundIndex );
 
 	vec3_t origin, angles;
-	if (self->client->ps.clientNum == 0 && !cg.renderingThirdPerson && !aimByViewAngles)
+	if (self->client->ps.clientNum == 0 && cg_tabletop.integer &&
+		vr->tabletop_force_aim_valid)
+	{
+		// Tabletop force powers originate at the miniature avatar but follow the
+		// exact off-hand ray used by the tabletop cursor. Using the physical hand
+		// as the origin would put the trace at room scale, while using viewangles
+		// makes the visible cursor disagree with the actual push.
+		VectorCopy(vr->tabletop_force_angles, fwdangles);
+		VectorCopy(self->client->renderInfo.eyePoint, origin);
+		AngleVectors(fwdangles, forward, right, NULL);
+		VectorCopy(self->currentOrigin, center);
+	}
+	else if (self->client->ps.clientNum == 0 && !cg.renderingThirdPerson && !aimByViewAngles)
 	{
 		BG_CalculateVROffHandPosition(origin, fwdangles);
 		AngleVectors( fwdangles, forward, right, NULL );
