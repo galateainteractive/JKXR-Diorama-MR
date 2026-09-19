@@ -2289,6 +2289,12 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	// NOTE: this may completely override the camera
 	CG_RunEmplacedWeapon();
 
+	// Tabletop must establish its real render camera before entities and FX are
+	// submitted.  Several particle types cull against cg.refdef; applying the
+	// miniature camera only in CG_DrawActive made them blink with the avatar's
+	// old facing direction instead of the headset's view.
+	CG_PrepareTabletopView();
+
 	// first person blend blobs, done after AnglesToAxis
 	if ( !cg.renderingThirdPerson ) {
 		CG_DamageBlendBlob();

@@ -4632,6 +4632,8 @@ typedef struct tabletopTransform_s
 	vec3_t physicalAnchor;
 	vec3_t gestureStartMidpoint;
 	vec3_t gestureStartAnchor;
+	vec3_t gesturePivotGame;
+	vec3_t gestureStartPivotPhysical;
 	float baseYaw;
 	float hmdFirstYaw;
 	float mapYaw;
@@ -4653,13 +4655,21 @@ void CG_ClearTabletopTransform( void )
 	++vr->tabletop_transform_serial;
 }
 
-static void CG_RotateTabletopTrackingYaw( const vec3_t in, float yaw, vec3_t out )
+static void CG_TabletopGameToTrackingOffset( const vec3_t gamePoint,
+	float visualScale, float mapYaw, vec3_t out )
 {
-	const float c = cosf(yaw);
-	const float s = sinf(yaw);
-	out[0] = c * in[0] - s * in[2];
-	out[1] = in[1];
-	out[2] = s * in[0] + c * in[2];
+	vec3_t gameOffset;
+	const float worldScale = cg_worldScale.value /
+		Com_Clamp(0.01f, 0.20f, visualScale);
+	const float rotation = DEG2RAD(cg_tabletopTransform.baseYaw
+		- cg_tabletopTransform.hmdFirstYaw) - mapYaw;
+	const float c = cosf(rotation);
+	const float s = sinf(rotation);
+
+	VectorSubtract(gamePoint, cg_tabletopTransform.gameAnchor, gameOffset);
+	out[0] = (s * gameOffset[0] - c * gameOffset[1]) / worldScale;
+	out[1] = gameOffset[2] / worldScale;
+	out[2] = (-c * gameOffset[0] - s * gameOffset[1]) / worldScale;
 }
 
 static void CG_UpdateTabletopMovementYaw( void )
@@ -4834,6 +4844,20 @@ static void CG_UpdateTabletopTransform( void )
 		cg_tabletopTransform.gestureStartScale =
 			cg_tabletopTransform.visualScale;
 		cg_tabletopTransform.gestureStartYaw = cg_tabletopTransform.mapYaw;
+		if (handCount == 2)
+		{
+			vec3_t pivotOffset;
+			VectorCopy(cg.predicted_player_state.origin,
+				cg_tabletopTransform.gesturePivotGame);
+			cg_tabletopTransform.gesturePivotGame[2] +=
+				DEFAULT_PLAYER_HEIGHT * 0.5f;
+			CG_TabletopGameToTrackingOffset(
+				cg_tabletopTransform.gesturePivotGame,
+				cg_tabletopTransform.gestureStartScale,
+				cg_tabletopTransform.gestureStartYaw, pivotOffset);
+			VectorAdd(cg_tabletopTransform.gestureStartAnchor, pivotOffset,
+				cg_tabletopTransform.gestureStartPivotPhysical);
+		}
 		return;
 	}
 
@@ -4846,9 +4870,9 @@ static void CG_UpdateTabletopTransform( void )
 	}
 	else
 	{
-		vec3_t startOffset;
-		vec3_t rotatedOffset;
-		float scaleRatio = 1.0f;
+		vec3_t midpointDelta;
+		vec3_t translatedPivot;
+		vec3_t pivotOffset;
 		float rotationDelta = angle - cg_tabletopTransform.gestureStartAngle;
 
 		while (rotationDelta > M_PI)
@@ -4865,17 +4889,21 @@ static void CG_UpdateTabletopTransform( void )
 			cg_tabletopTransform.visualScale = Com_Clamp(0.01f, 0.20f,
 				cg_tabletopTransform.gestureStartScale *
 				distance / cg_tabletopTransform.gestureStartDistance);
-			scaleRatio = cg_tabletopTransform.visualScale /
-				cg_tabletopTransform.gestureStartScale;
 		}
 		cg_tabletopTransform.mapYaw =
 			cg_tabletopTransform.gestureStartYaw + rotationDelta;
 
-		VectorSubtract(cg_tabletopTransform.gestureStartAnchor,
-			cg_tabletopTransform.gestureStartMidpoint, startOffset);
-		VectorScale(startOffset, scaleRatio, startOffset);
-		CG_RotateTabletopTrackingYaw(startOffset, rotationDelta, rotatedOffset);
-		VectorAdd(midpoint, rotatedOffset,
+		// Two-hand rotation and scale use the avatar as their pivot.  Moving both
+		// hands still drags the miniature, but twisting or pinching no longer
+		// makes the character orbit around the midpoint between the controllers.
+		VectorSubtract(midpoint, cg_tabletopTransform.gestureStartMidpoint,
+			midpointDelta);
+		VectorAdd(cg_tabletopTransform.gestureStartPivotPhysical, midpointDelta,
+			translatedPivot);
+		CG_TabletopGameToTrackingOffset(cg_tabletopTransform.gesturePivotGame,
+			cg_tabletopTransform.visualScale, cg_tabletopTransform.mapYaw,
+			pivotOffset);
+		VectorSubtract(translatedPivot, pivotOffset,
 			cg_tabletopTransform.physicalAnchor);
 
 		vr->tabletop_scale = cg_tabletopTransform.visualScale;
@@ -4924,6 +4952,25 @@ static void CG_ApplyTabletopView( void )
 	AnglesToAxis(cg.refdef.viewangles, cg.refdef.viewaxis);
 }
 
+void CG_PrepareTabletopView( void )
+{
+	const qboolean tabletopActive =
+		(qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
+
+	if (cg_tabletop.integer && !tabletopActive)
+	{
+		// Scripted cameras and cutscenes temporarily leave tabletop rendering.
+		// Re-entering gameplay must not reuse their pre-transition control frame.
+		cg_tabletopTransform.resumeResetPending = qtrue;
+	}
+
+	if (tabletopActive)
+	{
+		CG_UpdateTabletopTransform();
+		CG_ApplyTabletopView();
+	}
+}
+
 void CG_DrawActive( stereoFrame_t stereoView ) {
 	float		separation;
 	vec3_t		baseOrg;
@@ -4936,17 +4983,6 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 		return;
 	}
 
-	if (cg_tabletop.integer && !tabletopActive)
-	{
-		// Scripted cameras and cutscenes temporarily leave tabletop rendering.
-		// Re-entering gameplay must not reuse their pre-transition control frame.
-		cg_tabletopTransform.resumeResetPending = qtrue;
-	}
-
-	if (tabletopActive)
-	{
-		CG_UpdateTabletopTransform();
-	}
 	renderWorldScale = tabletopActive ? CG_TabletopWorldScale() : cg_worldScale.value;
 
 	if (!vr->item_selector) {
@@ -4981,11 +5017,7 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 	}
 
 	//Immersive cinematic sequence 6DoF
-	if (tabletopActive)
-	{
-		CG_ApplyTabletopView();
-	}
-	else if ((in_camera && vr->immersive_cinematics) || vr->emplaced_gun || cg.renderingThirdPerson || vr->in_vehicle)
+	if (!tabletopActive && ((in_camera && vr->immersive_cinematics) || vr->emplaced_gun || cg.renderingThirdPerson || vr->in_vehicle))
 	{
 		BG_ConvertFromVR(vr->hmdposition_offset, cg.refdef.vieworg, cg.refdef.vieworg);
 	}

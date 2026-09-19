@@ -819,6 +819,7 @@ void CG_AdjustFrom640Int( int *x, int *y, int *w, int *h );
 //
 void CG_CenterPrint( const char *str, int y, int delayOverride = -1 );
 void CG_ClearTabletopTransform( void );
+void CG_PrepareTabletopView( void );
 void CG_DrawActive( stereoFrame_t stereoView );
 void CG_ScrollText( const char *str, int iPixelWidth );
 void CG_CaptionText( const char *str, int sound );
