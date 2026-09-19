@@ -44,6 +44,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
         !!((int) Cvar_VariableValue("cg_thirdPerson"));
 
     static bool dominantGripPushed = false;
+    static int tabletopForceMenuPressTime = -1;
+    static bool tabletopForceMenuOpened = false;
+    static int tabletopItemMenuPressTime = -1;
+    static bool tabletopItemMenuOpened = false;
 
     //Need this for the touch screen
     ovrTrackedController * pWeapon = pDominantTracking;
@@ -316,9 +320,89 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
 
         float controllerYawHeading = 0.0f;
+
+        // Tabletop uses both grip buttons to manipulate the miniature, so the
+        // stock grip-opened radial menus need another home.  A short face-button
+        // tap keeps its original action; holding it opens the corresponding
+        // radial selector until release.
+        if (tabletopActive)
+        {
+            const int now = Sys_Milliseconds();
+            const int menuHoldTime = 250;
+
+            if (secondaryButton2New && !secondaryButton2Old)
+            {
+                tabletopForceMenuPressTime = now;
+                tabletopForceMenuOpened = false;
+            }
+            if (secondaryButton2New && !tabletopForceMenuOpened &&
+                tabletopForceMenuPressTime >= 0 &&
+                now - tabletopForceMenuPressTime >= menuHoldTime &&
+                vr.item_selector == 0)
+            {
+                vr.item_selector = 2;
+                tabletopForceMenuOpened = true;
+            }
+            if (!secondaryButton2New && secondaryButton2Old)
+            {
+                if (tabletopForceMenuOpened)
+                {
+                    if (vr.item_selector == 2)
+                    {
+                        sendButtonActionSimple("itemselectorselect");
+                        vr.item_selector = 0;
+                    }
+                }
+                else if (tabletopForceMenuPressTime >= 0)
+                {
+                    Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
+                }
+                tabletopForceMenuPressTime = -1;
+                tabletopForceMenuOpened = false;
+            }
+
+            if (secondaryButton1New && !secondaryButton1Old)
+            {
+                tabletopItemMenuPressTime = now;
+                tabletopItemMenuOpened = false;
+            }
+            if (secondaryButton1New && !tabletopItemMenuOpened &&
+                tabletopItemMenuPressTime >= 0 &&
+                now - tabletopItemMenuPressTime >= menuHoldTime &&
+                vr.item_selector == 0)
+            {
+                vr.item_selector = 1;
+                tabletopItemMenuOpened = true;
+            }
+            if (!secondaryButton1New && secondaryButton1Old)
+            {
+                if (tabletopItemMenuOpened)
+                {
+                    if (vr.item_selector == 1)
+                    {
+                        sendButtonActionSimple("itemselectorselect");
+                        vr.item_selector = 0;
+                    }
+                }
+                else if (tabletopItemMenuPressTime >= 0)
+                {
+                    Sys_QueEvent(0, SE_KEY, A_ESCAPE, true, 0, NULL);
+                }
+                tabletopItemMenuPressTime = -1;
+                tabletopItemMenuOpened = false;
+            }
+        }
+        else
+        {
+            tabletopForceMenuPressTime = -1;
+            tabletopForceMenuOpened = false;
+            tabletopItemMenuPressTime = -1;
+            tabletopItemMenuOpened = false;
+        }
+
         //Turn on weapon stabilisation?
         bool offhandGripPushed = (pOffTrackedRemoteNew->Buttons & xrButton_GripTrigger);
-        if (offhandGripPushed)
+        if (!tabletopActive && offhandGripPushed)
         {
             if (!vr.weapon_stabilised && vr.item_selector == 0 &&
                 !vr.misc_camera && !vr.cgzoommode)
@@ -364,12 +448,12 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 }
             }
         }
-        else if (vr.item_selector == 2)
+        else if (!tabletopActive && vr.item_selector == 2)
         {
             sendButtonActionSimple("itemselectorselect");
             vr.item_selector = 0;
         }
-        else
+        else if (!tabletopActive)
         {
             vr.weapon_stabilised = false;
         }
@@ -378,13 +462,13 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                               xrButton_GripTrigger) != 0;
 
         //Do this early so we can suppress other button actions when item selector is up
-        if (dominantGripPushed) {
+        if (!tabletopActive && dominantGripPushed) {
             if (!vr.weapon_stabilised && vr.item_selector == 0
                 && !vr.misc_camera && !vr.cgzoommode) {
                 vr.item_selector = 1;
             }
         }
-        else if (vr.item_selector == 1)
+        else if (!tabletopActive && vr.item_selector == 1)
         {
             sendButtonActionSimple("itemselectorselect");
             vr.item_selector = 0;
@@ -1007,36 +1091,30 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             remote_movementForward = move_speed_multiplier * v[1];
             
 
-            //X button invokes menu now
-            if ((secondaryButtonsNew & secondaryButton1) &&
+            //X button invokes menu now. In tabletop a tap is handled by the
+            // hold/tap radial-menu logic above.
+            if (!tabletopActive && (secondaryButtonsNew & secondaryButton1) &&
                 !(secondaryButtonsOld & secondaryButton1))
             {
                 Sys_QueEvent(0, SE_KEY, A_ESCAPE, true, 0, NULL);
             }
 
-            //Open the datapad
-            if (secondaryButton2New && !secondaryButton2Old) {
+            //Open the datapad. In tabletop a tap is handled by the hold/tap
+            // radial-menu logic above.
+            if (!tabletopActive && secondaryButton2New && !secondaryButton2Old) {
                 Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
             }
 
-            // Use Force - off hand trigger.  Tabletop starts with Push, and the
-            // game-side trace switches to Pull when the shared hand cursor is
-            // pointing at a pull-only target.
+            // Use the currently selected Force power. Push remains contextual
+            // in tabletop and becomes Pull for a pull-only target under the
+            // shared hand cursor. Keeping the down/up state also supports held
+            // powers such as Grip, Lightning and Drain.
             {
                 if ((pOffTrackedRemoteNew->Buttons & xrButton_Trigger) !=
                     (pOffTrackedRemoteOld->Buttons & xrButton_Trigger))
                 {
-                    if (tabletopActive)
-                    {
-                        if (pOffTrackedRemoteNew->Buttons & xrButton_Trigger)
-                        {
-                            sendButtonActionSimple(va("useGivenForce %i", FP_PUSH));
-                        }
-                    }
-                    else
-                    {
-                        sendButtonAction("+useforce", (pOffTrackedRemoteNew->Buttons & xrButton_Trigger));
-                    }
+                    sendButtonAction("+useforce",
+                        (pOffTrackedRemoteNew->Buttons & xrButton_Trigger));
                 }
             }
 

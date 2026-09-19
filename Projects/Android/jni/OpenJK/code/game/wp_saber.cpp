@@ -9146,6 +9146,10 @@ static qboolean ShouldPlayerResistForceThrow( gentity_t *player, gentity_t *atta
 void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimByViewAngles );
 void ForceThrow( gentity_t *self, qboolean pull, qboolean fake )
 {
+	if ( !pull && WP_TabletopForceTargetRequiresPull( self ) )
+	{
+		pull = qtrue;
+	}
 	ForceThrowEx(self, pull, fake, qfalse);
 }
 
