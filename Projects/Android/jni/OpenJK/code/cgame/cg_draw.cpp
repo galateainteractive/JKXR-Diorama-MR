@@ -2974,6 +2974,8 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 	trace_t trace;
 	vec3_t endpos;
 	refEntity_t ent;
+	const qboolean tabletopActive = (qboolean)(cg_tabletop.integer &&
+		!in_camera && !in_misccamera);
 
 	if (( type == 1 && !cg_drawCrosshair.integer) ||
 		(type == 0 && !cg_drawCrosshairForce.integer)) {
@@ -3017,8 +3019,9 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 
 	if (type == 0)
 	{
-		if (showPowers[cg.forcepowerSelect] == FP_HEAL ||
-			showPowers[cg.forcepowerSelect] == FP_SPEED ||
+		if ((!tabletopActive &&
+			(showPowers[cg.forcepowerSelect] == FP_HEAL ||
+			 showPowers[cg.forcepowerSelect] == FP_SPEED)) ||
 			vr->weapon_stabilised)
 		{
 			return;
@@ -3043,7 +3046,15 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 	float xmax = 64.0f * tan(cg.refdef.fov_x * M_PI / 360.0f);
 
 	vec3_t forward, weaponangles, origin;
-	if (type == 0)
+	if (tabletopActive)
+	{
+		// Force and weapon traces belong to the avatar in tabletop.  Tracing from
+		// the tracked hand creates a full-sized VR cursor detached from the model
+		// and does not represent the direction used by gameplay.
+		VectorCopy(g_entities[0].client->renderInfo.eyePoint, origin);
+		VectorCopy(cg_entities[0].lerpAngles, weaponangles);
+	}
+	else if (type == 0)
 	{
 		BG_CalculateVROffHandPosition(origin, weaponangles);
 	}
@@ -3058,11 +3069,15 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 	if (trace.fraction != 1.0f) {
 		memset(&ent, 0, sizeof(ent));
 		ent.reType = RT_SPRITE;
-		ent.renderfx = RF_FIRST_PERSON;
+		ent.renderfx = tabletopActive ? 0 : RF_FIRST_PERSON;
 
 		VectorCopy(trace.endpos, ent.origin);
 
 		ent.radius = w / 640 * xmax * trace.fraction * 2048 / 64.0f;
+		if (tabletopActive)
+		{
+			ent.radius = Com_Clamp(1.5f, 6.0f, ent.radius);
+		}
 		ent.customShader = hShader;
 		if(type == 0 && !cg_forceCrosshair) //Not Active Force Crosshair
 		{
@@ -4956,6 +4971,7 @@ void CG_PrepareTabletopView( void )
 {
 	const qboolean tabletopActive =
 		(qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
+	cg.refdef.tabletopFocusValid = qfalse;
 
 	if (cg_tabletop.integer && !tabletopActive)
 	{
@@ -4968,6 +4984,9 @@ void CG_PrepareTabletopView( void )
 	{
 		CG_UpdateTabletopTransform();
 		CG_ApplyTabletopView();
+		cg.refdef.tabletopFocusValid = qtrue;
+		VectorCopy(cg.predicted_player_state.origin,
+			cg.refdef.tabletopFocus);
 	}
 }
 

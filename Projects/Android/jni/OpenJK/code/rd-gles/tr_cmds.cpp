@@ -182,7 +182,9 @@ static void R_VR_PatchDrawSurfsCommand( drawSurfsCommand_t *cmd, stereoFrame_t s
 
 		VectorMA( cmd->refdef.vieworg, sep, cmd->refdef.viewaxis[1], cmd->refdef.vieworg );
 		VectorCopy( cmd->refdef.vieworg, cmd->viewParms.ori.origin );
-		VectorCopy( cmd->refdef.vieworg, cmd->viewParms.pvsOrigin );
+		VectorCopy( cmd->refdef.tabletopFocusValid
+			? cmd->refdef.tabletopFocus : cmd->refdef.vieworg,
+			cmd->viewParms.pvsOrigin );
 	}
 
 	R_RebuildViewParmsWorld( &cmd->viewParms );

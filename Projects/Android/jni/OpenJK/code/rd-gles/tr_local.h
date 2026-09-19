@@ -84,6 +84,8 @@ typedef struct {
 	float		worldscale;
 	vec3_t		vieworg;
 	vec3_t		viewaxis[3];		// transformation matrix
+	qboolean	tabletopFocusValid;
+	vec3_t		tabletopFocus;
 
 	int			time;				// time in milliseconds for shader effects and other time dependent rendering issues
 	int			frametime;

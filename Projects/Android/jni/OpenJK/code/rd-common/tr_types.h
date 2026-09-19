@@ -202,6 +202,12 @@ typedef struct {
 	int			viewContents;		// world contents at vieworg
 	vec3_t		viewangles; 		//adjusted viewangles for rendering
 
+	// Tabletop keeps the observer camera outside the playable space.  Use this
+	// separate point for PVS and distance-based world detail while vieworg stays
+	// the real HMD camera used for projection and frustum culling.
+	qboolean	tabletopFocusValid;
+	vec3_t		tabletopFocus;
+
 	// time in milliseconds for shader effects and other time dependent rendering issues
 	int			time;
 

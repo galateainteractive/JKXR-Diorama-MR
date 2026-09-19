@@ -309,6 +309,8 @@ void RE_RenderScene( const refdef_t *fd ) {
 	VectorCopy( fd->viewaxis[0], tr.refdef.viewaxis[0] );
 	VectorCopy( fd->viewaxis[1], tr.refdef.viewaxis[1] );
 	VectorCopy( fd->viewaxis[2], tr.refdef.viewaxis[2] );
+	tr.refdef.tabletopFocusValid = fd->tabletopFocusValid;
+	VectorCopy( fd->tabletopFocus, tr.refdef.tabletopFocus );
 
 	tr.refdef.time = fd->time;
 	tr.refdef.frametime = fd->time - lastTime;
@@ -409,7 +411,8 @@ void RE_RenderScene( const refdef_t *fd ) {
 //	VectorCopy( fd->viewaxis[1], parms.ori.axis[1] );
 //	VectorCopy( fd->viewaxis[2], parms.ori.axis[2] );
 
-	VectorCopy( fd->vieworg, parms.pvsOrigin );
+	VectorCopy( fd->tabletopFocusValid ? fd->tabletopFocus : fd->vieworg,
+		parms.pvsOrigin );
 
 	recursivePortalCount = 0;
 	R_RenderView( &parms );

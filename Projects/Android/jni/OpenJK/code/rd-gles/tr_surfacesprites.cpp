@@ -1473,7 +1473,9 @@ void RB_DrawSurfaceSprites( shaderStage_t *stage, shaderCommands_t *input)
 	{
 		if (backEnd.currentEntity == &tr.worldEntity)
 		{	// Drawing the world, so our job is dead-easy, in the viewparms
-			VectorCopy(backEnd.viewParms.ori.origin, ssViewOrigin);
+			VectorCopy(backEnd.refdef.tabletopFocusValid
+				? backEnd.refdef.tabletopFocus
+				: backEnd.viewParms.ori.origin, ssViewOrigin);
 			VectorCopy(backEnd.viewParms.ori.axis[1], ssViewRight);
 			VectorCopy(backEnd.viewParms.ori.axis[2], ssViewUp);
 		}
