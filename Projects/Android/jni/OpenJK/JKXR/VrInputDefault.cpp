@@ -45,8 +45,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
     static bool dominantGripPushed = false;
     static int tabletopForceMenuPressTime = -1;
+    static int tabletopForceMenuReleaseTime = -1;
     static bool tabletopForceMenuOpened = false;
     static int tabletopItemMenuPressTime = -1;
+    static int tabletopItemMenuReleaseTime = -1;
     static bool tabletopItemMenuOpened = false;
 
     //Need this for the touch screen
@@ -329,74 +331,112 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
         {
             const int now = Sys_Milliseconds();
             const int menuHoldTime = 250;
+            const int menuReleaseDebounce = 100;
 
-            if (secondaryButton2New && !secondaryButton2Old)
+            if (secondaryButton2New)
             {
-                tabletopForceMenuPressTime = now;
-                tabletopForceMenuOpened = false;
-            }
-            if (secondaryButton2New && !tabletopForceMenuOpened &&
-                tabletopForceMenuPressTime >= 0 &&
-                now - tabletopForceMenuPressTime >= menuHoldTime &&
-                vr.item_selector == 0)
-            {
-                vr.item_selector = 2;
-                tabletopForceMenuOpened = true;
-            }
-            if (!secondaryButton2New && secondaryButton2Old)
-            {
-                if (tabletopForceMenuOpened)
+                if (tabletopForceMenuPressTime < 0)
                 {
-                    if (vr.item_selector == 2)
+                    tabletopForceMenuPressTime = now;
+                    tabletopForceMenuOpened = false;
+                }
+                tabletopForceMenuReleaseTime = -1;
+
+                if (!tabletopForceMenuOpened &&
+                    now - tabletopForceMenuPressTime >= menuHoldTime &&
+                    vr.item_selector == 0)
+                {
+                    vr.item_selector = 2;
+                    tabletopForceMenuOpened = true;
+                }
+                else if (tabletopForceMenuOpened && vr.item_selector == 0)
+                {
+                    // Some controller runtimes occasionally report a one-frame
+                    // release.  Keep the requested selector latched while the
+                    // physical face button is held.
+                    vr.item_selector = 2;
+                }
+            }
+            else if (tabletopForceMenuPressTime >= 0)
+            {
+                if (tabletopForceMenuReleaseTime < 0)
+                {
+                    tabletopForceMenuReleaseTime = now;
+                }
+                if (now - tabletopForceMenuReleaseTime >= menuReleaseDebounce)
+                {
+                    if (tabletopForceMenuOpened)
                     {
-                        sendButtonActionSimple("itemselectorselect");
-                        vr.item_selector = 0;
+                        if (vr.item_selector == 2)
+                        {
+                            sendButtonActionSimple("itemselectorselect");
+                            vr.item_selector = 0;
+                        }
                     }
+                    else
+                    {
+                        Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
+                    }
+                    tabletopForceMenuPressTime = -1;
+                    tabletopForceMenuReleaseTime = -1;
+                    tabletopForceMenuOpened = false;
                 }
-                else if (tabletopForceMenuPressTime >= 0)
-                {
-                    Sys_QueEvent(0, SE_KEY, A_TAB, true, 0, NULL);
-                }
-                tabletopForceMenuPressTime = -1;
-                tabletopForceMenuOpened = false;
             }
 
-            if (secondaryButton1New && !secondaryButton1Old)
+            if (secondaryButton1New)
             {
-                tabletopItemMenuPressTime = now;
-                tabletopItemMenuOpened = false;
-            }
-            if (secondaryButton1New && !tabletopItemMenuOpened &&
-                tabletopItemMenuPressTime >= 0 &&
-                now - tabletopItemMenuPressTime >= menuHoldTime &&
-                vr.item_selector == 0)
-            {
-                vr.item_selector = 1;
-                tabletopItemMenuOpened = true;
-            }
-            if (!secondaryButton1New && secondaryButton1Old)
-            {
-                if (tabletopItemMenuOpened)
+                if (tabletopItemMenuPressTime < 0)
                 {
-                    if (vr.item_selector == 1)
+                    tabletopItemMenuPressTime = now;
+                    tabletopItemMenuOpened = false;
+                }
+                tabletopItemMenuReleaseTime = -1;
+
+                if (!tabletopItemMenuOpened &&
+                    now - tabletopItemMenuPressTime >= menuHoldTime &&
+                    vr.item_selector == 0)
+                {
+                    vr.item_selector = 1;
+                    tabletopItemMenuOpened = true;
+                }
+                else if (tabletopItemMenuOpened && vr.item_selector == 0)
+                {
+                    vr.item_selector = 1;
+                }
+            }
+            else if (tabletopItemMenuPressTime >= 0)
+            {
+                if (tabletopItemMenuReleaseTime < 0)
+                {
+                    tabletopItemMenuReleaseTime = now;
+                }
+                if (now - tabletopItemMenuReleaseTime >= menuReleaseDebounce)
+                {
+                    if (tabletopItemMenuOpened)
                     {
-                        sendButtonActionSimple("itemselectorselect");
-                        vr.item_selector = 0;
+                        if (vr.item_selector == 1)
+                        {
+                            sendButtonActionSimple("itemselectorselect");
+                            vr.item_selector = 0;
+                        }
                     }
+                    else
+                    {
+                        Sys_QueEvent(0, SE_KEY, A_ESCAPE, true, 0, NULL);
+                    }
+                    tabletopItemMenuPressTime = -1;
+                    tabletopItemMenuReleaseTime = -1;
+                    tabletopItemMenuOpened = false;
                 }
-                else if (tabletopItemMenuPressTime >= 0)
-                {
-                    Sys_QueEvent(0, SE_KEY, A_ESCAPE, true, 0, NULL);
-                }
-                tabletopItemMenuPressTime = -1;
-                tabletopItemMenuOpened = false;
             }
         }
         else
         {
             tabletopForceMenuPressTime = -1;
+            tabletopForceMenuReleaseTime = -1;
             tabletopForceMenuOpened = false;
             tabletopItemMenuPressTime = -1;
+            tabletopItemMenuReleaseTime = -1;
             tabletopItemMenuOpened = false;
         }
 

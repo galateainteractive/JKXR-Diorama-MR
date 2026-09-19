@@ -840,7 +840,6 @@ void VR_HandleControllerInput() {
 		rightTrackedRemoteState_old.Buttons &= ~xrButton_GripTrigger;
 		leftTrackedRemoteState_new.GripTrigger = 0.0f;
 		rightTrackedRemoteState_new.GripTrigger = 0.0f;
-		vr.item_selector = 0;
 		vr.weapon_stabilised = false;
 	}
 
