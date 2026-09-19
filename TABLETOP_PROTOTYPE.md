@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V2.7 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V2.8 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -71,7 +71,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V2.7** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V2.8** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -80,7 +80,7 @@ e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
 Como alternativa, o instalador Windows V1.3 continua válido para copiar os
-dados do jogo; depois basta atualizar este APK V2.7 por cima.
+dados do jogo; depois basta atualizar este APK V2.8 por cima.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -96,7 +96,7 @@ No primeiro teste:
 7. em Configuração > Dificuldade, alterne `Modo de jogo` para comparar a
    maquete com o VR original sem trocar de APK.
 
-## Limitações conhecidas do V2.7
+## Limitações conhecidas do V2.8
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - névoa e recorte de paredes/tetos ainda podem precisar de tratamento por mapa;
@@ -112,4 +112,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v2.7.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v2.8.apk`.
