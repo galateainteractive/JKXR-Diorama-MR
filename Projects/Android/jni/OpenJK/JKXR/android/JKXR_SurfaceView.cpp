@@ -1037,6 +1037,10 @@ jmethodID android_haptic_disable;
 
 void jni_haptic_event(const char* event, int position, int flags, int intensity, float angle, float yHeight)
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_event)
+	{
+		return;
+	}
 	JNIEnv *env;
 	jobject tmp;
 	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
@@ -1051,6 +1055,10 @@ void jni_haptic_event(const char* event, int position, int flags, int intensity,
 
 void jni_haptic_updateevent(const char* event, int intensity, float angle)
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_updateevent)
+	{
+		return;
+	}
 	JNIEnv *env;
 	jobject tmp;
 	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
@@ -1065,6 +1073,10 @@ void jni_haptic_updateevent(const char* event, int intensity, float angle)
 
 void jni_haptic_stopevent(const char* event)
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_stopevent)
+	{
+		return;
+	}
 	ALOGV("Calling: jni_haptic_stopevent");
 	JNIEnv *env;
 	jobject tmp;
@@ -1080,6 +1092,10 @@ void jni_haptic_stopevent(const char* event)
 
 void jni_haptic_endframe()
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_endframe)
+	{
+		return;
+	}
 	JNIEnv *env;
 	jobject tmp;
 	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
@@ -1092,6 +1108,10 @@ void jni_haptic_endframe()
 
 void jni_haptic_enable()
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_enable)
+	{
+		return;
+	}
 	ALOGV("Calling: jni_haptic_enable");
 	JNIEnv *env;
 	jobject tmp;
@@ -1105,6 +1125,10 @@ void jni_haptic_enable()
 
 void jni_haptic_disable()
 {
+	if (!jVM || !jniCallbackObj || !android_haptic_disable)
+	{
+		return;
+	}
 	ALOGV("Calling: jni_haptic_disable");
 	JNIEnv *env;
 	jobject tmp;

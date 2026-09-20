@@ -128,7 +128,18 @@ static void WP_BowcasterMainFire( gentity_t *ent )
 		AngleVectors( angs, dir, NULL, NULL );
 
 		vec3_t rotatedDir;
-		VectorRotateAroundAxis(dir, forward, vr->weaponangles[ANGLES_ADJUSTED][ROLL], rotatedDir);
+		if ( BG_UseVRPosition(ent) && vr )
+		{
+			// Only the local first-person VR player has a tracked controller
+			// roll. NPCs (notably Chewbacca) can fire immediately while a save
+			// is loading, before the VR client pointer is available.
+			VectorRotateAroundAxis(dir, forward,
+				vr->weaponangles[ANGLES_ADJUSTED][ROLL], rotatedDir);
+		}
+		else
+		{
+			VectorCopy(dir, rotatedDir);
+		}
 
 		missile = CreateMissile( start, rotatedDir, vel, 10000, ent );
 
