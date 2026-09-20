@@ -3777,6 +3777,7 @@ qboolean cg_usingInFrontOf = qfalse;
 qboolean CanUseInfrontOf(gentity_t*);
 static void CG_UseIcon()
 {
+	const bool previousCanUse = vr->tabletop_can_use;
 	cg_usingInFrontOf = qfalse;
 	if (cg_usableObjectsHint.integer) {
 		cg_usingInFrontOf = CanUseInfrontOf(cg_entities[cg.snap->ps.clientNum].gent);
@@ -3791,6 +3792,19 @@ static void CG_UseIcon()
 	// contextual Use button while the same hand icon is visible.  The value is
 	// refreshed every frame and is ignored outside tabletop mode.
 	vr->tabletop_can_use = cg_tabletop.integer && cg_usingInFrontOf;
+
+#if defined(__ANDROID__)
+	if ( vr->tabletop_can_use != previousCanUse )
+	{
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=target-hint canUse=%d cg=%d origin=%.1f,%.1f,%.1f yaw=%.1f",
+			vr->tabletop_can_use ? 1 : 0, cg.time,
+			cg.predicted_player_state.origin[0],
+			cg.predicted_player_state.origin[1],
+			cg.predicted_player_state.origin[2],
+			cg.predicted_player_state.viewangles[YAW]);
+	}
+#endif
 }
 
 static void CG_Draw2DScreenTints( void )

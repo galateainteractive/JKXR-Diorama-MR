@@ -16,6 +16,7 @@ Authors		:	Simon Brown
 
 #ifndef _WIN32
 #include <android/keycodes.h>
+#include <android/log.h>
 #include <statindex.h>
 #include "android/sys_local.h"
 #endif
@@ -1029,6 +1030,17 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                     const bool triggerDown =
                         (pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) != 0;
 
+#if defined(__ANDROID__)
+                    if (tabletopActive)
+                    {
+                        __android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+                            "stage=raw-trigger down=%d canUse=%d selector=%d buttons=0x%x old=0x%x",
+                            triggerDown ? 1 : 0, vr.tabletop_can_use ? 1 : 0,
+                            vr.item_selector, pDominantTrackedRemoteNew->Buttons,
+                            pDominantTrackedRemoteOld->Buttons);
+                    }
+#endif
+
                     if (triggerDown && tabletopActive && vr.tabletop_can_use &&
                         !vr.item_selector)
                     {
@@ -1083,6 +1095,13 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 (primaryButtonsOld & primaryThumb)) {
                 if (tabletopActive)
                 {
+#if defined(__ANDROID__)
+                    __android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+                        "stage=raw-thumb down=%d mask=0x%x buttons=0x%x old=0x%x canUse=%d",
+                        (primaryButtonsNew & primaryThumb) ? 1 : 0,
+                        primaryThumb, primaryButtonsNew, primaryButtonsOld,
+                        vr.tabletop_can_use ? 1 : 0);
+#endif
                     // Bypass the queued console-command path in tabletop so a
                     // quick stick click always reaches BUTTON_USE this frame.
                     CL_SetTabletopUseButton(

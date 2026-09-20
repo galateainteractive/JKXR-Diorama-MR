@@ -31,6 +31,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _WIN32
 #include <cmath>
+#include <android/log.h>
 #endif
 
 unsigned	frame_msec;
@@ -158,8 +159,15 @@ void CL_SetTabletopUseButton( qboolean down, int source )
 		button->downtime = com_frameTime;
 		button->active = qtrue;
 		button->wasPressed = qtrue;
+#if defined(__ANDROID__)
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=client-button down=1 source=%d contextual=%d active=%d pressed=%d",
+			source, vr.tabletop_can_use ? 1 : 0, button->active,
+			button->wasPressed);
+#else
 		Com_Printf( "JKXR-USE: down source=%d contextual=%d\n",
 			source, vr.tabletop_can_use ? 1 : 0 );
+#endif
 		return;
 	}
 
@@ -176,7 +184,13 @@ void CL_SetTabletopUseButton( qboolean down, int source )
 
 	button->msec += frame_msec / 2;
 	button->active = qfalse;
+#if defined(__ANDROID__)
+	__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+		"stage=client-button down=0 source=%d active=%d pressed=%d",
+		source, button->active, button->wasPressed);
+#else
 	Com_Printf( "JKXR-USE: up source=%d\n", source );
+#endif
 }
 
 static void IN_UseGivenForce(void)
@@ -711,6 +725,9 @@ CL_CmdButtons
 */
 void CL_CmdButtons( usercmd_t *cmd ) {
 	int		i;
+	const bool tabletopUsePending =
+		Cvar_VariableIntegerValue("cg_tabletop") &&
+		(in_buttons[5].active || in_buttons[5].wasPressed);
 
 	//
 	// figure button bits
@@ -723,6 +740,16 @@ void CL_CmdButtons( usercmd_t *cmd ) {
 		}
 		in_buttons[i].wasPressed = qfalse;
 	}
+
+#if defined(__ANDROID__)
+	if ( tabletopUsePending )
+	{
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=usercmd buttons=0x%x use=%d serverTime=%d",
+			cmd->buttons, (cmd->buttons & BUTTON_USE) ? 1 : 0,
+			cmd->serverTime);
+	}
+#endif
 
 	if ( Key_GetCatcher( ) ) {
 		//cmd->buttons |= BUTTON_TALK;

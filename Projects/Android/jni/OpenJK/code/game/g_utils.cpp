@@ -33,6 +33,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_local.h"
 #include <VrClientInfo.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #define ACT_ACTIVE		qtrue
 #define ACT_INACTIVE	qfalse
 extern void NPC_UseResponse ( gentity_t *self, gentity_t *user, qboolean useWhenDone );
@@ -1691,7 +1695,6 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 
 	//Trace ahead to find a valid target
 	gi.trace( &trace, src, vec3_origin, vec3_origin, dest, ent->s.number, MASK_OPAQUE|CONTENTS_SOLID|CONTENTS_TERRAIN|CONTENTS_BODY|CONTENTS_ITEM|CONTENTS_CORPSE , G2_NOCOLLIDE, 10);
-
 	if ( trace.fraction == 1.0f || trace.entityNum >= ENTITYNUM_WORLD )
 	{
 		return (CanUseInfrontOfPartOfLevel(ent));
@@ -1797,6 +1800,23 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 
 	//Trace ahead to find a valid target
 	gi.trace( &trace, src, vec3_origin, vec3_origin, dest, ent->s.number, MASK_OPAQUE|CONTENTS_SOLID|CONTENTS_TERRAIN|CONTENTS_BODY|CONTENTS_ITEM|CONTENTS_CORPSE , G2_NOCOLLIDE, 10);
+
+#if defined(__ANDROID__)
+	if ( ent->s.number == 0 )
+	{
+		const bool traceHasEntity =
+			trace.fraction < 1.0f && trace.entityNum < ENTITYNUM_WORLD;
+		gentity_t *traceTarget = traceHasEntity ?
+			&g_entities[trace.entityNum] : NULL;
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=use-trace offHand=%d third=%d gesture=%d fraction=%.3f entity=%d class=%s valid=%d src=%.1f,%.1f,%.1f dir=%.2f,%.2f,%.2f",
+			offHand ? 1 : 0, thirdPersonActive ? 1 : 0,
+			useGestureAllowed ? 1 : 0, trace.fraction, trace.entityNum,
+			(traceTarget && traceTarget->classname) ? traceTarget->classname : "none",
+			traceTarget ? ValidUseTarget(traceTarget) : 0,
+			src[0], src[1], src[2], vf[0], vf[1], vf[2]);
+	}
+#endif
 
 	if ( trace.fraction == 1.0f || trace.entityNum  >= ENTITYNUM_WORLD )
 	{

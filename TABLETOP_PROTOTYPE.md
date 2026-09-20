@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V3.1 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V3.2 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -74,7 +74,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V3.1** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V3.2** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -83,7 +83,7 @@ e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
 Como alternativa, o instalador Windows V1.3 continua válido para copiar os
-dados do jogo; depois basta atualizar este APK V3.1 por cima.
+dados do jogo; depois basta atualizar este APK V3.2 por cima.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -114,14 +114,16 @@ A V3.0 também sincroniza a orientação interna do cliente, sua cópia usada pe
 câmera e o acumulador do controle quando ocorre respawn ou load. Isso impede que
 o yaw retido na tela de morte seja somado à direção restaurada pelo save.
 
-## Interação com painéis na V3.1
+## Interação com painéis na V3.2
 
 Quando o ícone da mão aparece junto ao personagem, há duas formas equivalentes
 de executar `Use`: clicar o analógico direito ou apertar o gatilho direito. O
 gatilho continua sendo ataque primário quando não existe um alvo utilizável.
-As transições são registradas como `JKXR-USE` no log para diagnóstico.
+As transições são registradas diretamente no log Android como `JKXR-USE`. O
+diagnóstico identifica separadamente o alvo utilizável, o controle bruto, o
+botão no `usercmd`, o evento do PMove e o resultado do raio de interação.
 
-## Limitações conhecidas da V3.1
+## Limitações conhecidas da V3.2
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - névoa e recorte de paredes/tetos ainda podem precisar de tratamento por mapa;
@@ -137,4 +139,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.1.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.2.apk`.

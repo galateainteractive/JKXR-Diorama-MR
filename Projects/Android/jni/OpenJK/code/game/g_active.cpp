@@ -31,6 +31,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_navigator.h"
 #include <VrClientInfo.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #ifdef _DEBUG
 	#include <float.h>
 #endif //_DEBUG
@@ -5567,6 +5571,15 @@ extern cvar_t	*g_skippingcin;
 
 	if ( pm.useEvent )
 	{
+#if defined(__ANDROID__)
+		if ( ent->s.number == 0 )
+		{
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+				"stage=pmove-use-event buttons=0x%x origin=%.1f,%.1f,%.1f yaw=%.1f",
+				ucmd->buttons, ent->currentOrigin[0], ent->currentOrigin[1],
+				ent->currentOrigin[2], ent->currentAngles[YAW]);
+		}
+#endif
 		//TODO: Use
 		TryUse( ent );
 	}
