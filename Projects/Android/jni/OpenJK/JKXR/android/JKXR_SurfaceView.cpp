@@ -23,6 +23,7 @@ extern "C" {
 
 
 #include "game/weapons.h"
+#include "game/bg_public.h"
 #ifndef JK2_MODE
 #include "game/g_vehicles.h"
 #endif
@@ -225,11 +226,107 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 	static bool tabletopYawValid = false;
 	static float tabletopMoveYaw = 0.0f;
 	static unsigned int tabletopTransformSerial = 0;
+	static bool tabletopMoveLogPending = false;
+	static int tabletopLastSpawnCount = -1;
+	static int tabletopLastHealth = -1;
+	static bool tabletopTrackingValid = false;
+	static float tabletopLastHmdFirstYaw = 0.0f;
+	static vec3_t tabletopLastHmdPosition = {0.0f, 0.0f, 0.0f};
 	const bool tabletopConfigured = Cvar_VariableIntegerValue("cg_tabletop") != 0;
 	const bool tabletopActive = tabletopConfigured && vr.tabletop_transform_valid;
+	const int tabletopSpawnCount = cl.frame.ps.persistant[PERS_SPAWN_COUNT];
+	const int tabletopHealth = cl.frame.ps.stats[STAT_HEALTH];
+
+	if (tabletopConfigured && vr.tabletop_command_yaw_reset_pending)
+	{
+		const float previousClientYaw = cl.viewangles[YAW];
+		CL_ResetTabletopViewYaw();
+		vr.tabletop_command_yaw_reset_pending = false;
+		tabletopYawValid = false;
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+			"event=client-yaw-reset previous=%.1f deltaYaw=%.1f "
+			"spawn=%d serial=%u valid=%d",
+			previousClientYaw,
+			SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]),
+			tabletopSpawnCount, vr.tabletop_transform_serial,
+			vr.tabletop_transform_valid);
+	}
+
+	if (tabletopConfigured && tabletopLastSpawnCount != tabletopSpawnCount)
+	{
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+			"event=input-spawn spawn=%d->%d hp=%d serial=%u valid=%d "
+			"clientYaw=%.1f deltaYaw=%.1f hmdYaw=%.1f hmdFirst=%.1f",
+			tabletopLastSpawnCount, tabletopSpawnCount, tabletopHealth,
+			vr.tabletop_transform_serial, vr.tabletop_transform_valid,
+			vr.clientviewangles[YAW],
+			SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]),
+			vr.hmdorientation[YAW], vr.hmdorientation_first[YAW]);
+		tabletopLastSpawnCount = tabletopSpawnCount;
+		tabletopMoveLogPending = true;
+	}
+
+	if (tabletopConfigured && tabletopLastHealth != tabletopHealth)
+	{
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+			"event=input-health hp=%d->%d spawn=%d serial=%u valid=%d",
+			tabletopLastHealth, tabletopHealth, tabletopSpawnCount,
+			vr.tabletop_transform_serial, vr.tabletop_transform_valid);
+		tabletopLastHealth = tabletopHealth;
+	}
+
+	if (tabletopConfigured && tabletopTrackingValid)
+	{
+		vec3_t trackingDelta;
+		VectorSubtract(vr.hmdposition, tabletopLastHmdPosition, trackingDelta);
+		if (fabsf(AngleDelta(vr.hmdorientation_first[YAW],
+			tabletopLastHmdFirstYaw)) > 0.5f)
+		{
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+				"event=hmd-first-change first=%.1f->%.1f hmdYaw=%.1f "
+				"spawn=%d serial=%u valid=%d",
+				tabletopLastHmdFirstYaw, vr.hmdorientation_first[YAW],
+				vr.hmdorientation[YAW], tabletopSpawnCount,
+				vr.tabletop_transform_serial, vr.tabletop_transform_valid);
+		}
+		if (VectorLengthSquared(trackingDelta) > 0.25f * 0.25f)
+		{
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+				"event=hmd-position-jump delta=%.3f,%.3f,%.3f "
+				"position=%.3f,%.3f,%.3f spawn=%d serial=%u valid=%d",
+				trackingDelta[0], trackingDelta[1], trackingDelta[2],
+				vr.hmdposition[0], vr.hmdposition[1], vr.hmdposition[2],
+				tabletopSpawnCount, vr.tabletop_transform_serial,
+				vr.tabletop_transform_valid);
+		}
+	}
+	if (tabletopConfigured)
+	{
+		tabletopTrackingValid = true;
+		tabletopLastHmdFirstYaw = vr.hmdorientation_first[YAW];
+		VectorCopy(vr.hmdposition, tabletopLastHmdPosition);
+	}
+	else
+	{
+		tabletopTrackingValid = false;
+		tabletopLastSpawnCount = -1;
+		tabletopLastHealth = -1;
+	}
 
 	if (!tabletopConfigured || tabletopTransformSerial != vr.tabletop_transform_serial)
 	{
+		if (tabletopConfigured)
+		{
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+				"event=input-serial serial=%u->%u spawn=%d hp=%d valid=%d "
+				"clientYaw=%.1f deltaYaw=%.1f forward=%.1f",
+				tabletopTransformSerial, vr.tabletop_transform_serial,
+				tabletopSpawnCount, tabletopHealth,
+				vr.tabletop_transform_valid, vr.clientviewangles[YAW],
+				SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]),
+				vr.tabletop_forward_yaw);
+			tabletopMoveLogPending = true;
+		}
 		tabletopYawValid = false;
 		tabletopTransformSerial = vr.tabletop_transform_serial;
 	}
@@ -363,6 +460,23 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 			: tabletopMoveYaw) - SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
 		*pitch = handAimedWeapon ? vr.tabletop_weapon_angles[PITCH] : 0.0f;
 		*roll = 0.0f;
+
+		if (tabletopMoveLogPending && magnitude > 0.05f)
+		{
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+				"event=first-move spawn=%d hp=%d serial=%u stick=%.3f,%.3f "
+				"forwardYaw=%.1f moveYaw=%.1f outYaw=%.1f clientYaw=%.1f "
+				"deltaYaw=%.1f hmdYaw=%.1f hmdFirst=%.1f handAim=%d "
+				"outMove=%.3f,%.3f",
+				tabletopSpawnCount, tabletopHealth,
+				vr.tabletop_transform_serial, stickX, stickY,
+				vr.tabletop_forward_yaw, tabletopMoveYaw, *yaw,
+				vr.clientviewangles[YAW],
+				SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]),
+				vr.hmdorientation[YAW], vr.hmdorientation_first[YAW],
+				handAimedWeapon, *forward, *side);
+			tabletopMoveLogPending = false;
+		}
 	}
 	else if (!vr.third_person) {
 		*forward = remote_movementForward;

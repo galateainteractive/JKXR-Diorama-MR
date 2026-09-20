@@ -222,13 +222,14 @@ A respawn happened this snapshot
 void CG_Respawn( void ) {
 	// no error decay on player movement
 	cg.thisFrameTeleport = qtrue;
+	CG_LogTabletopDirection("respawn-event");
 
 	// A respawn or full saved-game load can keep us in the same map and close
 	// enough to the old position that the tabletop discontinuity heuristics do
 	// not fire.  Drop the cached headset-relative movement basis explicitly so
 	// the next rendered frame establishes it from the new player state.
 	if ( cg_tabletop.integer ) {
-		CG_ClearTabletopTransform();
+		CG_ResetTabletopForRespawn();
 	}
 
 	// display weapons available

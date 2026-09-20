@@ -32,6 +32,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <VrClientInfo.h>
 #include "bg_local.h"
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 extern vmCvar_t	cg_debugHealthBars;
 
 extern Vehicle_t *G_IsRidingVehicle( gentity_t *ent );
@@ -4678,8 +4682,45 @@ typedef struct tabletopTransform_s
 
 static tabletopTransform_t cg_tabletopTransform;
 
+void CG_LogTabletopDirection( const char *event )
+{
+	const int snapshotTime = cg.snap ? cg.snap->serverTime : -1;
+	const int snapshotSpawn = cg.snap
+		? cg.snap->ps.persistant[PERS_SPAWN_COUNT] : -1;
+	const int predictedSpawn =
+		cg.predicted_player_state.persistant[PERS_SPAWN_COUNT];
+	const float deltaYaw = SHORT2ANGLE(
+		cg.predicted_player_state.delta_angles[YAW]);
+
+#if defined(__ANDROID__)
+	__android_log_print(ANDROID_LOG_INFO, "JKXR-DIR",
+		"event=%s cg=%d old=%d snapTime=%d spawn=%d/%d hp=%d pm=%d "
+		"origin=%.1f,%.1f,%.1f refYaw=%.1f deltaYaw=%.1f "
+		"hmdYaw=%.1f hmdFirst=%.1f base=%.1f map=%.1f forward=%.1f "
+		"serial=%u valid=%d init=%d camera=%d misc=%d",
+		event, cg.time, cg.oldTime, snapshotTime, predictedSpawn,
+		snapshotSpawn, cg.predicted_player_state.stats[STAT_HEALTH],
+		cg.predicted_player_state.pm_type,
+		cg.predicted_player_state.origin[0],
+		cg.predicted_player_state.origin[1],
+		cg.predicted_player_state.origin[2], cg.refdef.viewangles[YAW],
+		deltaYaw, vr->hmdorientation[YAW], vr->hmdorientation_first[YAW],
+		cg_tabletopTransform.baseYaw,
+		RAD2DEG(cg_tabletopTransform.mapYaw), vr->tabletop_forward_yaw,
+		vr->tabletop_transform_serial, vr->tabletop_transform_valid,
+		cg_tabletopTransform.initialized, in_camera, in_misccamera);
+#else
+	Com_Printf("[JKXR-DIR] event=%s cg=%d snapTime=%d spawn=%d/%d "
+		"hp=%d deltaYaw=%.1f serial=%u valid=%d\n",
+		event, cg.time, snapshotTime, predictedSpawn, snapshotSpawn,
+		cg.predicted_player_state.stats[STAT_HEALTH], deltaYaw,
+		vr->tabletop_transform_serial, vr->tabletop_transform_valid);
+#endif
+}
+
 void CG_ClearTabletopTransform( void )
 {
+	CG_LogTabletopDirection("clear-before");
 	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
 	vr->tabletop_scale = 0.0f;
 	vr->tabletop_forward_yaw = 0.0f;
@@ -4687,6 +4728,20 @@ void CG_ClearTabletopTransform( void )
 	vr->tabletop_force_aim_valid = false;
 	vr->tabletop_weapon_aim_valid = false;
 	++vr->tabletop_transform_serial;
+	CG_LogTabletopDirection("clear-after");
+}
+
+void CG_ResetTabletopForRespawn( void )
+{
+	// delta_angles in the incoming snapshot already contains the saved
+	// player's world facing. A command yaw retained from the death/load screen
+	// would add the old facing a second time. Clear the shared copy now so this
+	// frame's tabletop anchor is correct, then ask the client input layer to
+	// clear its authoritative yaw and movement accumulator.
+	vr->clientviewangles[YAW] = 0.0f;
+	vr->tabletop_command_yaw_reset_pending = true;
+	CG_LogTabletopDirection("respawn-command-yaw-cleared");
+	CG_ClearTabletopTransform();
 }
 
 static void CG_UpdateTabletopAim( void )
@@ -4801,6 +4856,7 @@ static void CG_ResetTabletopTransform( void )
 	vr->tabletop_transform_valid = true;
 	++vr->tabletop_transform_serial;
 	cgi_Cvar_Set("r_fastsky", "2");
+	CG_LogTabletopDirection("reset-complete");
 }
 
 static void CG_UpdateTabletopTransform( void )
@@ -4839,6 +4895,18 @@ static void CG_UpdateTabletopTransform( void )
 		playerDiscontinuity ||
 		cg.time < cg_tabletopTransform.lastUpdateTime)
 	{
+		if (playerDiscontinuity)
+		{
+			CG_LogTabletopDirection("player-discontinuity");
+		}
+		else if (cg_tabletopTransform.resumeResetPending)
+		{
+			CG_LogTabletopDirection("resume-reset-pending");
+		}
+		else if (cg.time < cg_tabletopTransform.lastUpdateTime)
+		{
+			CG_LogTabletopDirection("time-rewind");
+		}
 		CG_ResetTabletopTransform();
 	}
 
@@ -5057,6 +5125,10 @@ void CG_PrepareTabletopView( void )
 	{
 		// Scripted cameras and cutscenes temporarily leave tabletop rendering.
 		// Re-entering gameplay must not reuse their pre-transition control frame.
+		if (!cg_tabletopTransform.resumeResetPending)
+		{
+			CG_LogTabletopDirection("leave-tabletop-gameplay");
+		}
 		cg_tabletopTransform.resumeResetPending = qtrue;
 	}
 

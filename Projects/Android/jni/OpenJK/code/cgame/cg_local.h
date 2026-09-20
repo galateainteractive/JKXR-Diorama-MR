@@ -819,6 +819,8 @@ void CG_AdjustFrom640Int( int *x, int *y, int *w, int *h );
 //
 void CG_CenterPrint( const char *str, int y, int delayOverride = -1 );
 void CG_ClearTabletopTransform( void );
+void CG_ResetTabletopForRespawn( void );
+void CG_LogTabletopDirection( const char *event );
 void CG_PrepareTabletopView( void );
 qboolean CG_TabletopHandToGame( qboolean weaponHand, vec3_t out );
 void CG_DrawActive( stereoFrame_t stereoView );

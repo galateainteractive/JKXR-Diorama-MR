@@ -88,6 +88,24 @@ typedef struct {
 vr_move new_move;
 vr_move old_move;
 
+/*
+========================
+CL_ResetTabletopViewYaw
+
+A save reload can retain the previous command yaw even though the new player
+snapshot supplies its world facing through delta_angles.  Reset every copy of
+that command-space yaw together so CL_AdjustAngles cannot restore the stale
+value on the following frame.
+========================
+*/
+void CL_ResetTabletopViewYaw( void )
+{
+	cl.viewangles[YAW] = 0.0f;
+	old_move.yaw = 0.0f;
+	new_move.yaw = 0.0f;
+	vr.clientviewangles[YAW] = 0.0f;
+}
+
 static void IN_UseGivenForce(void)
 {
 	const char *c = Cmd_Argv(1);
