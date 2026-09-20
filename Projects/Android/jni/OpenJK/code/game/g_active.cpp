@@ -1472,7 +1472,9 @@ void	G_TouchTriggersLerped( gentity_t *ent ) {
 	}
 	memset (touched, qfalse, sizeof(touched) );
 
-	bool thirdPersonActive = gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer;
+	bool thirdPersonActive =
+		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
 	bool useGestureEnabled = gi.cvar("vr_gesture_triggered_use", "1", CVAR_ARCHIVE)->integer; // defined in VrCvars.h
 	bool useGestureAllowed = useGestureEnabled && !thirdPersonActive && !(vr && vr->remote_droid);
 

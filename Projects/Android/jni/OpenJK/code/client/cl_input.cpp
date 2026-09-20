@@ -727,7 +727,7 @@ void CL_CmdButtons( usercmd_t *cmd ) {
 	int		i;
 	const bool tabletopUsePending =
 		Cvar_VariableIntegerValue("cg_tabletop") &&
-		(in_buttons[5].active || in_buttons[5].wasPressed);
+		in_buttons[5].wasPressed;
 
 	//
 	// figure button bits

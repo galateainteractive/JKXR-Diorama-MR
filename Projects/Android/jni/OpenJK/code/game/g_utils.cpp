@@ -1681,7 +1681,9 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 		}
 	}
 
-	bool thirdPersonActive = gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer;
+	bool thirdPersonActive =
+		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
 	if (thirdPersonActive) {
 		VectorCopy(ent->currentOrigin, src);
 		AngleVectors(ent->currentAngles, vf, NULL, NULL);
@@ -1790,7 +1792,9 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 	}
 
 	//extend to find end of use trace
-	bool thirdPersonActive = gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer;
+	bool thirdPersonActive =
+		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
 	bool useGestureEnabled = gi.cvar("vr_gesture_triggered_use", "1", CVAR_ARCHIVE)->integer; // defined in VrCvars.h
 	bool useGestureAllowed = useGestureEnabled && !thirdPersonActive && !vr->remote_droid;
 	float useOffset = useGestureAllowed ? USE_OFFSET : 0.0f;
@@ -1904,7 +1908,9 @@ void TryUse( gentity_t *ent ) {
 		return;
 	}*/
 
-	bool thirdPersonActive = gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer;
+	bool thirdPersonActive =
+		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
 	vec3_t src, angles, vf;
 	if (ent->client->ps.clientNum == 0 && !(vr && vr->remote_droid)) {
 		if (thirdPersonActive) {
