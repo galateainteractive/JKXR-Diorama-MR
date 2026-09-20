@@ -82,6 +82,7 @@ typedef struct {
     bool   tabletop_transform_valid;
     unsigned int tabletop_transform_serial; // changes whenever a map rebuilds the tabletop basis
     bool   tabletop_command_yaw_reset_pending; // resync client yaw after respawn/load
+    bool   tabletop_can_use; // the avatar is facing a usable panel/entity
     bool   tabletop_force_aim_valid;
     vec3_t tabletop_force_angles; // off-hand ray expressed in tabletop game space
     bool   tabletop_weapon_aim_valid;

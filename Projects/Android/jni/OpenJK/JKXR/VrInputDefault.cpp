@@ -997,6 +997,7 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             static bool firing = false;
             static bool throwing = false;
+            static bool tabletopTriggerUsing = false;
 
             if (cl.frame.ps.weapon == WP_SABER && !thirdPersonActive && !vr.remote_turret &&
                 vr.cgzoommode == 0 && cl.frame.ps.stats[STAT_HEALTH] > 0)
@@ -1020,13 +1021,32 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             }
             else if (!vr.velocitytriggered || vr.remote_turret || tabletopActive)
             {
-                //Fire Primary - Doesn't trigger the saber
+                // Fire primary normally.  When the tabletop avatar is facing a
+                // usable panel, the same trigger becomes a contextual Use
+                // action, matching the hand icon already shown by the game.
                 if ((pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) !=
                     (pDominantTrackedRemoteOld->Buttons & xrButton_Trigger)) {
+                    const bool triggerDown =
+                        (pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) != 0;
 
-                    firing = (pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) &&
-                            !vr.item_selector;
-                    sendButtonAction("+attack", firing);
+                    if (triggerDown && tabletopActive && vr.tabletop_can_use &&
+                        !vr.item_selector)
+                    {
+                        tabletopTriggerUsing = true;
+                        firing = false;
+                        sendButtonAction("+attack", false);
+                        CL_SetTabletopUseButton(qtrue, 1);
+                    }
+                    else if (!triggerDown && tabletopTriggerUsing)
+                    {
+                        CL_SetTabletopUseButton(qfalse, 1);
+                        tabletopTriggerUsing = false;
+                    }
+                    else
+                    {
+                        firing = triggerDown && !vr.item_selector;
+                        sendButtonAction("+attack", firing);
+                    }
                 }
 
                 if (throwing)
@@ -1061,8 +1081,17 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             //Use
             if ((primaryButtonsNew & primaryThumb) !=
                 (primaryButtonsOld & primaryThumb)) {
-
-                sendButtonAction("+use", (primaryButtonsNew & primaryThumb));
+                if (tabletopActive)
+                {
+                    // Bypass the queued console-command path in tabletop so a
+                    // quick stick click always reaches BUTTON_USE this frame.
+                    CL_SetTabletopUseButton(
+                        (primaryButtonsNew & primaryThumb) ? qtrue : qfalse, 0);
+                }
+                else
+                {
+                    sendButtonAction("+use", (primaryButtonsNew & primaryThumb));
+                }
             }
         }
 

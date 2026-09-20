@@ -3777,6 +3777,7 @@ qboolean cg_usingInFrontOf = qfalse;
 qboolean CanUseInfrontOf(gentity_t*);
 static void CG_UseIcon()
 {
+	cg_usingInFrontOf = qfalse;
 	if (cg_usableObjectsHint.integer) {
 		cg_usingInFrontOf = CanUseInfrontOf(cg_entities[cg.snap->ps.clientNum].gent);
 		if (cg_usingInFrontOf)
@@ -3785,6 +3786,11 @@ static void CG_UseIcon()
 			CG_DrawPic( 50, 285, 64, 64, cgs.media.useableHint );
 		}
 	}
+
+	// Let the native controller layer turn the dominant trigger into a
+	// contextual Use button while the same hand icon is visible.  The value is
+	// refreshed every frame and is ignored outside tabletop mode.
+	vr->tabletop_can_use = cg_tabletop.integer && cg_usingInFrontOf;
 }
 
 static void CG_Draw2DScreenTints( void )
@@ -4725,6 +4731,7 @@ void CG_ClearTabletopTransform( void )
 	vr->tabletop_scale = 0.0f;
 	vr->tabletop_forward_yaw = 0.0f;
 	vr->tabletop_transform_valid = false;
+	vr->tabletop_can_use = false;
 	vr->tabletop_force_aim_valid = false;
 	vr->tabletop_weapon_aim_valid = false;
 	++vr->tabletop_transform_serial;

@@ -106,6 +106,79 @@ void CL_ResetTabletopViewYaw( void )
 	vr.clientviewangles[YAW] = 0.0f;
 }
 
+/*
+========================
+CL_SetTabletopUseButton
+
+The VR input path normally queues textual +use/-use commands.  Tabletop needs
+the interaction on the same client frame as the controller edge, otherwise a
+very short thumb-stick click can be consumed before PMove builds BUTTON_USE.
+Keep independent virtual keys for the stick and the contextual trigger so one
+can be released while the other is still held.
+========================
+*/
+void CL_SetTabletopUseButton( qboolean down, int source )
+{
+	kbutton_t *button = &in_buttons[5];
+	const int virtualKey = -2 - source;
+	int slot = -1;
+
+	for ( int i = 0; i < 2; ++i )
+	{
+		if ( button->down[i] == virtualKey )
+		{
+			slot = i;
+			break;
+		}
+	}
+
+	if ( down )
+	{
+		if ( slot >= 0 )
+		{
+			return;
+		}
+
+		for ( int i = 0; i < 2; ++i )
+		{
+			if ( button->down[i] == 0 )
+			{
+				button->down[i] = virtualKey;
+				slot = i;
+				break;
+			}
+		}
+
+		if ( slot < 0 )
+		{
+			Com_Printf( "JKXR-USE: no free input slot for source %d\n", source );
+			return;
+		}
+
+		button->downtime = com_frameTime;
+		button->active = qtrue;
+		button->wasPressed = qtrue;
+		Com_Printf( "JKXR-USE: down source=%d contextual=%d\n",
+			source, vr.tabletop_can_use ? 1 : 0 );
+		return;
+	}
+
+	if ( slot < 0 )
+	{
+		return;
+	}
+
+	button->down[slot] = 0;
+	if ( button->down[0] || button->down[1] )
+	{
+		return;
+	}
+
+	button->msec += frame_msec / 2;
+	button->active = qfalse;
+	Com_Printf( "JKXR-USE: up source=%d\n", source );
+}
+
 static void IN_UseGivenForce(void)
 {
 	const char *c = Cmd_Argv(1);
