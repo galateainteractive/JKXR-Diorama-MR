@@ -1578,56 +1578,113 @@ static qboolean G_IsTriggerUsable(gentity_t* self, gentity_t* other)
 	return qtrue;
 }
 
-static qboolean CanUseInfrontOfPartOfLevel(gentity_t* ent )	//originally from VV
+// Some maps put the USE_BUTTON trigger slightly behind the visible console or
+// door brush.  The stock third-person code only tests the player's current
+// bounds, which makes otherwise identical panels behave differently in
+// tabletop mode.  Look for the first usable trigger touched by a short sweep
+// of the avatar's bounds.  A 40 unit reach is deliberately shorter than the
+// normal 64 unit entity-use ray and only applies to tabletop mode.
+#define TABLETOP_TRIGGER_REACH 40.0f
+#define TABLETOP_TRIGGER_STEP   8.0f
+
+static gentity_t *FindUsableButtonTrigger(gentity_t* ent, const vec3_t viewForward,
+	qboolean allowForwardReach)
 {
 	int			i, num;
 	gentity_t	*touch[MAX_GENTITIES], *hit;
-	vec3_t		mins, maxs;
+	vec3_t		mins, maxs, end, forward;
 	const vec3_t	range = { 40, 40, 52 };
+	float		distance;
 
 	if ( !ent->client ) {
-		return qfalse;
+		return NULL;
 	}
 
-	VectorSubtract( ent->client->ps.origin, range, mins );
-	VectorAdd( ent->client->ps.origin, range, maxs );
+	VectorCopy(viewForward, forward);
+	// Trigger volumes are authored for the player's body, not the eye height.
+	// Keep the sweep level even if a future tabletop camera adds pitch.
+	forward[2] = 0.0f;
+	if (VectorNormalize(forward) == 0.0f) {
+		VectorClear(forward);
+	}
+
+	const float reach = allowForwardReach ? TABLETOP_TRIGGER_REACH : 0.0f;
+	VectorMA(ent->client->ps.origin, reach, forward, end);
+
+	// Broad phase: union of the stock trigger-search boxes at both ends.
+	for (i = 0; i < 3; ++i) {
+		mins[i] = (ent->client->ps.origin[i] < end[i] ?
+			ent->client->ps.origin[i] : end[i]) - range[i];
+		maxs[i] = (ent->client->ps.origin[i] > end[i] ?
+			ent->client->ps.origin[i] : end[i]) + range[i];
+	}
 
 	num = gi.EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
-	// can't use ent->absmin, because that has a one unit pad
-	VectorAdd( ent->client->ps.origin, ent->mins, mins );
-	VectorAdd( ent->client->ps.origin, ent->maxs, maxs );
+	// Narrow phase: testing nearest samples first prevents a farther trigger
+	// from winning when two scripted controls are close together.
+	for (distance = 0.0f; distance <= reach; distance += TABLETOP_TRIGGER_STEP) {
+		VectorMA(ent->client->ps.origin, distance, forward, end);
+		// Can't use ent->absmin/absmax because those include a one-unit pad.
+		VectorAdd(end, ent->mins, mins);
+		VectorAdd(end, ent->maxs, maxs);
 
-	for ( i=0 ; i<num ; i++ ) {
-		hit = touch[i];
-
-		if ( (hit->e_TouchFunc == touchF_NULL) && (ent->e_TouchFunc == touchF_NULL) ) {
-			continue;
-		}
-		if ( !( hit->contents & CONTENTS_TRIGGER ) ) {
-			continue;
-		}
-
-		if ( !gi.EntityContact( mins, maxs, hit ) ) {
-			continue;
-		}
-
-		if ( hit->e_TouchFunc != touchF_NULL ) {
-			switch (hit->e_TouchFunc )
-			{
-			case touchF_Touch_Multi:
-				if (G_IsTriggerUsable(hit, ent))
-				{
-					return qtrue;
-				}
+		for (i = 0; i < num; ++i) {
+			hit = touch[i];
+			if (!(hit->contents & CONTENTS_TRIGGER) ||
+				hit->e_TouchFunc != touchF_Touch_Multi ||
+				!G_IsTriggerUsable(hit, ent) ||
+				!gi.EntityContact(mins, maxs, hit)) {
 				continue;
-				break;
-			default:
-				continue;
+			}
+			return hit;
+		}
+	}
+
+	// Include the exact end point when the reach is not an even multiple of the
+	// sampling step (kept generic for future tuning).
+	if (reach > 0.0f && distance - TABLETOP_TRIGGER_STEP < reach) {
+		VectorMA(ent->client->ps.origin, reach, forward, end);
+		VectorAdd(end, ent->mins, mins);
+		VectorAdd(end, ent->maxs, maxs);
+		for (i = 0; i < num; ++i) {
+			hit = touch[i];
+			if ((hit->contents & CONTENTS_TRIGGER) &&
+				hit->e_TouchFunc == touchF_Touch_Multi &&
+				G_IsTriggerUsable(hit, ent) &&
+				gi.EntityContact(mins, maxs, hit)) {
+				return hit;
 			}
 		}
 	}
-	return qfalse;
+
+	return NULL;
+}
+
+static qboolean TryTabletopButtonTrigger(gentity_t *ent, const vec3_t viewForward)
+{
+	if (gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer == 0) {
+		return qfalse;
+	}
+
+	gentity_t *buttonTrigger = FindUsableButtonTrigger(ent, viewForward, qtrue);
+	if (!buttonTrigger) {
+		return qfalse;
+	}
+
+	trace_t triggerTrace;
+	memset(&triggerTrace, 0, sizeof(triggerTrace));
+#if defined(__ANDROID__)
+	if (ent->s.number == 0) {
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=tabletop-trigger-activate entity=%d class=%s target=%s",
+			buttonTrigger->s.number,
+			buttonTrigger->classname ? buttonTrigger->classname : "none",
+			buttonTrigger->target ? buttonTrigger->target : "none");
+	}
+#endif
+	GEntity_TouchFunc(buttonTrigger, ent, &triggerTrace);
+	return qtrue;
 }
 
 #define USE_DISTANCE	64.0f
@@ -1702,7 +1759,7 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 	gi.trace( &trace, src, vec3_origin, vec3_origin, dest, ent->s.number, MASK_OPAQUE|CONTENTS_SOLID|CONTENTS_TERRAIN|CONTENTS_BODY|CONTENTS_ITEM|CONTENTS_CORPSE , G2_NOCOLLIDE, 10);
 	if ( trace.fraction == 1.0f || trace.entityNum >= ENTITYNUM_WORLD )
 	{
-		return (CanUseInfrontOfPartOfLevel(ent));
+		return FindUsableButtonTrigger(ent, vf, tabletopActive ? qtrue : qfalse) ? qtrue : qfalse;
 	}
 
 	target = &g_entities[trace.entityNum];
@@ -1758,7 +1815,7 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 		return qtrue;
 	}
 
-	if (CanUseInfrontOfPartOfLevel(ent)) {
+	if (FindUsableButtonTrigger(ent, vf, tabletopActive ? qtrue : qfalse)) {
 		return qtrue;
 	}
 
@@ -1827,6 +1884,9 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 
 	if ( trace.fraction == 1.0f || trace.entityNum  >= ENTITYNUM_WORLD )
 	{
+		if (TryTabletopButtonTrigger(ent, vf)) {
+			return;
+		}
 		//TODO: Play a failure sound
 		/*
 		if ( ent->s.number == 0 )
@@ -1883,6 +1943,14 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 			}
 		}
 		NPC_UseResponse ( target, ent, qfalse );
+		return;
+	}
+
+	// Tabletop has no physical hand/body at the visible console.  If the direct
+	// ray hit a non-usable door or world brush, activate the same nearby
+	// USE_BUTTON trigger that CanUseInfrontOf used for the HUD hint.
+	if (TryTabletopButtonTrigger(ent, vf))
+	{
 		return;
 	}
 	/*
