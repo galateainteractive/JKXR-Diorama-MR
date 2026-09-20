@@ -1586,8 +1586,44 @@ static qboolean G_IsTriggerUsable(gentity_t* self, gentity_t* other)
 // normal 64 unit entity-use ray and only applies to tabletop mode.
 #define TABLETOP_TRIGGER_REACH 40.0f
 #define TABLETOP_TRIGGER_STEP   8.0f
+extern qboolean eweb_can_be_used( gentity_t *self, gentity_t *other, gentity_t *activator );
 
-static gentity_t *FindUsableButtonTrigger(gentity_t* ent, const vec3_t viewForward,
+static qboolean IsUsableSweepTarget(gentity_t *hit, gentity_t *ent,
+	qboolean allowDirectUseTargets)
+{
+	if ((hit->contents & CONTENTS_TRIGGER) &&
+		hit->e_TouchFunc == touchF_Touch_Multi) {
+		return G_IsTriggerUsable(hit, ent);
+	}
+
+	// The stock fallback only considered button triggers.  Tabletop also needs
+	// low brush entities such as func_usable, which an eye-level ray can pass
+	// over even when the avatar is standing directly in front of the panel.
+	if (!allowDirectUseTargets || !ValidUseTarget(hit)) {
+		return qfalse;
+	}
+
+	if (hit->s.eType == ET_ITEM) {
+		if ((hit->spawnflags & 128/*ITMSF_USEPICKUP*/) &&
+			!G_BoundsOverlap(hit->absmin, hit->absmax, ent->absmin, ent->absmax)) {
+			return qfalse;
+		}
+		if (!BG_CanItemBeGrabbed(&hit->s, &ent->client->ps)) {
+			return qfalse;
+		}
+	}
+	else if (hit->NPC != NULL && hit->health <= 0) {
+		return qfalse;
+	}
+	else if (hit->e_UseFunc == useF_eweb_use &&
+		!eweb_can_be_used(hit, ent, ent)) {
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+static gentity_t *FindUsableSweepTarget(gentity_t* ent, const vec3_t viewForward,
 	qboolean allowForwardReach)
 {
 	int			i, num;
@@ -1631,9 +1667,7 @@ static gentity_t *FindUsableButtonTrigger(gentity_t* ent, const vec3_t viewForwa
 
 		for (i = 0; i < num; ++i) {
 			hit = touch[i];
-			if (!(hit->contents & CONTENTS_TRIGGER) ||
-				hit->e_TouchFunc != touchF_Touch_Multi ||
-				!G_IsTriggerUsable(hit, ent) ||
+			if (!IsUsableSweepTarget(hit, ent, allowForwardReach) ||
 				!gi.EntityContact(mins, maxs, hit)) {
 				continue;
 			}
@@ -1649,9 +1683,7 @@ static gentity_t *FindUsableButtonTrigger(gentity_t* ent, const vec3_t viewForwa
 		VectorAdd(end, ent->maxs, maxs);
 		for (i = 0; i < num; ++i) {
 			hit = touch[i];
-			if ((hit->contents & CONTENTS_TRIGGER) &&
-				hit->e_TouchFunc == touchF_Touch_Multi &&
-				G_IsTriggerUsable(hit, ent) &&
+			if (IsUsableSweepTarget(hit, ent, allowForwardReach) &&
 				gi.EntityContact(mins, maxs, hit)) {
 				return hit;
 			}
@@ -1661,14 +1693,14 @@ static gentity_t *FindUsableButtonTrigger(gentity_t* ent, const vec3_t viewForwa
 	return NULL;
 }
 
-static qboolean TryTabletopButtonTrigger(gentity_t *ent, const vec3_t viewForward)
+static qboolean TryTabletopNearbyUse(gentity_t *ent, const vec3_t viewForward)
 {
 	if (gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer == 0) {
 		return qfalse;
 	}
 
-	gentity_t *buttonTrigger = FindUsableButtonTrigger(ent, viewForward, qtrue);
-	if (!buttonTrigger) {
+	gentity_t *target = FindUsableSweepTarget(ent, viewForward, qtrue);
+	if (!target) {
 		return qfalse;
 	}
 
@@ -1677,18 +1709,24 @@ static qboolean TryTabletopButtonTrigger(gentity_t *ent, const vec3_t viewForwar
 #if defined(__ANDROID__)
 	if (ent->s.number == 0) {
 		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
-			"stage=tabletop-trigger-activate entity=%d class=%s target=%s",
-			buttonTrigger->s.number,
-			buttonTrigger->classname ? buttonTrigger->classname : "none",
-			buttonTrigger->target ? buttonTrigger->target : "none");
+			"stage=tabletop-nearby-activate entity=%d class=%s mode=%s target=%s",
+			target->s.number,
+			target->classname ? target->classname : "none",
+			((target->contents & CONTENTS_TRIGGER) &&
+				target->e_TouchFunc == touchF_Touch_Multi) ? "trigger" : "use",
+			target->target ? target->target : "none");
 	}
 #endif
-	GEntity_TouchFunc(buttonTrigger, ent, &triggerTrace);
+	if ((target->contents & CONTENTS_TRIGGER) &&
+		target->e_TouchFunc == touchF_Touch_Multi) {
+		GEntity_TouchFunc(target, ent, &triggerTrace);
+	} else {
+		GEntity_UseFunc(target, ent, ent);
+	}
 	return qtrue;
 }
 
 #define USE_DISTANCE	64.0f
-extern qboolean eweb_can_be_used( gentity_t *self, gentity_t *other, gentity_t *activator );
 qboolean CanUseInfrontOf(gentity_t *ent)
 {
 	gentity_t	*target;
@@ -1759,7 +1797,7 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 	gi.trace( &trace, src, vec3_origin, vec3_origin, dest, ent->s.number, MASK_OPAQUE|CONTENTS_SOLID|CONTENTS_TERRAIN|CONTENTS_BODY|CONTENTS_ITEM|CONTENTS_CORPSE , G2_NOCOLLIDE, 10);
 	if ( trace.fraction == 1.0f || trace.entityNum >= ENTITYNUM_WORLD )
 	{
-		return FindUsableButtonTrigger(ent, vf, tabletopActive ? qtrue : qfalse) ? qtrue : qfalse;
+		return FindUsableSweepTarget(ent, vf, tabletopActive ? qtrue : qfalse) ? qtrue : qfalse;
 	}
 
 	target = &g_entities[trace.entityNum];
@@ -1815,7 +1853,7 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 		return qtrue;
 	}
 
-	if (FindUsableButtonTrigger(ent, vf, tabletopActive ? qtrue : qfalse)) {
+	if (FindUsableSweepTarget(ent, vf, tabletopActive ? qtrue : qfalse)) {
 		return qtrue;
 	}
 
@@ -1884,7 +1922,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 
 	if ( trace.fraction == 1.0f || trace.entityNum  >= ENTITYNUM_WORLD )
 	{
-		if (TryTabletopButtonTrigger(ent, vf)) {
+		if (TryTabletopNearbyUse(ent, vf)) {
 			return;
 		}
 		//TODO: Play a failure sound
@@ -1949,7 +1987,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 	// Tabletop has no physical hand/body at the visible console.  If the direct
 	// ray hit a non-usable door or world brush, activate the same nearby
 	// USE_BUTTON trigger that CanUseInfrontOf used for the HUD hint.
-	if (TryTabletopButtonTrigger(ent, vf))
+	if (TryTabletopNearbyUse(ent, vf))
 	{
 		return;
 	}
