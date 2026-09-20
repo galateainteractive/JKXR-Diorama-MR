@@ -1681,13 +1681,16 @@ qboolean CanUseInfrontOf(gentity_t *ent)
 		}
 	}
 
+	const bool tabletopActive =
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer != 0;
 	bool thirdPersonActive =
-		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
-		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
-	if (thirdPersonActive) {
+		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer != 0;
+	if (thirdPersonActive && !tabletopActive) {
 		VectorCopy(ent->currentOrigin, src);
 		AngleVectors(ent->currentAngles, vf, NULL, NULL);
 	} else {
+		// Tabletop must use the same avatar eye/view ray as its visible body.
+		// currentAngles does not reliably follow the tabletop command yaw.
 		VectorCopy( ent->client->renderInfo.eyePoint, src );
 		AngleVectors( ent->client->ps.viewangles, vf, NULL, NULL );
 	}
@@ -1908,12 +1911,21 @@ void TryUse( gentity_t *ent ) {
 		return;
 	}*/
 
+	const bool tabletopActive =
+		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer != 0;
 	bool thirdPersonActive =
 		gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
-		gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
+		tabletopActive;
 	vec3_t src, angles, vf;
 	if (ent->client->ps.clientNum == 0 && !(vr && vr->remote_droid)) {
-		if (thirdPersonActive) {
+		if (tabletopActive) {
+			// Match CanUseInfrontOf exactly so the hint and the actual Use action
+			// can never disagree about the avatar's origin or facing direction.
+			VectorCopy(ent->client->renderInfo.eyePoint, src);
+			AngleVectors(ent->client->ps.viewangles, vf, NULL, NULL);
+			TryUse_Internal(false, ent, src, vf);
+		}
+		else if (thirdPersonActive) {
 			VectorCopy(ent->currentOrigin, src);
 			AngleVectors(ent->currentAngles, vf, NULL, NULL);
 			TryUse_Internal(false, ent, src, vf);

@@ -257,7 +257,9 @@ void Touch_Multi( gentity_t *self, gentity_t *other, trace_t *trace )
 	bool useGestureAllowed = false;
 	if (vr)
 	{
-		bool thirdPersonActive = gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer;
+		bool thirdPersonActive =
+			gi.cvar("cg_thirdPerson", "0", CVAR_TEMP)->integer ||
+			gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer;
 		cvar_t *vr_gesture_triggered_use = gi.cvar("vr_gesture_triggered_use", "1", CVAR_ARCHIVE);
 		bool useGestureEnabled = vr_gesture_triggered_use == nullptr ||
 								 vr_gesture_triggered_use->integer; // defined in VrCvars.h

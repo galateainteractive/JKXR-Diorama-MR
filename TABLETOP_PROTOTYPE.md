@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V3.3 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V3.4 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -43,6 +43,8 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
   contextualmente, voltando a atacar normalmente longe de painéis;
 - a interação com painéis usa a posição e a direção do personagem no modo
   tabletop, em vez de lançar o raio a partir do controle físico do observador;
+- o ícone e a ação de `Use` compartilham exatamente o mesmo raio dos olhos e
+  da direção do avatar, inclusive em painéis implementados como triggers;
 - a página de dificuldade oferece `Modo de jogo: Maquete MR / VR original`,
   disponível no menu inicial e também durante a partida;
 - modo reversível por cvars, sem alterar os dados originais do jogo.
@@ -76,7 +78,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V3.3** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V3.4** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -85,7 +87,7 @@ e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
 Como alternativa, o instalador Windows V1.3 continua válido para copiar os
-dados do jogo; depois basta atualizar este APK V3.3 por cima.
+dados do jogo; depois basta atualizar este APK V3.4 por cima.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -116,7 +118,7 @@ A V3.0 também sincroniza a orientação interna do cliente, sua cópia usada pe
 câmera e o acumulador do controle quando ocorre respawn ou load. Isso impede que
 o yaw retido na tela de morte seja somado à direção restaurada pelo save.
 
-## Interação com painéis na V3.3
+## Interação com painéis na V3.4
 
 Quando o ícone da mão aparece junto ao personagem, há duas formas equivalentes
 de executar `Use`: clicar o analógico direito ou apertar o gatilho direito. O
@@ -128,7 +130,7 @@ No modo tabletop, a detecção de `Use` agora acompanha o corpo e a direção do
 personagem; os gestos de proximidade das mãos físicas permanecem exclusivos do
 VR original.
 
-## Limitações conhecidas da V3.3
+## Limitações conhecidas da V3.4
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - névoa e recorte de paredes/tetos ainda podem precisar de tratamento por mapa;
@@ -144,4 +146,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.3.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.4.apk`.
