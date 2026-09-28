@@ -441,9 +441,20 @@ Any mirrored or portaled views have already been drawn, so prepare
 to actually render the visible surfaces for this view
 =================
 */
+static void RB_SetWorldClearColor( float red, float green, float blue ) {
+	if ( r_fastsky->integer == 2 ) {
+		// The OpenXR projection layer uses premultiplied alpha. Transparent
+		// pixels must therefore have zero RGB as well as zero alpha, otherwise
+		// the world's fog/sky clear color becomes a grey veil over passthrough.
+		qglClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+		return;
+	}
+
+	qglClearColor( red, green, blue, 1.0f );
+}
+
 static void RB_BeginDrawingView (void) {
 	int clearBits = GL_DEPTH_BUFFER_BIT;
-	const float clearAlpha = (r_fastsky->integer == 2) ? 0.0f : 1.0f;
 
 	// sync with gl if needed
 	if ( r_finish->integer == 1 && !glState.finishCalled ) {
@@ -484,11 +495,11 @@ static void RB_BeginDrawingView (void) {
 				if (tr.world && tr.world->globalFog != -1)
 				{
 					const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
-					qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
+					RB_SetWorldClearColor(fog->parms.color[0], fog->parms.color[1], fog->parms.color[2] );
 				}
 				else
 				{
-					qglClearColor ( 0.3f, 0.3f, 0.3f, clearAlpha );
+					RB_SetWorldClearColor( 0.3f, 0.3f, 0.3f );
 				}
 			}
 		}
@@ -501,11 +512,11 @@ static void RB_BeginDrawingView (void) {
 			if (tr.world && tr.world->globalFog != -1)
 			{
 				const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
-				qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
+				RB_SetWorldClearColor(fog->parms.color[0], fog->parms.color[1], fog->parms.color[2] );
 			}
 			else
 			{
-				qglClearColor( 0.3f, 0.3f, 0.3f, clearAlpha );	// FIXME: get color of sky
+				RB_SetWorldClearColor( 0.3f, 0.3f, 0.3f );	// FIXME: get color of sky
 			}
 			clearBits |= GL_COLOR_BUFFER_BIT;	// FIXME: only if sky shaders have been used
 		}
@@ -517,7 +528,7 @@ static void RB_BeginDrawingView (void) {
 		{ //this is because of a bug in multiple scenes I think, it needs to clear for the second scene but it doesn't normally.
 			const fog_t		*fog = &tr.world->fogs[tr.world->globalFog];
 
-			qglClearColor(fog->parms.color[0],  fog->parms.color[1], fog->parms.color[2], clearAlpha );
+			RB_SetWorldClearColor(fog->parms.color[0], fog->parms.color[1], fog->parms.color[2] );
 			clearBits |= GL_COLOR_BUFFER_BIT;
 		}
 	}

@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V3.9 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V3.10 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -13,7 +13,8 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
 - IPD/estéreo convertido para a mesma escala visual;
 - física, colisões, IA, missões, scripts e saves sem mudança de escala;
 - um grip arrasta a maquete e dois grips arrastam, giram e mudam sua escala;
-- passthrough nativo `XR_FB_passthrough`, com o fundo do céu em alpha zero;
+- passthrough nativo `XR_FB_passthrough`, com o fundo do céu em RGB e alpha
+  zero para não misturar a cor da névoa da fase com a imagem real;
 - movimento 360 graus recalculado entre a posição atual do headset e a posição
   atual do personagem: para baixo ele vem até o observador, para cima se afasta
   e esquerda/direita permanecem laterais mesmo ao caminhar ao redor da mesa;
@@ -82,7 +83,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V3.9** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V3.10** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -91,7 +92,7 @@ e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
 Como alternativa, o instalador Windows V1.3 continua válido para copiar os
-dados do jogo; depois basta atualizar este APK V3.9 por cima.
+dados do jogo; depois basta atualizar este APK V3.10 por cima.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -131,6 +132,14 @@ invalida o transform anterior e reconstrói a âncora usando o estado atual do
 personagem. Assim, a orientação usada no VR não contamina a direção do joystick
 quando a maquete reaparece.
 
+## Passthrough limpo na V3.10
+
+O fundo transparente agora é limpo com RGB preto e alpha zero. O compositor
+OpenXR trabalha com alpha premultiplicado; manter a cor cinza padrão ou a cor
+da névoa em pixels transparentes produzia uma película esbranquiçada sobre a
+imagem real. Névoa, iluminação e atmosfera continuam sendo desenhadas sobre a
+geometria da maquete, sem tingir o passthrough inteiro.
+
 ## Interação com painéis e objetos na V3.8
 
 Quando o ícone da mão aparece junto ao personagem, há duas formas equivalentes
@@ -150,7 +159,7 @@ diretamente utilizáveis. Entidades `PLAYER_USE` encontradas por essa varredura
 agora passam pela mesma animação, retorno tátil e callback do raio convencional;
 isso inclui as bombas baixas de Bakura e outros objetos utilizáveis por script.
 
-## Limitações conhecidas da V3.9
+## Limitações conhecidas da V3.10
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - névoa e recorte de paredes/tetos ainda podem precisar de tratamento por mapa;
@@ -166,4 +175,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.9.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.10.apk`.
