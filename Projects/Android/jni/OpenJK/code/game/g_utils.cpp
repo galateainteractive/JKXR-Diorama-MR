@@ -1693,7 +1693,44 @@ static gentity_t *FindUsableSweepTarget(gentity_t* ent, const vec3_t viewForward
 	return NULL;
 }
 
-static qboolean TryTabletopNearbyUse(gentity_t *ent, const vec3_t viewForward)
+static void ActivateDirectUseTarget(bool offHand, gentity_t *ent,
+	gentity_t *target)
+{
+	// Keep swept tabletop interactions on the exact same path as a target hit
+	// by the stock eye-level ray.  This prevents low scripted controls such as
+	// the Bakura bombs from observing a different player/use state merely
+	// because their bounding box falls just below the avatar's eye ray.
+	NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BUTTON_HOLD,
+		SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+
+	if (ent->client->ps.clientNum == 0) {
+		int channel = vr->right_handed != offHand ? 1 : 2;
+		if (level.time > vr->useHapticFeedbackTime[channel - 1]) {
+			cgi_HapticEvent("use_button", 0, channel, 60, 0, 0);
+			vr->useHapticFeedbackTime[channel - 1] =
+				level.time + USE_HAPTIC_FEEDBACK_DELAY;
+		}
+	}
+
+#if defined(__ANDROID__)
+	if (ent->s.number == 0) {
+		const char *useScript = target->behaviorSet[BSET_USE];
+		const char *parm3 = target->parms ? target->parms->parm[2] : NULL;
+		__android_log_print(ANDROID_LOG_INFO, "JKXR-USE",
+			"stage=direct-use-activate entity=%d class=%s useFunc=%d script=%s parm3=%s",
+			target->s.number,
+			target->classname ? target->classname : "none",
+			(int)target->e_UseFunc,
+			useScript && useScript[0] ? useScript : "none",
+			parm3 && parm3[0] ? parm3 : "none");
+	}
+#endif
+
+	GEntity_UseFunc(target, ent, ent);
+}
+
+static qboolean TryTabletopNearbyUse(bool offHand, gentity_t *ent,
+	const vec3_t viewForward)
 {
 	if (gi.cvar("cg_tabletop", "0", CVAR_TEMP)->integer == 0) {
 		return qfalse;
@@ -1721,7 +1758,7 @@ static qboolean TryTabletopNearbyUse(gentity_t *ent, const vec3_t viewForward)
 		target->e_TouchFunc == touchF_Touch_Multi) {
 		GEntity_TouchFunc(target, ent, &triggerTrace);
 	} else {
-		GEntity_UseFunc(target, ent, ent);
+		ActivateDirectUseTarget(offHand, ent, target);
 	}
 	return qtrue;
 }
@@ -1922,7 +1959,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 
 	if ( trace.fraction == 1.0f || trace.entityNum  >= ENTITYNUM_WORLD )
 	{
-		if (TryTabletopNearbyUse(ent, vf)) {
+		if (TryTabletopNearbyUse(offHand, ent, vf)) {
 			return;
 		}
 		//TODO: Play a failure sound
@@ -1948,7 +1985,6 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 	//Check for a use command
 	if ( ValidUseTarget( target ) )
 	{
-		NPC_SetAnim( ent, SETANIM_TORSO, BOTH_BUTTON_HOLD, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
 		/*
 		if ( !VectorLengthSquared( ent->client->ps.velocity ) && !PM_CrouchAnim( ent->client->ps.legsAnim ) )
 		{
@@ -1956,14 +1992,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 		}
 		*/
 		//ent->client->ps.weaponTime = ent->client->ps.torsoAnimTimer;
-		if (ent->client->ps.clientNum == 0) {
-			int channel = vr->right_handed != offHand ? 1 : 2;
-			if (level.time > vr->useHapticFeedbackTime[channel - 1]) {
-				cgi_HapticEvent("use_button", 0, channel, 60, 0, 0);
-				vr->useHapticFeedbackTime[channel - 1] = level.time +  + USE_HAPTIC_FEEDBACK_DELAY;
-			}
-		}
-		GEntity_UseFunc( target, ent, ent );
+		ActivateDirectUseTarget(offHand, ent, target);
 		return;
 	}
 	else if ( target->client
@@ -1987,7 +2016,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 	// Tabletop has no physical hand/body at the visible console.  If the direct
 	// ray hit a non-usable door or world brush, activate the same nearby
 	// USE_BUTTON trigger that CanUseInfrontOf used for the HUD hint.
-	if (TryTabletopNearbyUse(ent, vf))
+	if (TryTabletopNearbyUse(offHand, ent, vf))
 	{
 		return;
 	}
