@@ -1,7 +1,7 @@
 # JKXR Tabletop MR — primeiro protótipo
 
 Este branch adiciona ao **Jedi Academy** um primeiro modo de mundo em
-miniatura. Este APK V3.8 abre diretamente o Jedi Academy; o código do Jedi
+miniatura. Este APK V3.9 abre diretamente o Jedi Academy; o código do Jedi
 Outcast continua no repositório, mas não é selecionável neste pacote de teste.
 
 ## O que já está implementado
@@ -23,6 +23,8 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
   que spawn, scripts e transições não girem novamente a direção calculada;
 - loads e reinícios de mapa invalidam explicitamente a referência anterior dos
   controles antes de reconstruí-la para a nova maquete;
+- ao voltar do modo VR para Tabletop MR, o yaw e o acumulador de movimento são
+  zerados antes do cálculo da câmera e a âncora é reconstruída;
 - retornos de cutscene/câmera, teletransportes por script e loads no mesmo mapa
   também reconstroem automaticamente a âncora e a referência de movimento;
 - no modo tabletop, o gatilho executa o ataque primário animado do personagem,
@@ -47,7 +49,7 @@ Outcast continua no repositório, mas não é selecionável neste pacote de test
   da direção do avatar, inclusive em painéis implementados como triggers;
 - NPCs com Bowcaster não consultam mais a orientação de um controle VR
   inexistente ao disparar durante o carregamento de um save;
-- a página de dificuldade oferece `Modo de jogo: Maquete MR / VR original`,
+- a página de dificuldade oferece `Modo de jogo: Tabletop MR / VR`,
   disponível no menu inicial e também durante a partida;
 - modo reversível por cvars, sem alterar os dados originais do jogo.
 
@@ -80,7 +82,7 @@ Jedi Academy, localize `GameData\base` e copie `assets0.pk3`, `assets1.pk3`,
 `assets2.pk3` e `assets3.pk3` para `/sdcard/JKXR/JK3/base` no Quest.
 Ele mantém o package ID `com.drbeef.jkxr`, portanto atualiza/substitui uma
 instalação existente do JKXR assinada com a chave pública do projeto. O nome no
-menu do Quest aparece como **JKXR Tabletop V3.8** e `cg_tabletop 0` restaura o
+menu do Quest aparece como **JKXR Tabletop V3.9** e `cg_tabletop 0` restaura o
 caminho visual normal sem precisar trocar de APK.
 
 O primeiro início solicita acesso aos arquivos e cria automaticamente
@@ -89,7 +91,7 @@ e faça a cópia dos quatro PK3. Não copie executáveis, DLLs nem o restante da
 pasta do jogo.
 
 Como alternativa, o instalador Windows V1.3 continua válido para copiar os
-dados do jogo; depois basta atualizar este APK V3.8 por cima.
+dados do jogo; depois basta atualizar este APK V3.9 por cima.
 Ele procura instalações Steam/GOG, oferece busca nos discos e seleção manual,
 instala o APK, copia os quatro PK3 por USB e verifica o tamanho de cada arquivo
 no Quest. O ADB está incorporado; SideQuest não é obrigatório para esse fluxo.
@@ -102,8 +104,8 @@ No primeiro teste:
 4. mova a cabeça lateralmente para verificar a paralaxe 6DoF;
 5. caminhe para confirmar que o personagem se afasta dentro da maquete parada;
 6. segure um grip para arrastar; segure os dois para girar e redimensionar;
-7. em Configuração > Dificuldade, alterne `Modo de jogo` para comparar a
-   maquete com o VR original sem trocar de APK.
+7. em Configuração > Dificuldade, alterne `Modo de jogo` para comparar o
+   modo Tabletop MR com o VR sem trocar de APK.
 
 ## Correção e diagnóstico da direção na V3.0
 
@@ -119,6 +121,15 @@ adb logcat -s JKXR-DIR:I *:S
 A V3.0 também sincroniza a orientação interna do cliente, sua cópia usada pela
 câmera e o acumulador do controle quando ocorre respawn ou load. Isso impede que
 o yaw retido na tela de morte seja somado à direção restaurada pelo save.
+
+## Retorno do VR para Tabletop MR na V3.9
+
+A troca de modo agora é detectada no início do frame, antes do cálculo da
+câmera. Ao entrar novamente em Tabletop MR, a build zera o yaw compartilhado,
+solicita ao cliente nativo que limpe seu yaw e o acumulador de movimento,
+invalida o transform anterior e reconstrói a âncora usando o estado atual do
+personagem. Assim, a orientação usada no VR não contamina a direção do joystick
+quando a maquete reaparece.
 
 ## Interação com painéis e objetos na V3.8
 
@@ -139,7 +150,7 @@ diretamente utilizáveis. Entidades `PLAYER_USE` encontradas por essa varredura
 agora passam pela mesma animação, retorno tátil e callback do raio convencional;
 isso inclui as bombas baixas de Bakura e outros objetos utilizáveis por script.
 
-## Limitações conhecidas da V3.8
+## Limitações conhecidas da V3.9
 
 - mapas internos podem ter paredes ou teto entre a câmera e o jogador;
 - névoa e recorte de paredes/tetos ainda podem precisar de tratamento por mapa;
@@ -155,4 +166,4 @@ Execute no PowerShell, a partir da raiz do repositório:
 ```
 
 O script usa o JDK, Android SDK/NDK e Gradle instalados no `D:` e copia o APK
-final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.8.apk`.
+final para `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-tabletop-v3.9.apk`.

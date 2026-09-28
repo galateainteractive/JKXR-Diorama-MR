@@ -2727,8 +2727,8 @@
 			cvar				"cg_tabletop"
 			cvarFloatList
 			{
-				"VR original" 0
-				"Maquete MR" 1
+				"VR" 0
+				"Tabletop MR" 1
 			}
 			rect				260 286 340 14
 			textalign			ITEM_ALIGN_RIGHT
@@ -2738,7 +2738,7 @@
 			textscale			1
 			forecolor			.615 .615 .956 1
 			visible				0
-			descText			"Alterna entre a maquete em realidade mista e o modo VR original."
+			descText			"Alterna entre Tabletop MR e VR."
 			action
 			{
 				play			"sound/interface/button1.wav"

@@ -4752,17 +4752,27 @@ void CG_ClearTabletopTransform( void )
 	CG_LogTabletopDirection("clear-after");
 }
 
-void CG_ResetTabletopForRespawn( void )
+static void CG_ResetTabletopControlFrame( const char *event )
 {
 	// delta_angles in the incoming snapshot already contains the saved
 	// player's world facing. A command yaw retained from the death/load screen
-	// would add the old facing a second time. Clear the shared copy now so this
-	// frame's tabletop anchor is correct, then ask the client input layer to
-	// clear its authoritative yaw and movement accumulator.
+	// or original VR would add the old facing a second time. Clear the shared
+	// copy now so this frame's tabletop anchor is correct, then ask the client
+	// input layer to clear its authoritative yaw and movement accumulator.
 	vr->clientviewangles[YAW] = 0.0f;
 	vr->tabletop_command_yaw_reset_pending = true;
-	CG_LogTabletopDirection("respawn-command-yaw-cleared");
+	CG_LogTabletopDirection(event);
 	CG_ClearTabletopTransform();
+}
+
+void CG_ResetTabletopForRespawn( void )
+{
+	CG_ResetTabletopControlFrame("respawn-command-yaw-cleared");
+}
+
+void CG_ResetTabletopForModeSwitch( void )
+{
+	CG_ResetTabletopControlFrame("mode-enter-command-yaw-cleared");
 }
 
 static void CG_UpdateTabletopAim( void )
@@ -5127,20 +5137,9 @@ static void CG_ApplyTabletopView( void )
 
 void CG_PrepareTabletopView( void )
 {
-	static int previousTabletopState = -1;
 	const qboolean tabletopActive =
 		(qboolean)(cg_tabletop.integer && !in_camera && !in_misccamera);
 	cg.refdef.tabletopFocusValid = qfalse;
-
-	if (previousTabletopState >= 0 &&
-		previousTabletopState != (cg_tabletop.integer != 0))
-	{
-		CG_ClearTabletopTransform();
-		// Restore the stock sky when entering original VR, and make it
-		// transparent again when returning to mixed-reality tabletop mode.
-		cgi_Cvar_Set("r_fastsky", cg_tabletop.integer ? "2" : "0");
-	}
-	previousTabletopState = (cg_tabletop.integer != 0);
 
 	if (cg_tabletop.integer && !tabletopActive)
 	{

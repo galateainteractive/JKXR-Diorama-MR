@@ -573,6 +573,7 @@ CG_UpdateCvars
 =================
 */
 void CG_UpdateCvars( void ) {
+	static int previousTabletopState = -1;
 	size_t		i;
 	cvarTable_t	*cv;
 
@@ -581,6 +582,29 @@ void CG_UpdateCvars( void ) {
 			cgi_Cvar_Update( cv->vmCvar );
 		}
 	}
+
+	const int tabletopState = cg_tabletop.integer != 0;
+	if (previousTabletopState >= 0 &&
+		previousTabletopState != tabletopState)
+	{
+		if (tabletopState)
+		{
+			// Detect the return from original VR before view calculation. This
+			// keeps the VR command yaw out of the new tabletop camera and asks
+			// the native input layer to clear its movement accumulator as well.
+			CG_ResetTabletopForModeSwitch();
+		}
+		else
+		{
+			CG_LogTabletopDirection("leave-tabletop-mode");
+			CG_ClearTabletopTransform();
+		}
+
+		// Restore the stock sky in original VR and make it transparent again
+		// when returning to mixed-reality tabletop mode.
+		cgi_Cvar_Set("r_fastsky", tabletopState ? "2" : "0");
+	}
+	previousTabletopState = tabletopState;
 }
 
 int CG_CrosshairPlayer( void )
