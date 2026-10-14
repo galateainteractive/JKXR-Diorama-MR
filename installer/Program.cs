@@ -11,11 +11,18 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("0.4.0.0")]
-[assembly: AssemblyFileVersion("0.4.0.0")]
+[assembly: AssemblyVersion("0.5.0.0")]
+[assembly: AssemblyFileVersion("0.5.0.0")]
 
 namespace JKXRDioramaMRInstaller
 {
+    internal static class AppIdentity
+    {
+        internal const string AndroidPackage = "com.galateainteractive.jkxrdioramamr";
+        internal const string DeviceRoot = "/sdcard/JKXR-Diorama-MR";
+        internal const string JediAcademyBase = DeviceRoot + "/JK3/base";
+    }
+
     internal static class Program
     {
         [STAThread]
@@ -347,23 +354,23 @@ namespace JKXRDioramaMRInstaller
             AdbResult install = AdbClient.Run(device.Serial,
                 "install -r -d " + AdbClient.Quote(AdbBundle.ApkPath), 180000);
             RequireSuccess(install,
-                "APK installation failed. If another JKXR build uses a different signing key, uninstall only the application and try again. The /JKXR folder is not deleted.");
+                "APK installation failed. If an earlier Diorama MR build uses a different signing key, uninstall only JKXR Diorama MR and try again. Its game-data folder is not deleted.");
 
             SetProgress(30, "Preparing the Jedi Academy folder...");
-            RequireSuccess(AdbClient.Run(device.Serial, "shell mkdir -p /sdcard/JKXR/JK3/base", 15000),
-                "Unable to create /sdcard/JKXR/JK3/base.");
+            RequireSuccess(AdbClient.Run(device.Serial, "shell mkdir -p " + AppIdentity.JediAcademyBase, 15000),
+                "Unable to create " + AppIdentity.JediAcademyBase + ".");
 
             string commandFile = Path.Combine(AdbBundle.WorkDirectory, "commandline.txt");
             File.WriteAllText(commandFile, "ja\n", new UTF8Encoding(false));
             RequireSuccess(AdbClient.Run(device.Serial,
-                "push " + AdbClient.Quote(commandFile) + " /sdcard/JKXR/commandline.txt", 30000),
+                "push " + AdbClient.Quote(commandFile) + " " + AppIdentity.DeviceRoot + "/commandline.txt", 30000),
                 "Unable to select Jedi Academy on the Quest.");
 
             // On Quest/Android 11+, this app-op is the programmatic equivalent
             // of the all-files access page. Failure is non-fatal: the headset
             // will present the permission screen on first launch instead.
             AdbClient.Run(device.Serial,
-                "shell appops set com.drbeef.jkxr MANAGE_EXTERNAL_STORAGE allow", 15000);
+                "shell appops set " + AppIdentity.AndroidPackage + " MANAGE_EXTERNAL_STORAGE allow", 15000);
 
             string[] files = GameLocator.RequiredFiles;
             for (int i = 0; i < files.Length; ++i)
@@ -373,7 +380,7 @@ namespace JKXRDioramaMRInstaller
                 string source = Path.Combine(baseDirectory, name);
                 SetProgress(percent, "Copying " + name + "...");
                 AdbResult pushed = AdbClient.Run(device.Serial,
-                    "push " + AdbClient.Quote(source) + " /sdcard/JKXR/JK3/base/" + name, 600000);
+                    "push " + AdbClient.Quote(source) + " " + AppIdentity.JediAcademyBase + "/" + name, 600000);
                 RequireSuccess(pushed, "Failed to copy " + name + ". Check the cable and free space on the Quest.");
             }
 
@@ -382,7 +389,7 @@ namespace JKXRDioramaMRInstaller
             {
                 long localSize = new FileInfo(Path.Combine(baseDirectory, name)).Length;
                 AdbResult remote = AdbClient.Run(device.Serial,
-                    "shell stat -c %s /sdcard/JKXR/JK3/base/" + name, 20000);
+                    "shell stat -c %s " + AppIdentity.JediAcademyBase + "/" + name, 20000);
                 long remoteSize;
                 if (!remote.Success || !Int64.TryParse(remote.Output.Trim(), out remoteSize) || remoteSize != localSize)
                 {
@@ -392,9 +399,9 @@ namespace JKXRDioramaMRInstaller
             }
 
             SetProgress(96, "Launching JKXR Diorama MR...");
-            AdbClient.Run(device.Serial, "shell am force-stop com.drbeef.jkxr", 15000);
+            AdbClient.Run(device.Serial, "shell am force-stop " + AppIdentity.AndroidPackage, 15000);
             AdbResult launch = AdbClient.Run(device.Serial,
-                "shell monkey -p com.drbeef.jkxr -c android.intent.category.LAUNCHER 1", 30000);
+                "shell monkey -p " + AppIdentity.AndroidPackage + " -c android.intent.category.LAUNCHER 1", 30000);
             RequireSuccess(launch, "The files were installed, but the app could not be launched automatically. Open JKXR Diorama MR from Library > Unknown Sources.");
         }
 
@@ -837,6 +844,8 @@ namespace JKXRDioramaMRInstaller
             {
                 report.Add("JKXR Diorama MR Installer self-test");
                 report.Add("Assembly=" + Assembly.GetExecutingAssembly().GetName().Version);
+                report.Add("Android-package=" + AppIdentity.AndroidPackage);
+                report.Add("Device-root=" + AppIdentity.DeviceRoot);
                 AdbBundle.EnsureExtracted();
                 report.Add("Resources=OK");
 

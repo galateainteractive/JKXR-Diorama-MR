@@ -39,7 +39,9 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.drbeef." + project.archivesBaseName
+        // Keep the inherited Java/JNI namespace stable, but install Diorama MR
+        // as its own Quest application alongside upstream JKXR.
+        applicationId "com.galateainteractive.jkxrdioramamr"
         minSdk 29
         targetSdk 34
 

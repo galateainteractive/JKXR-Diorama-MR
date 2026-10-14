@@ -16,8 +16,9 @@ originally designed for an external miniature camera.
 - The current target is Jedi Academy single-player on Meta Quest. Jedi Outcast,
   multiplayer, Pico, and PCVR are not part of the first Diorama MR release
   scope.
-- Current private builds still share the upstream JKXR Android package ID. This
-  must be changed before public distribution.
+- Private alpha builds are not yet signed with the permanent public release
+  key. Moving to that key will require uninstalling a development-signed APK;
+  the separate game-data folder will remain on the headset.
 - The Windows installer is not yet Authenticode-signed and may trigger a
   Microsoft SmartScreen warning.
 

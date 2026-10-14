@@ -29,6 +29,10 @@ The same APK also retains the original immersive JKXR mode. Choose
 starts in Diorama MR; an existing installation remembers the last selected
 mode.
 
+Diorama MR installs as a separate Quest application and stores its game data,
+saves, and settings separately from upstream JKXR, so both can coexist on the
+same headset.
+
 ## Highlights
 
 - Native Meta Quest passthrough with a transparent game sky.

@@ -57,6 +57,9 @@ import java.util.Vector;
 
 	private static final String TAG = "JKXR";
 	private static final String APPLICATION = "JKXR";
+	private static final String DATA_ROOT = "/sdcard/JKXR-Diorama-MR";
+	private static final String JK2_ROOT = DATA_ROOT + "/JK2";
+	private static final String JK3_ROOT = DATA_ROOT + "/JK3";
 
 
 	private boolean permissionsGranted = false;
@@ -188,44 +191,44 @@ import java.util.Vector;
 
 	public void create() {
 		//Make the directories
-		new File("/sdcard/JKXR/JK2/base").mkdirs();
-		new File("/sdcard/JKXR/JK3/base").mkdirs();
+		new File(JK2_ROOT + "/base").mkdirs();
+		new File(JK3_ROOT + "/base").mkdirs();
 
 		//Copy the command line params file
-		copy_asset("/sdcard/JKXR", "commandline.txt", true);
+		copy_asset(DATA_ROOT, "commandline.txt", true);
 
 		//Our assets
-		copy_asset("/sdcard/JKXR/JK2/base", "z_vr_assets_base.pk3", true);
-		copy_asset("/sdcard/JKXR/JK2/base", "z_vr_assets_jko.pk3", true);
-		copy_asset("/sdcard/JKXR/JK3/base", "z_vr_assets_base.pk3", true);
-		copy_asset("/sdcard/JKXR/JK3/base", "z_vr_assets_jka.pk3", true);
+		copy_asset(JK2_ROOT + "/base", "z_vr_assets_base.pk3", true);
+		copy_asset(JK2_ROOT + "/base", "z_vr_assets_jko.pk3", true);
+		copy_asset(JK3_ROOT + "/base", "z_vr_assets_base.pk3", true);
+		copy_asset(JK3_ROOT + "/base", "z_vr_assets_jka.pk3", true);
 
 		//Bunch of cool mods and their credits - only copy if user wants them
-		if (!new File("/sdcard/JKXR/JK2/base/no_copy").exists()) {
-			copy_asset("/sdcard/JKXR/JK2/base", "packaged_mods_credits.txt", false);
-			copy_asset("/sdcard/JKXR/JK2/base", "GGDynamicWeapons.pk3", false);
+		if (!new File(JK2_ROOT + "/base/no_copy").exists()) {
+			copy_asset(JK2_ROOT + "/base", "packaged_mods_credits.txt", false);
+			copy_asset(JK2_ROOT + "/base", "GGDynamicWeapons.pk3", false);
 
 			//Weapon Models
-			copy_asset("/sdcard/JKXR/JK2/base", "z_vr_weapons_jko_Crusty_and_Elin.pk3", true);
-			copy_asset("/sdcard/JKXR/JK2/base", "assets6_vr_weapons_shaders.pk3", true);
+			copy_asset(JK2_ROOT + "/base", "z_vr_weapons_jko_Crusty_and_Elin.pk3", true);
+			copy_asset(JK2_ROOT + "/base", "assets6_vr_weapons_shaders.pk3", true);
 		}
 
 		//Bunch of cool mods and their credits - only copy if user wants them
-		if (!new File("/sdcard/JKXR/JK3/base/no_copy").exists()) {
-			copy_asset("/sdcard/JKXR/JK3/base", "packaged_mods_credits.txt", false);
-			copy_asset("/sdcard/JKXR/JK3/base", "GGDynamicWeapons.pk3", false);
+		if (!new File(JK3_ROOT + "/base/no_copy").exists()) {
+			copy_asset(JK3_ROOT + "/base", "packaged_mods_credits.txt", false);
+			copy_asset(JK3_ROOT + "/base", "GGDynamicWeapons.pk3", false);
 			//Weapon Models
-			copy_asset("/sdcard/JKXR/JK3/base", "z_vr_weapons_jka_Crusty_and_Elin.pk3", true);
+			copy_asset(JK3_ROOT + "/base", "z_vr_weapons_jka_Crusty_and_Elin.pk3", true);
 		}
 
 		//Copy mods to the demo folder if demo assets exist, since the demo doesn't seem to be able to load mods from base
-		if (new File("/sdcard/JKXR/JK2/jk2demo/assets0.pk3").exists() ||
-			new File("/sdcard/JKXR/JK2/jk2demo/jk2demo/assets0.pk3").exists()) {
+		if (new File(JK2_ROOT + "/jk2demo/assets0.pk3").exists() ||
+			new File(JK2_ROOT + "/jk2demo/jk2demo/assets0.pk3").exists()) {
 
-			String demoFolder = "/sdcard/JKXR/JK2/jk2demo";
-			if(new File("/sdcard/JKXR/JK2/jk2demo/jk2demo/assets0.pk3").exists())
+			String demoFolder = JK2_ROOT + "/jk2demo";
+			if(new File(JK2_ROOT + "/jk2demo/jk2demo/assets0.pk3").exists())
 			{
-				demoFolder = "/sdcard/JKXR/JK2/jk2demo/jk2demo";
+				demoFolder = JK2_ROOT + "/jk2demo/jk2demo";
 			}
 
 			//Our assets
@@ -245,11 +248,11 @@ import java.util.Vector;
 		commandLineParams = new String("ja");
 
 		//See if user is trying to use command line params
-		if (new File("/sdcard/JKXR/commandline.txt").exists()) // should exist!
+		if (new File(DATA_ROOT + "/commandline.txt").exists()) // should exist!
 		{
 			BufferedReader br;
 			try {
-				br = new BufferedReader(new FileReader("/sdcard/JKXR/commandline.txt"));
+				br = new BufferedReader(new FileReader(DATA_ROOT + "/commandline.txt"));
 				String s;
 				StringBuilder sb = new StringBuilder(0);
 				while ((s = br.readLine()) != null)

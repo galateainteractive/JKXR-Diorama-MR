@@ -44,7 +44,7 @@ files.
 4. Copy only those four files to:
 
    ```text
-   /sdcard/JKXR/JK3/base
+   /sdcard/JKXR-Diorama-MR/JK3/base
    ```
 
 5. Start **JKXR Diorama MR** from the Quest library's unknown-sources section.
@@ -59,11 +59,17 @@ only require installing the new APK over the existing installation. The full
 Windows installer is only needed again if its setup logic changes or the game
 data must be recopied.
 
-Current private development builds still use the upstream JKXR Android package
-identifier. They can therefore replace an installed upstream build and must be
-signed compatibly to update it. A unique package identifier and permanent
-release signing key are required before the first public Diorama MR release so
-both applications can coexist safely.
+Diorama MR uses the Android package identifier
+`com.galateainteractive.jkxrdioramamr` and keeps its data under
+`/sdcard/JKXR-Diorama-MR`. It can therefore coexist with upstream JKXR and its
+`/sdcard/JKXR` data. Saves, settings, and game files are not migrated between
+the two applications automatically.
+
+Private alpha APKs currently use a development signing key. Before public
+distribution, the project still needs a permanent release signing key. An APK
+signed with that future key cannot update a development-signed installation;
+the application must be uninstalled first. The separate game-data folder is
+not removed by a normal Android application uninstall.
 
 ## First launch
 

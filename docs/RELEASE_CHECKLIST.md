@@ -2,26 +2,27 @@
 
 ## Repository
 
-- [ ] Create the standalone private `JKXR-Diorama-MR` repository.
-- [ ] Keep Team Beef's JKXR repository configured as the read-only `upstream`
+- [x] Create the standalone private `JKXR-Diorama-MR` repository.
+- [x] Keep Team Beef's JKXR repository configured as the read-only `upstream`
   remote.
-- [ ] Push the complete descendant history and the Diorama MR development
+- [x] Push the complete descendant history and the Diorama MR development
   branch to the private repository.
-- [ ] Confirm that no Jedi Academy commercial PK3 files, generated APKs,
+- [x] Confirm that no Jedi Academy commercial PK3 files, generated APKs,
   installer binaries, credentials, or release keys are tracked.
 - [ ] Decide whether the final public home will be the standalone repository or
   an official GitHub fork before opening the source.
 
 ## Application identity
 
-- [ ] Select a unique reverse-domain Android package identifier.
-- [ ] Update Gradle, the installer app-ops command, force-stop command, and
+- [x] Select `com.galateainteractive.jkxrdioramamr` as the unique reverse-domain
+  Android package identifier.
+- [x] Update Gradle, the installer app-ops command, force-stop command, and
   launch command to use that identifier.
-- [ ] Confirm whether Diorama MR and upstream JKXR should share `/sdcard/JKXR`
-  game data or use separate data folders.
+- [x] Use `/sdcard/JKXR-Diorama-MR` so Diorama MR and upstream JKXR keep
+  separate game data, saves, and settings.
 - [ ] Create the permanent Android release signing key outside the repository.
 - [ ] Store encrypted backups and document who controls the key.
-- [ ] Set the first public version, currently proposed as `0.1.0-alpha.1`.
+- [x] Set the first public version to `0.1.0-alpha.1`.
 
 ## Branding and documentation
 
@@ -38,12 +39,14 @@
 
 - [ ] Remove machine-specific absolute paths from the Android and installer
   build scripts.
-- [ ] Build the APK with the permanent package identifier and release key.
-- [ ] Update the Windows installer to embed that exact APK.
+- [x] Build the private alpha APK with the permanent package identifier and a
+  development signing key.
+- [ ] Build the public APK with the permanent release signing key.
+- [x] Update the Windows installer to embed the `0.1.0-alpha.1` APK.
 - [ ] Confirm that Steam, GOG, registry, disk search, and manual folder selection
   all find valid Jedi Academy installations.
 - [ ] Confirm that the installer rejects Jedi Outcast and incomplete PK3 sets.
-- [ ] Run the installer self-test and verify APK and installer SHA-256 hashes.
+- [x] Run the installer self-test and verify APK and installer SHA-256 hashes.
 - [ ] Decide whether to obtain an Authenticode certificate or document the
   expected SmartScreen warning.
 

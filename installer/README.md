@@ -10,7 +10,7 @@ It does not contain Jedi Academy game data.
 2. Optionally search fixed drives or select any folder manually.
 3. Validate `assets0.pk3` through `assets3.pk3` as readable game archives.
 4. Detect an authorized Meta Quest over USB/ADB.
-5. Install the APK, create `/sdcard/JKXR/JK3/base`, and copy the four PK3 files.
+5. Install the APK, create `/sdcard/JKXR-Diorama-MR/JK3/base`, and copy the four PK3 files.
 6. Compare each local and remote file size, then launch the game.
 
 The folder picker accepts the game root, `GameData`, or `GameData\base`.

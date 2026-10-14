@@ -619,9 +619,9 @@ void * AppThreadFunction(void * parm ) {
 	TBXR_InitActions();
 
 #ifdef JK2_MODE
-		chdir("/sdcard/JKXR/JK2");
+		chdir("/sdcard/JKXR-Diorama-MR/JK2");
 #else
-		chdir("/sdcard/JKXR/JK3");
+		chdir("/sdcard/JKXR-Diorama-MR/JK3");
 #endif
 
 	TBXR_WaitForSessionActive();

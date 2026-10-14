@@ -69,10 +69,13 @@ controller event, user command, movement event, and interaction result.
 
 ## Release engineering still required
 
-- Select a unique Android package identifier.
 - Create and securely store the permanent release signing key outside Git.
-- Replace development version labels with semantic release versions.
 - Make build and installer scripts independent of local absolute paths.
-- Update the installer to package the current APK.
 - Run the release test matrix described in `KNOWN_ISSUES.md` and the project
   release checklist.
+
+The private alpha uses package ID `com.galateainteractive.jkxrdioramamr`, data
+root `/sdcard/JKXR-Diorama-MR`, and semantic version `0.1.0-alpha.1`. The
+inherited Java namespace remains `com.drbeef.jkxr` so its JNI bindings do not
+need to change; Gradle's application ID provides the separate installed-app
+identity.

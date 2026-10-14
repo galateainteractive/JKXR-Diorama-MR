@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$ApkPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Diorama-MR-dev.apk',
+    [string]$ApkPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Diorama-MR-0.1.0-alpha.1.apk',
     [string]$AndroidSdk = 'D:\Android\Sdk',
     [string]$OutputPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Diorama-MR-Installer.exe'
 )
