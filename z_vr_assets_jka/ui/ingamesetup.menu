@@ -2723,12 +2723,12 @@
 			name				tabletop_mode
 			group				difficulty
 			type				ITEM_TYPE_MULTI
-			text				"Modo de jogo"
+			text				"Game mode"
 			cvar				"cg_tabletop"
 			cvarFloatList
 			{
 				"VR" 0
-				"Tabletop MR" 1
+				"Diorama MR" 1
 			}
 			rect				260 286 340 14
 			textalign			ITEM_ALIGN_RIGHT
@@ -2738,7 +2738,7 @@
 			textscale			1
 			forecolor			.615 .615 .956 1
 			visible				0
-			descText			"Alterna entre Tabletop MR e VR."
+			descText			"Switches between Diorama MR and VR."
 			action
 			{
 				play			"sound/interface/button1.wav"

@@ -1,37 +1,46 @@
-# Instalador Windows — JKXR Tabletop V1.3
+# Windows installer — JKXR Diorama MR
 
-O instalador é um executável Windows autônomo que incorpora o APK do protótipo
-e as ferramentas ADB oficiais do Android SDK. Ele não incorpora arquivos do
-Jedi Academy.
+The installer is a standalone Windows executable that embeds the Diorama MR
+APK and the official Android SDK platform-tools components required for ADB.
+It does not contain Jedi Academy game data.
 
-## Fluxo para o usuário
+## User workflow
 
-1. Detectar Jedi Academy na Steam, GOG ou registro do Windows;
-2. opcionalmente buscar nos discos ou escolher qualquer pasta manualmente;
-3. validar `assets0.pk3` a `assets3.pk3` como arquivos ZIP legíveis;
-4. detectar um Quest autorizado por USB/ADB;
-5. instalar o APK, criar `/sdcard/JKXR/JK3/base` e copiar os quatro PK3;
-6. comparar o tamanho de cada arquivo local/remoto e abrir o jogo.
+1. Detect Jedi Academy through Steam, GOG, LucasArts, or Windows registry data.
+2. Optionally search fixed drives or select any folder manually.
+3. Validate `assets0.pk3` through `assets3.pk3` as readable game archives.
+4. Detect an authorized Meta Quest over USB/ADB.
+5. Install the APK, create `/sdcard/JKXR/JK3/base`, and copy the four PK3 files.
+6. Compare each local and remote file size, then launch the game.
 
-O seletor aceita a raiz do jogo, `GameData` ou diretamente `GameData/base`.
+The folder picker accepts the game root, `GameData`, or `GameData\base`.
 
-## Compilar
+## Building
 
-Com o APK já gerado em `D:\Codex\jkxr-tabletop-mr\artifacts`:
+Generate the current APK first, then run:
 
 ```powershell
 .\installer\build-installer.ps1
 ```
 
-O resultado é `D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Tabletop-V1.3-Installer.exe`.
-O build usa o compilador .NET Framework 4.8 do Windows, portanto o executável
-não exige instalação separada do .NET moderno.
+The installer is compiled with the Windows .NET Framework 4.8 C# compiler, so
+it does not require a separate modern .NET runtime installation.
 
-## Distribuição
+The current build script still needs its APK and output defaults made portable
+before public release. Both paths can already be supplied explicitly:
 
-- APK/JKXR/OpenJK: consulte `LICENSE.txt` na raiz do repositório;
-- ADB/Android SDK Platform-Tools: o `NOTICE.txt` oficial é incorporado e
-  extraído ao lado do ADB no diretório temporário do instalador;
-- os PK3 comerciais nunca entram no executável, Git ou pacote de distribuição;
-- o executável ainda não tem assinatura Authenticode e pode acionar o aviso do
-  Windows SmartScreen ao ser baixado por terceiros.
+```powershell
+.\installer\build-installer.ps1 `
+  -ApkPath D:\path\to\JKXR-Diorama-MR.apk `
+  -OutputPath D:\path\to\JKXR-Diorama-MR-Installer.exe
+```
+
+## Distribution
+
+- JKXR, OpenJK, and Diorama MR source: see `LICENSE.txt` in the repository root.
+- ADB and Android SDK platform-tools: the official notice file is embedded and
+  extracted beside ADB in the installer's temporary working directory.
+- Commercial PK3 files must never be added to the executable, Git repository,
+  or release package.
+- The executable is not yet Authenticode-signed and may trigger Microsoft
+  SmartScreen when downloaded by another user.

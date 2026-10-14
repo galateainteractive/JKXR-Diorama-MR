@@ -1,0 +1,76 @@
+# Release checklist
+
+## Repository
+
+- [ ] Create the standalone private `JKXR-Diorama-MR` repository.
+- [ ] Keep Team Beef's JKXR repository configured as the read-only `upstream`
+  remote.
+- [ ] Push the complete descendant history and the Diorama MR development
+  branch to the private repository.
+- [ ] Confirm that no Jedi Academy commercial PK3 files, generated APKs,
+  installer binaries, credentials, or release keys are tracked.
+- [ ] Decide whether the final public home will be the standalone repository or
+  an official GitHub fork before opening the source.
+
+## Application identity
+
+- [ ] Select a unique reverse-domain Android package identifier.
+- [ ] Update Gradle, the installer app-ops command, force-stop command, and
+  launch command to use that identifier.
+- [ ] Confirm whether Diorama MR and upstream JKXR should share `/sdcard/JKXR`
+  game data or use separate data folders.
+- [ ] Create the permanent Android release signing key outside the repository.
+- [ ] Store encrypted backups and document who controls the key.
+- [ ] Set the first public version, currently proposed as `0.1.0-alpha.1`.
+
+## Branding and documentation
+
+- [x] Rename user-facing Tabletop MR text to Diorama MR.
+- [x] Remove development version numbers from the Quest launcher label.
+- [x] Publish English installation, controls, configuration, VR comparison,
+  development, known-issues, and changelog documents.
+- [ ] Create a final application icon, repository banner, and screenshots.
+- [ ] Add a controller diagram based on the documented control table.
+- [ ] Review Team Beef, OpenJK, Raven Software, and contributor attribution.
+- [ ] Review the GPL-2.0 source and binary distribution package.
+
+## Build and installer
+
+- [ ] Remove machine-specific absolute paths from the Android and installer
+  build scripts.
+- [ ] Build the APK with the permanent package identifier and release key.
+- [ ] Update the Windows installer to embed that exact APK.
+- [ ] Confirm that Steam, GOG, registry, disk search, and manual folder selection
+  all find valid Jedi Academy installations.
+- [ ] Confirm that the installer rejects Jedi Outcast and incomplete PK3 sets.
+- [ ] Run the installer self-test and verify APK and installer SHA-256 hashes.
+- [ ] Decide whether to obtain an Authenticode certificate or document the
+  expected SmartScreen warning.
+
+## Headset test matrix
+
+- [ ] Clean installation with no existing JKXR data.
+- [ ] APK update over the previous Diorama MR build.
+- [ ] Coexistence with upstream JKXR after the package-ID change.
+- [ ] New game, save, load, death, respawn, same-map load, and map transition.
+- [ ] Switch Diorama MR to VR and back repeatedly.
+- [ ] One-grip drag and two-grip translation, rotation, and scaling.
+- [ ] Observer-relative movement from multiple physical sides of the diorama.
+- [ ] Lightsaber attacks, saber throw, guns, alternate fire, and Force powers.
+- [ ] Weapon and Force radial selectors.
+- [ ] Panels, bombs, low usable objects, doors, and scripted triggers.
+- [ ] Cutscenes, scripted cameras, turrets, vehicles, and companion NPCs.
+- [ ] Large outdoor levels and known high-visibility performance scenes.
+- [ ] Passthrough appearance in bright and dark physical rooms.
+- [ ] Immersive VR regression pass for inherited JKXR controls.
+
+## Alpha release
+
+- [ ] Freeze a tested commit and tag it.
+- [ ] Build APK and installer from the tagged commit.
+- [ ] Publish SHA-256 hashes and installation instructions.
+- [ ] Publish the corresponding GPL-2.0 source at the same time as the binaries.
+- [ ] State clearly that users must supply a legally purchased copy of Jedi
+  Academy and that commercial game data is not included.
+- [ ] Open a structured issue template for level, save, reproduction steps,
+  selected mode, headset model, and relevant diagnostic logs.

@@ -1,0 +1,45 @@
+# Changelog
+
+All notable Diorama MR changes will be documented in this file.
+
+## Unreleased
+
+### Added
+
+- Mixed-reality miniature presentation for Jedi Academy on Meta Quest.
+- Native passthrough with a transparent sky and clean premultiplied-alpha
+  composition.
+- Fixed 6DoF world anchor and miniature-scale stereo rendering.
+- One-hand drag and two-hand move, rotate, and scale interactions.
+- Player-character pivot for two-hand rotation and scaling.
+- Observer-to-avatar movement orientation.
+- Dominant-hand weapon aiming and off-hand Force aiming.
+- X/Y hold actions for the weapon and Force radial selectors.
+- Contextual avatar-centered Use support for panels, triggers, and low scripted
+  objects.
+- Player-focused visibility, PVS, LOD, shadows, effects, doors, movers, NPCs,
+  and server snapshots.
+- Stable 2D cutscene presentation.
+- In-game switching between Diorama MR and the inherited immersive VR mode.
+- Automatic transform and control resets after respawns, loads, scripted
+  transitions, and mode changes.
+- Windows installer prototype with Steam/GOG detection, manual folder selection,
+  ADB installation, PK3 validation, copy verification, and automatic launch.
+
+### Changed
+
+- Lightsaber attacks in Diorama MR use avatar animation and collision instead
+  of tracked-hand velocity.
+- Grips are reserved for diorama manipulation in Diorama MR.
+- The dominant trigger becomes Use while an interactive target is available.
+
+### Fixed
+
+- Direction drift after deaths, save loads, map changes, and returning from VR.
+- Saber collision and alternate saber throw behavior in the miniature view.
+- Force targeting and radial-menu visibility in the external camera.
+- Missing foliage, effects, doors, and enemies when the headset was far from
+  the player character.
+- Multiple scripted panel and bomb interactions.
+- A save-load crash involving an NPC bowcaster path.
+- Grey or fog-tinted passthrough caused by non-black transparent pixels.

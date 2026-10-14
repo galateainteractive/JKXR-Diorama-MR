@@ -14,7 +14,7 @@ using Microsoft.Win32;
 [assembly: AssemblyVersion("0.4.0.0")]
 [assembly: AssemblyFileVersion("0.4.0.0")]
 
-namespace JKXRTabletopInstaller
+namespace JKXRDioramaMRInstaller
 {
     internal static class Program
     {
@@ -51,7 +51,7 @@ namespace JKXRTabletopInstaller
 
         public InstallerForm()
         {
-            Text = "JKXR Tabletop V1.3 — Instalador";
+            Text = "JKXR Diorama MR Installer";
             ClientSize = new Size(820, 700);
             MinimumSize = new Size(760, 640);
             StartPosition = FormStartPosition.CenterScreen;
@@ -70,7 +70,7 @@ namespace JKXRTabletopInstaller
         private void BuildInterface()
         {
             Label title = new Label();
-            title.Text = "JKXR Tabletop V1.3";
+            title.Text = "JKXR Diorama MR";
             title.Font = new Font("Segoe UI Semibold", 21F, FontStyle.Bold);
             title.ForeColor = Color.FromArgb(29, 43, 72);
             title.AutoSize = true;
@@ -78,14 +78,14 @@ namespace JKXRTabletopInstaller
             Controls.Add(title);
 
             Label subtitle = new Label();
-            subtitle.Text = "Instala o protótipo e os seus arquivos legais de Jedi Academy diretamente no Meta Quest.";
+            subtitle.Text = "Installs Diorama MR and your legally owned Jedi Academy data directly on Meta Quest.";
             subtitle.ForeColor = Color.FromArgb(72, 82, 103);
             subtitle.AutoSize = true;
             subtitle.Location = new Point(27, 60);
             Controls.Add(subtitle);
 
             GroupBox gameGroup = new GroupBox();
-            gameGroup.Text = "1. Jedi Academy no computador";
+            gameGroup.Text = "1. Jedi Academy on this PC";
             gameGroup.Location = new Point(24, 94);
             gameGroup.Size = new Size(772, 166);
             gameGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -97,20 +97,20 @@ namespace JKXRTabletopInstaller
             gamePath.TextChanged += delegate { ValidateCurrentPath(); };
             gameGroup.Controls.Add(gamePath);
 
-            browseButton.Text = "Escolher pasta...";
+            browseButton.Text = "Choose folder...";
             browseButton.Location = new Point(650, 29);
             browseButton.Size = new Size(106, 29);
             browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             browseButton.Click += BrowseClicked;
             gameGroup.Controls.Add(browseButton);
 
-            detectButton.Text = "Detectar Steam/GOG";
+            detectButton.Text = "Detect Steam/GOG";
             detectButton.Location = new Point(16, 70);
             detectButton.Size = new Size(150, 31);
             detectButton.Click += async delegate { await DetectGame(true); };
             gameGroup.Controls.Add(detectButton);
 
-            fullScanButton.Text = "Buscar nos discos";
+            fullScanButton.Text = "Search drives";
             fullScanButton.Location = new Point(174, 70);
             fullScanButton.Size = new Size(140, 31);
             fullScanButton.Click += async delegate { await FullScan(); };
@@ -119,12 +119,12 @@ namespace JKXRTabletopInstaller
             gameStatus.Location = new Point(16, 112);
             gameStatus.Size = new Size(740, 40);
             gameStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            gameStatus.Text = "Aguardando a pasta do jogo.";
+            gameStatus.Text = "Waiting for the game folder.";
             gameStatus.ForeColor = Color.FromArgb(110, 80, 20);
             gameGroup.Controls.Add(gameStatus);
 
             GroupBox questGroup = new GroupBox();
-            questGroup.Text = "2. Meta Quest por USB";
+            questGroup.Text = "2. Meta Quest over USB";
             questGroup.Location = new Point(24, 272);
             questGroup.Size = new Size(772, 112);
             questGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -137,7 +137,7 @@ namespace JKXRTabletopInstaller
             devices.SelectedIndexChanged += delegate { UpdateInstallState(); };
             questGroup.Controls.Add(devices);
 
-            refreshButton.Text = "Atualizar";
+            refreshButton.Text = "Refresh";
             refreshButton.Location = new Point(650, 29);
             refreshButton.Size = new Size(106, 29);
             refreshButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -147,11 +147,11 @@ namespace JKXRTabletopInstaller
             questStatus.Location = new Point(16, 69);
             questStatus.Size = new Size(740, 31);
             questStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            questStatus.Text = "Ative o Modo Desenvolvedor, conecte o Quest e aceite a depuração USB dentro do headset.";
+            questStatus.Text = "Enable Developer Mode, connect the Quest, and allow USB debugging inside the headset.";
             questStatus.ForeColor = Color.FromArgb(72, 82, 103);
             questGroup.Controls.Add(questStatus);
 
-            installButton.Text = "INSTALAR NO QUEST";
+            installButton.Text = "INSTALL ON QUEST";
             installButton.Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold);
             installButton.BackColor = Color.FromArgb(48, 92, 196);
             installButton.ForeColor = Color.White;
@@ -182,7 +182,7 @@ namespace JKXRTabletopInstaller
             log.Font = new Font("Consolas", 8.5F);
             Controls.Add(log);
 
-            footer.Text = "O instalador não contém o jogo. Ele copia somente assets0.pk3–assets3.pk3 da sua instalação legal.";
+            footer.Text = "The installer does not contain the game. It only copies assets0.pk3–assets3.pk3 from your legal installation.";
             footer.ForeColor = Color.FromArgb(92, 102, 123);
             footer.Location = new Point(24, 662);
             footer.Size = new Size(772, 24);
@@ -193,42 +193,42 @@ namespace JKXRTabletopInstaller
         private async Task DetectGame(bool announceFailure)
         {
             if (busy) return;
-            SetBusy(true, "Procurando instalações Steam, GOG e LucasArts...");
+            SetBusy(true, "Searching Steam, GOG, and LucasArts installations...");
             List<string> found = await Task.Run(delegate { return GameLocator.FindKnownInstallations(); });
             SetBusy(false, null);
 
             if (found.Count > 0)
             {
                 gamePath.Text = found[0];
-                AppendLog("Jogo detectado: " + found[0]);
+                AppendLog("Game detected: " + found[0]);
             }
             else if (announceFailure)
             {
-                AppendLog("Nenhuma instalação registrada foi encontrada. Use a busca nos discos ou escolha a pasta.");
+                AppendLog("No registered installation was found. Search the drives or choose the folder manually.");
                 MessageBox.Show(this,
-                    "Não encontrei o Jedi Academy nas bibliotecas registradas.\n\n" +
-                    "Você pode usar ‘Buscar nos discos’ ou ‘Escolher pasta...’.",
-                    "Jogo não localizado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    "Jedi Academy was not found in the registered game libraries.\n\n" +
+                    "Use 'Search drives' or 'Choose folder...' to locate it.",
+                    "Game not found", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private async Task FullScan()
         {
             if (busy) return;
-            SetBusy(true, "Fazendo busca completa nos discos. Isso pode demorar...");
-            AppendLog("Busca completa iniciada nos discos fixos.");
+            SetBusy(true, "Searching all fixed drives. This may take a while...");
+            AppendLog("Full search started on fixed drives.");
             string found = await Task.Run(delegate { return GameLocator.FindOnFixedDrives(); });
             SetBusy(false, null);
             if (!String.IsNullOrEmpty(found))
             {
                 gamePath.Text = found;
-                AppendLog("Jogo encontrado pela busca completa: " + found);
+                AppendLog("Game found by full search: " + found);
             }
             else
             {
-                AppendLog("Busca completa terminada sem localizar os quatro PK3.");
-                MessageBox.Show(this, "O jogo não foi encontrado. Escolha manualmente a pasta da instalação.",
-                    "Busca concluída", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                AppendLog("Full search completed without finding the four PK3 files.");
+                MessageBox.Show(this, "The game was not found. Select the installation folder manually.",
+                    "Search complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -236,7 +236,7 @@ namespace JKXRTabletopInstaller
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Escolha a pasta do Jedi Academy, GameData ou GameData\\base";
+                dialog.Description = "Select the Jedi Academy, GameData, or GameData\\base folder";
                 dialog.ShowNewFolderButton = false;
                 if (Directory.Exists(gamePath.Text)) dialog.SelectedPath = gamePath.Text;
                 if (dialog.ShowDialog(this) == DialogResult.OK) gamePath.Text = dialog.SelectedPath;
@@ -249,12 +249,12 @@ namespace JKXRTabletopInstaller
             string problem = "";
             if (!String.IsNullOrEmpty(resolved) && GameLocator.ValidateBaseDirectory(resolved, out problem))
             {
-                gameStatus.Text = "✓ Jedi Academy válido: assets0.pk3, assets1.pk3, assets2.pk3 e assets3.pk3 encontrados.";
+                gameStatus.Text = "✓ Valid Jedi Academy installation: assets0.pk3 through assets3.pk3 were found.";
                 gameStatus.ForeColor = Color.FromArgb(22, 117, 67);
             }
             else
             {
-                gameStatus.Text = String.IsNullOrEmpty(problem) ? "Selecione a pasta do Jedi Academy." : problem;
+                gameStatus.Text = String.IsNullOrEmpty(problem) ? "Select the Jedi Academy folder." : problem;
                 gameStatus.ForeColor = Color.FromArgb(166, 71, 50);
             }
             UpdateInstallState();
@@ -263,7 +263,7 @@ namespace JKXRTabletopInstaller
         private async Task RefreshDevices()
         {
             if (busy) return;
-            SetBusy(true, "Procurando o Quest por USB...");
+            SetBusy(true, "Searching for a Quest over USB...");
             List<AdbDevice> found;
             try
             {
@@ -276,7 +276,7 @@ namespace JKXRTabletopInstaller
             catch (Exception ex)
             {
                 found = new List<AdbDevice>();
-                AppendLog("Erro ao iniciar ADB: " + ex.Message);
+                AppendLog("Unable to start ADB: " + ex.Message);
             }
             SetBusy(false, null);
 
@@ -285,15 +285,15 @@ namespace JKXRTabletopInstaller
             if (devices.Items.Count > 0)
             {
                 devices.SelectedIndex = 0;
-                questStatus.Text = "✓ Quest autorizado e pronto para receber o mod.";
+                questStatus.Text = "✓ Quest authorized and ready for installation.";
                 questStatus.ForeColor = Color.FromArgb(22, 117, 67);
-                AppendLog("Quest detectado: " + devices.SelectedItem);
+                AppendLog("Quest detected: " + devices.SelectedItem);
             }
             else
             {
-                questStatus.Text = "Quest não detectado. Conecte o USB e aceite ‘Permitir depuração USB’ dentro do headset.";
+                questStatus.Text = "Quest not detected. Connect USB and allow USB debugging inside the headset.";
                 questStatus.ForeColor = Color.FromArgb(166, 71, 50);
-                AppendLog("Nenhum dispositivo ADB autorizado foi encontrado.");
+                AppendLog("No authorized ADB device was found.");
             }
             UpdateInstallState();
         }
@@ -305,29 +305,29 @@ namespace JKXRTabletopInstaller
             string validationProblem;
             if (!GameLocator.ValidateBaseDirectory(baseDirectory, out validationProblem))
             {
-                MessageBox.Show(this, validationProblem, "Arquivos do jogo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, validationProblem, "Game files", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             AdbDevice selected = (AdbDevice)devices.SelectedItem;
-            SetBusy(true, "Instalando no Quest...");
+            SetBusy(true, "Installing on Quest...");
             progress.Value = 2;
-            AppendLog("Iniciando instalação em " + selected.Serial + ".");
+            AppendLog("Starting installation on " + selected.Serial + ".");
 
             try
             {
                 await Task.Run(delegate { PerformInstall(selected, baseDirectory); });
                 progress.Value = 100;
-                AppendLog("Instalação e verificação concluídas.");
+                AppendLog("Installation and verification complete.");
                 MessageBox.Show(this,
-                    "JKXR Tabletop V1.3 foi instalado com sucesso.\n\n" +
-                    "O Jedi Academy será aberto no Quest. Coloque o headset e conclua qualquer solicitação de permissão que aparecer.",
-                    "Instalação concluída", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    "JKXR Diorama MR was installed successfully.\n\n" +
+                    "Jedi Academy will open on the Quest. Put on the headset and complete any permission request that appears.",
+                    "Installation complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                AppendLog("FALHA: " + ex.Message);
-                MessageBox.Show(this, ex.Message, "Não foi possível instalar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                AppendLog("FAILED: " + ex.Message);
+                MessageBox.Show(this, ex.Message, "Installation failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -339,25 +339,25 @@ namespace JKXRTabletopInstaller
         {
             AdbBundle.EnsureExtracted();
 
-            SetProgress(8, "Validando conexão USB...");
+            SetProgress(8, "Validating the USB connection...");
             AdbResult state = AdbClient.Run(device.Serial, "get-state", 15000);
-            RequireSuccess(state, "O Quest deixou de responder. Reconecte o cabo USB.");
+            RequireSuccess(state, "The Quest stopped responding. Reconnect the USB cable.");
 
-            SetProgress(18, "Instalando o APK JKXR Tabletop V1.3...");
+            SetProgress(18, "Installing the JKXR Diorama MR APK...");
             AdbResult install = AdbClient.Run(device.Serial,
                 "install -r -d " + AdbClient.Quote(AdbBundle.ApkPath), 180000);
             RequireSuccess(install,
-                "A instalação do APK falhou. Se houver outra versão do JKXR com assinatura diferente, desinstale apenas o aplicativo e tente novamente. A pasta /JKXR não é apagada.");
+                "APK installation failed. If another JKXR build uses a different signing key, uninstall only the application and try again. The /JKXR folder is not deleted.");
 
-            SetProgress(30, "Preparando a pasta do Jedi Academy...");
+            SetProgress(30, "Preparing the Jedi Academy folder...");
             RequireSuccess(AdbClient.Run(device.Serial, "shell mkdir -p /sdcard/JKXR/JK3/base", 15000),
-                "Não consegui criar /sdcard/JKXR/JK3/base.");
+                "Unable to create /sdcard/JKXR/JK3/base.");
 
             string commandFile = Path.Combine(AdbBundle.WorkDirectory, "commandline.txt");
             File.WriteAllText(commandFile, "ja\n", new UTF8Encoding(false));
             RequireSuccess(AdbClient.Run(device.Serial,
                 "push " + AdbClient.Quote(commandFile) + " /sdcard/JKXR/commandline.txt", 30000),
-                "Não consegui selecionar o Jedi Academy no Quest.");
+                "Unable to select Jedi Academy on the Quest.");
 
             // On Quest/Android 11+, this app-op is the programmatic equivalent
             // of the all-files access page. Failure is non-fatal: the headset
@@ -371,13 +371,13 @@ namespace JKXRTabletopInstaller
                 int percent = 38 + i * 12;
                 string name = files[i];
                 string source = Path.Combine(baseDirectory, name);
-                SetProgress(percent, "Copiando " + name + "...");
+                SetProgress(percent, "Copying " + name + "...");
                 AdbResult pushed = AdbClient.Run(device.Serial,
                     "push " + AdbClient.Quote(source) + " /sdcard/JKXR/JK3/base/" + name, 600000);
-                RequireSuccess(pushed, "Falha ao copiar " + name + ". Verifique o cabo e o espaço livre no Quest.");
+                RequireSuccess(pushed, "Failed to copy " + name + ". Check the cable and free space on the Quest.");
             }
 
-            SetProgress(88, "Verificando os arquivos copiados...");
+            SetProgress(88, "Verifying copied files...");
             foreach (string name in files)
             {
                 long localSize = new FileInfo(Path.Combine(baseDirectory, name)).Length;
@@ -386,16 +386,16 @@ namespace JKXRTabletopInstaller
                 long remoteSize;
                 if (!remote.Success || !Int64.TryParse(remote.Output.Trim(), out remoteSize) || remoteSize != localSize)
                 {
-                    throw new InvalidOperationException("A verificação de " + name + " falhou. O arquivo no Quest não tem o tamanho esperado.");
+                    throw new InvalidOperationException("Verification failed for " + name + ". The file on the Quest has an unexpected size.");
                 }
-                AppendLogThreadSafe("Verificado: " + name + " (" + localSize + " bytes)");
+                AppendLogThreadSafe("Verified: " + name + " (" + localSize + " bytes)");
             }
 
-            SetProgress(96, "Abrindo o JKXR Tabletop V1.3...");
+            SetProgress(96, "Launching JKXR Diorama MR...");
             AdbClient.Run(device.Serial, "shell am force-stop com.drbeef.jkxr", 15000);
             AdbResult launch = AdbClient.Run(device.Serial,
                 "shell monkey -p com.drbeef.jkxr -c android.intent.category.LAUNCHER 1", 30000);
-            RequireSuccess(launch, "Os arquivos foram instalados, mas não consegui abrir o aplicativo automaticamente. Abra JKXR Tabletop V1.3 pela Biblioteca > Fontes desconhecidas.");
+            RequireSuccess(launch, "The files were installed, but the app could not be launched automatically. Open JKXR Diorama MR from Library > Unknown Sources.");
         }
 
         private void RequireSuccess(AdbResult result, string friendlyMessage)
@@ -404,7 +404,7 @@ namespace JKXRTabletopInstaller
             if (!result.Success)
             {
                 string detail = String.IsNullOrWhiteSpace(result.Error) ? result.Output : result.Error;
-                throw new InvalidOperationException(friendlyMessage + "\n\nDetalhe do ADB: " + detail.Trim());
+                throw new InvalidOperationException(friendlyMessage + "\n\nADB details: " + detail.Trim());
             }
         }
 
@@ -671,7 +671,7 @@ namespace JKXRTabletopInstaller
             problem = "";
             if (String.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
             {
-                problem = "Selecione a instalação do Jedi Academy, a pasta GameData ou GameData\\base.";
+                problem = "Select the Jedi Academy installation, GameData, or GameData\\base folder.";
                 return false;
             }
 
@@ -680,7 +680,7 @@ namespace JKXRTabletopInstaller
                 string path = Path.Combine(directory, name);
                 if (!File.Exists(path))
                 {
-                    problem = "Arquivo ausente: " + name + ". Certifique-se de selecionar o Jedi Academy, não o Jedi Outcast.";
+                    problem = "Missing file: " + name + ". Make sure you selected Jedi Academy, not Jedi Outcast.";
                     return false;
                 }
                 try
@@ -688,21 +688,21 @@ namespace JKXRTabletopInstaller
                     FileInfo info = new FileInfo(path);
                     if (info.Length < 1024 * 1024)
                     {
-                        problem = name + " parece incompleto ou inválido.";
+                        problem = name + " appears to be incomplete or invalid.";
                         return false;
                     }
                     using (ZipArchive archive = ZipFile.OpenRead(path))
                     {
                         if (archive.Entries.Count == 0)
                         {
-                            problem = name + " não contém dados válidos.";
+                            problem = name + " does not contain valid data.";
                             return false;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    problem = "Não foi possível validar " + name + ": " + ex.Message;
+                    problem = "Unable to validate " + name + ": " + ex.Message;
                     return false;
                 }
             }
@@ -744,13 +744,13 @@ namespace JKXRTabletopInstaller
             lock (Sync)
             {
                 if (!String.IsNullOrEmpty(AdbPath) && File.Exists(AdbPath) && File.Exists(ApkPath)) return;
-                WorkDirectory = Path.Combine(Path.GetTempPath(), "JKXRTabletopInstaller", "v0");
+                WorkDirectory = Path.Combine(Path.GetTempPath(), "JKXRDioramaMRInstaller", "v0");
                 Directory.CreateDirectory(WorkDirectory);
                 AdbPath = Extract("Installer.adb.exe", "adb.exe");
                 Extract("Installer.AdbWinApi.dll", "AdbWinApi.dll");
                 Extract("Installer.AdbWinUsbApi.dll", "AdbWinUsbApi.dll");
                 Extract("Installer.ADB-NOTICE.txt", "ADB-NOTICE.txt");
-                ApkPath = Extract("Installer.JKXRTabletop.apk", "JKXR-tabletop-v1.3.apk");
+                ApkPath = Extract("Installer.JKXRDioramaMR.apk", "JKXR-Diorama-MR.apk");
             }
         }
 
@@ -760,7 +760,7 @@ namespace JKXRTabletopInstaller
             Assembly assembly = Assembly.GetExecutingAssembly();
             using (Stream input = assembly.GetManifestResourceStream(resourceName))
             {
-                if (input == null) throw new InvalidOperationException("Recurso interno ausente: " + resourceName);
+                if (input == null) throw new InvalidOperationException("Missing embedded resource: " + resourceName);
                 FileInfo existing = new FileInfo(target);
                 if (existing.Exists && existing.Length == input.Length) return target;
                 using (FileStream output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.Read))
@@ -820,7 +820,7 @@ namespace JKXRTabletopInstaller
                 if (!process.WaitForExit(timeoutMilliseconds))
                 {
                     try { process.Kill(); } catch { }
-                    return new AdbResult { ExitCode = -1, Output = output.Result, Error = "Tempo limite excedido." };
+                    return new AdbResult { ExitCode = -1, Output = output.Result, Error = "Operation timed out." };
                 }
                 Task.WaitAll(output, error);
                 return new AdbResult { ExitCode = process.ExitCode, Output = output.Result, Error = error.Result };
@@ -835,7 +835,7 @@ namespace JKXRTabletopInstaller
             List<string> report = new List<string>();
             try
             {
-                report.Add("JKXR Tabletop Installer self-test");
+                report.Add("JKXR Diorama MR Installer self-test");
                 report.Add("Assembly=" + Assembly.GetExecutingAssembly().GetName().Version);
                 AdbBundle.EnsureExtracted();
                 report.Add("Resources=OK");
@@ -843,18 +843,18 @@ namespace JKXRTabletopInstaller
                 using (ZipArchive apk = ZipFile.OpenRead(AdbBundle.ApkPath))
                 {
                     ZipArchiveEntry command = apk.GetEntry("assets/commandline.txt");
-                    if (command == null) throw new InvalidOperationException("commandline.txt ausente no APK.");
+                    if (command == null) throw new InvalidOperationException("commandline.txt is missing from the APK.");
                     using (StreamReader reader = new StreamReader(command.Open()))
                     {
                         string value = reader.ReadToEnd().Trim();
-                        if (value != "ja") throw new InvalidOperationException("APK não está configurado para Jedi Academy: " + value);
+                        if (value != "ja") throw new InvalidOperationException("APK is not configured for Jedi Academy: " + value);
                         report.Add("APK-commandline=ja");
                     }
                 }
 
                 AdbResult adb = AdbClient.Run(null, "version", 30000);
                 if (!adb.Success || adb.Output.IndexOf("Android Debug Bridge", StringComparison.OrdinalIgnoreCase) < 0)
-                    throw new InvalidOperationException("ADB incorporado não iniciou: " + adb.Error);
+                    throw new InvalidOperationException("Embedded ADB did not start: " + adb.Error);
                 report.Add("ADB=OK");
 
                 string testRoot = Path.Combine(Path.GetTempPath(), "JKXR-installer-path-test");
@@ -862,7 +862,7 @@ namespace JKXRTabletopInstaller
                 if (Directory.Exists(testRoot)) Directory.Delete(testRoot, true);
                 Directory.CreateDirectory(baseDirectory);
                 if (GameLocator.ResolveBaseDirectory(testRoot) != null)
-                    throw new InvalidOperationException("Uma pasta sem PK3 foi aceita incorretamente.");
+                    throw new InvalidOperationException("A folder without PK3 files was accepted incorrectly.");
                 report.Add("Path-negative=OK");
 
                 foreach (string name in GameLocator.RequiredFiles)
@@ -879,12 +879,12 @@ namespace JKXRTabletopInstaller
                 }
                 string problem;
                 if (!GameLocator.ValidateBaseDirectory(baseDirectory, out problem))
-                    throw new InvalidOperationException("Validação positiva falhou: " + problem);
+                    throw new InvalidOperationException("Positive validation failed: " + problem);
                 string expected = Path.GetFullPath(baseDirectory);
                 if (!String.Equals(GameLocator.ResolveBaseDirectory(testRoot), expected, StringComparison.OrdinalIgnoreCase) ||
                     !String.Equals(GameLocator.ResolveBaseDirectory(Path.Combine(testRoot, "GameData")), expected, StringComparison.OrdinalIgnoreCase) ||
                     !String.Equals(GameLocator.ResolveBaseDirectory(baseDirectory), expected, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("A resolução jogo/GameData/base não produziu a mesma pasta.");
+                    throw new InvalidOperationException("Game/GameData/base resolution did not produce the same folder.");
                 report.Add("Path-root-GameData-base=OK");
                 Directory.Delete(testRoot, true);
                 report.Add("RESULT=PASS");

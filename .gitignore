@@ -21,6 +21,12 @@ $RECYCLE.BIN/
 #files created by build
 .idea
 *.apk
+*.aab
+*.p12
+*.pfx
+*.jks
+*-release-key.keystore
+artifacts/
 *.ap_
 *.class
 Projects/Android/build/*
