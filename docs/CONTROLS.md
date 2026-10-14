@@ -4,6 +4,11 @@ The table below assumes the default right-handed JKXR control scheme. In the
 left-handed scheme, dominant-hand and off-hand functions are swapped where
 appropriate.
 
+The in-game **Controls > Help** page automatically identifies the active mode.
+It shows **Diorama MR Controls** and the dedicated diorama guide when
+`cg_tabletop` is enabled, or **Immersive VR Controls** and Team Beef's original
+control scheme and tutorials when immersive VR is active.
+
 ## Gameplay
 
 | Input | Action |

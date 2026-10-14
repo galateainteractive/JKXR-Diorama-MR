@@ -380,23 +380,45 @@
 //----------------------------------------------------------------------------------------------
 //	SIDE BUTTONS
 //----------------------------------------------------------------------------------------------
-		// Configure Controls title
-		itemDef 
+		// Active-mode controls title
+		itemDef
 		{
-			name				control_title
+			name				control_title_diorama
 			group				title
 			style				WINDOW_STYLE_SHADER
 			background			"gfx/menus/menu_blendbox"
-			text				@MENUS_CONFIGURE_CONTROLS
-      			rect				100 164 440 16
+			text				"DIORAMA MR CONTROLS"
+			rect				100 164 440 16
 			font				3
 			textscale			0.7
-			textalign			ITEM_ALIGN_CENTER		
+			textalign			ITEM_ALIGN_CENTER
 			textalignx			225
 			textaligny			-1
 			forecolor			.549 .854 1 1
-      			visible				1 
-  	    		decoration 
+			visible				1
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			decoration
+		}
+
+		itemDef
+		{
+			name				control_title_vr
+			group				title
+			style				WINDOW_STYLE_SHADER
+			background			"gfx/menus/menu_blendbox"
+			text				"IMMERSIVE VR CONTROLS"
+			rect				100 164 440 16
+			font				3
+			textscale			0.7
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			225
+			textaligny			-1
+			forecolor			.549 .854 1 1
+			visible				1
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
+			decoration
 		}
 		
 //----------------------------------------------------------------------------------------------
@@ -1712,7 +1734,7 @@
 			group				helpcontrols
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
-			text				@MENUS_VR_CONTROL_SCHEME_HELP
+			text				"IMMERSIVE VR CONTROL SCHEME"
 			rect				260 200 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1720,7 +1742,9 @@
 			font				4
 			textscale			1       
 			forecolor			.615 .615 .956 0.0
-			visible			0 
+			visible			0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			mouseenter 
 			{ 
 				show			button_glow
@@ -1738,6 +1762,40 @@
 			}
 		}
 
+		itemDef
+		{
+			name				diorama_control_scheme
+			group				helpcontrols
+			type				ITEM_TYPE_BUTTON
+			style				WINDOW_STYLE_EMPTY
+			text				"DIORAMA MR CONTROL GUIDE"
+			rect				260 200 340 14
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			170
+			textaligny			0
+			font				4
+			textscale			1
+			forecolor			.615 .615 .956 0.0
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			mouseenter
+			{
+				show			button_glow
+				setitemrect		button_glow 260 200 340 20
+			}
+			mouseexit
+			{
+				hide			button_glow
+			}
+			action
+			{
+				play			sound/interface/button1
+				setcvar			show_help_item 10
+				open			helpPopupMenu
+			}
+		}
+
 		itemDef 
 		{
 			name				none
@@ -1745,6 +1803,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_1
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 240 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1777,6 +1837,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_2
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 260 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1809,6 +1871,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_3
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 280 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1841,6 +1905,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_4
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 300 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1873,6 +1939,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_5
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 320 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1905,6 +1973,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_6
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 340 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170
@@ -1937,6 +2007,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			text				@MENUS_VR_TUTORIAL_VIDEO_7
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
 			rect				260 360 340 14
 			textalign			ITEM_ALIGN_CENTER
 			textalignx			170

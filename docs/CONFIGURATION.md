@@ -1,6 +1,6 @@
 # Configuration
 
-Diorama MR can be selected in **Setup > Difficulty** from the main menu or the
+Diorama MR can be selected in **Setup > MR / VR** from the main menu or the
 in-game setup menu. The same setting can also be changed in the Jedi Academy
 console.
 

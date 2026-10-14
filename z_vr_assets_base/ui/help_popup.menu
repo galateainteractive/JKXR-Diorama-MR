@@ -149,5 +149,136 @@
 			showCvar				{ 9 }
 		}
 
+		// Diorama MR uses a text guide because its external-camera controls
+		// differ substantially from the inherited immersive VR scheme.
+		itemDef
+		{
+			group						none
+			name						diorama_help_title
+			type						ITEM_TYPE_TEXT
+			text						"DIORAMA MR CONTROLS"
+			rect						60 42 520 18
+			font						3
+			textscale				0.8
+			textalign				ITEM_ALIGN_CENTER
+			textalignx				260
+			forecolor				.549 .854 1 1
+			visible					1
+			cvarTest				show_help_item
+			showCvar				{ 10 }
+			decoration
+		}
+
+		itemDef
+		{
+			group						none
+			name						diorama_help_handedness
+			type						ITEM_TYPE_TEXT
+			text						"Default right-handed layout. Dominant and off-hand roles swap in left-handed mode."
+			rect						50 66 540 14
+			font						2
+			textscale				0.7
+			textalign				ITEM_ALIGN_CENTER
+			textalignx				270
+			forecolor				.8 .8 .9 1
+			visible					1
+			cvarTest				show_help_item
+			showCvar				{ 10 }
+			decoration
+		}
+
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "MOVEMENT & ACTIONS"
+			rect 70 96 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "LEFT STICK  Move relative to your physical position around the diorama."
+			rect 80 118 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "LEFT STICK CLICK  Crouch        RIGHT STICK  Turn character"
+			rect 80 136 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT STICK CLICK  Use panels, bombs, switches and other objects"
+			rect 80 154 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "A  Jump        B  Alternate attack / saber throw"
+			rect 80 172 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "WEAPONS & FORCE"
+			rect 70 204 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT TRIGGER  Primary attack; contextual Use when the hand icon appears"
+			rect 80 226 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "LEFT TRIGGER  Use the selected Force power"
+			rect 80 244 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "HOLD X + POINT RIGHT HAND  Weapon selector; release X to confirm"
+			rect 80 262 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "HOLD Y + POINT LEFT HAND  Force selector; release Y to confirm"
+			rect 80 280 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "DIORAMA MANIPULATION"
+			rect 70 312 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "ONE GRIP  Drag the diorama with that controller"
+			rect 80 334 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "BOTH GRIPS  Move, rotate and resize around the player character"
+			rect 80 352 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT HAND  Weapon aim        LEFT HAND  Force aim"
+			rect 80 370 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Select MR / VR under Setup to change presentation and control mode."
+			rect 80 406 480 14 font 2 textscale 0.65 forecolor .8 .8 .9 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+
 	}
 }

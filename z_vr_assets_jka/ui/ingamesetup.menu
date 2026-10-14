@@ -28,6 +28,7 @@
 			hide				sound	;
 			hide				options ;
 			hide				difficulty ;
+			hide				mrvr ;
 			hide				mods_warning ;
 			hide				mods	;
 			hide				defaults
@@ -38,6 +39,7 @@
 			setitemcolor			soundmenubutton forecolor 1 .682 0 1;
 			setitemcolor			gameoptionmenubutton forecolor 1 .682 0 1;
 			setitemcolor			difficultymenubutton forecolor 1 .682 0 1;
+			setitemcolor			mrvrmenubutton forecolor 1 .682 0 1;
 			setitemcolor			modsmenubutton forecolor 1 .682 0 1;
 			setitemcolor			gamedefaultsmenubutton forecolor 1 .682 0 1;
 		}
@@ -487,6 +489,7 @@
 				hide			sound	;
 				hide			options ;
 				hide			difficulty ;
+				hide			mrvr ;
 				hide			mods_warning ;
 				hide			mods	;
 				hide			defaults ;
@@ -496,6 +499,7 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -543,6 +547,7 @@
 				hide			sound	;
 				hide			options ;
 				hide			difficulty ;
+				hide			mrvr ;
 				hide			mods_warning ;
 				hide			mods	;
 				hide			defaults ;
@@ -551,6 +556,7 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -599,6 +605,7 @@
 				show			sound	;
 				hide			options ;
 				hide			difficulty ;
+				hide			mrvr ;
 				hide			mods_warning ;
 				hide			mods	;
 				hide			defaults ;
@@ -607,6 +614,7 @@
 				setitemcolor	soundmenubutton forecolor 1 1 1 1 ;
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -655,6 +663,7 @@
 				show			options
 				hide			langapply
 				hide			difficulty
+				hide			mrvr
 				hide			mods_warning
 				hide			mods
 				hide			defaults
@@ -663,6 +672,7 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 1 1 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -676,7 +686,7 @@
 			text				@MENUS_VR_DIFFICULTY_SETUP_ITEM
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
-			rect				80 281 170 24
+			rect				80 305 170 24
 			font				3
 			textscale			0.9
 			textalignx			170
@@ -690,7 +700,7 @@
 			mouseEnter 
 			{ 
 				show			sidebutton_glow 
-				setitemrect		sidebutton_glow	80 280 180 24
+				setitemrect		sidebutton_glow	80 304 180 24
 			}
 			mouseExit 
 			{ 
@@ -710,6 +720,7 @@
 				hide			sound
 				hide			options
 				show			difficulty
+				hide			mrvr
 				hide			mods_warning
 				hide			mods
 				hide			defaults
@@ -718,6 +729,7 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 1 1 1 ;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -731,7 +743,7 @@
 			text				@MENUS_MODS
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
-			rect				80 305 170 24
+			rect				80 329 170 24
 			font				3
 			textscale			0.9
 			textalignx			170
@@ -745,7 +757,7 @@
 			mouseEnter 
 			{ 
 				show			sidebutton_glow 
-				setitemrect		sidebutton_glow	80 304 180 24
+				setitemrect		sidebutton_glow	80 328 180 24
 			}
 			mouseExit 
 			{ 
@@ -767,6 +779,7 @@
 				hide			sound	;
 				hide			options ;
 				hide			difficulty ;
+				hide			mrvr ;
 				show			mods_warning ;
 				hide			mods	;
 				hide			defaults ;
@@ -775,6 +788,7 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 1 1 1 ;
 				setitemcolor	gamedefaultsmenubutton forecolor 1 .682 0 1
 			}
@@ -788,7 +802,7 @@
 			text				@MENUS_DEFAULTS
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
-			rect				80 329 170 24
+			rect				80 353 170 24
 			font				3
 			textscale			0.9
 			textalignx			170
@@ -802,7 +816,7 @@
 			mouseEnter 
 			{ 
 				show			sidebutton_glow 
-				setitemrect		sidebutton_glow	80 328 180 24
+				setitemrect		sidebutton_glow	80 352 180 24
 			}
 			mouseExit 
 			{ 
@@ -823,6 +837,7 @@
 				hide			sound	;
 				hide			options ;
 				hide			difficulty ;
+				hide			mrvr ;
 				hide			mods_warning ;
 				hide			mods	;
 				show			defaults ;
@@ -832,12 +847,67 @@
 				setitemcolor	soundmenubutton forecolor 1 .682 0 1
 				setitemcolor	gameoptionmenubutton forecolor 1 .682 0 1
 				setitemcolor	difficultymenubutton forecolor 1 .682 0 1;
+				setitemcolor	mrvrmenubutton forecolor 1 .682 0 1;
 				setitemcolor	modsmenubutton forecolor 1 .682 0 1
 				setitemcolor	gamedefaultsmenubutton forecolor 1 1 1 1 ;
 			}
 		}
 
-		itemDef 
+		// MR / VR presentation-mode button
+		itemDef
+		{
+			name				mrvrmenubutton
+			group				none
+			text				"MR / VR"
+			type				ITEM_TYPE_BUTTON
+			style				WINDOW_STYLE_EMPTY
+			rect				80 281 170 24
+			font				3
+			textscale			0.9
+			textalignx			170
+			textaligny			2
+			textalign			ITEM_ALIGN_RIGHT
+			textstyle			1
+			forecolor			1 .682 0 1
+			visible				1
+			descText			"Choose Diorama MR or the original immersive VR presentation."
+
+			mouseEnter
+			{
+				show			sidebutton_glow
+				setitemrect		sidebutton_glow 80 280 180 24
+			}
+			mouseExit
+			{
+				hide			sidebutton_glow
+			}
+			action
+			{
+				play			sound/interface/sub_select
+				show			setup_background
+				hide			video
+				hide			applyChanges
+				hide			video2
+				hide			vidrestart
+				hide			sound
+				hide			options
+				hide			difficulty
+				show			mrvr
+				hide			mods_warning
+				hide			mods
+				hide			defaults
+				setitemcolor		video1menubutton forecolor 1 .682 0 1
+				setitemcolor		video2menubutton forecolor 1 .682 0 1
+				setitemcolor		soundmenubutton forecolor 1 .682 0 1
+				setitemcolor		gameoptionmenubutton forecolor 1 .682 0 1
+				setitemcolor		difficultymenubutton forecolor 1 .682 0 1
+				setitemcolor		mrvrmenubutton forecolor 1 1 1 1
+				setitemcolor		modsmenubutton forecolor 1 .682 0 1
+				setitemcolor		gamedefaultsmenubutton forecolor 1 .682 0 1
+			}
+		}
+
+		itemDef
 		{
 			name				setup_background
 			group				none
@@ -2718,41 +2788,6 @@
 			} 
 		}
 
-		itemDef
-		{
-			name				tabletop_mode
-			group				difficulty
-			type				ITEM_TYPE_MULTI
-			text				"Game mode"
-			cvar				"cg_tabletop"
-			cvarFloatList
-			{
-				"VR" 0
-				"Diorama MR" 1
-			}
-			rect				260 286 340 14
-			textalign			ITEM_ALIGN_RIGHT
-			textalignx			174
-			textaligny			0
-			font				4
-			textscale			1
-			forecolor			.615 .615 .956 1
-			visible				0
-			descText			"Switches between Diorama MR and VR."
-			action
-			{
-				play			"sound/interface/button1.wav"
-			}
-			mouseenter
-			{
-				show			highlight8
-			}
-			mouseexit
-			{
-				hide			highlight8
-			}
-		}
-
 		itemDef 
 		{	
 			name				none
@@ -2892,6 +2927,168 @@
 				hide			highlight9
 			} 
 		}
+
+
+//----------------------------------------------------------------------------------------------
+//	MR / VR PRESENTATION MODE
+//----------------------------------------------------------------------------------------------
+		itemDef
+		{
+			name				mrvr_title
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"PLAY MODE"
+			rect				260 202 340 16
+			font				3
+			textscale			0.75
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			170
+			forecolor			.549 .854 1 1
+			visible				0
+			decoration
+		}
+
+		itemDef
+		{
+			name				tabletop_mode
+			group				mrvr
+			type				ITEM_TYPE_MULTI
+			text				"Presentation"
+			cvar				"cg_tabletop"
+			cvarFloatList
+			{
+				"Diorama MR" 1
+				"Immersive VR" 0
+			}
+			rect				260 232 340 16
+			textalign			ITEM_ALIGN_RIGHT
+			textalignx			174
+			textaligny			0
+			font				4
+			textscale			1
+			forecolor			.615 .615 .956 1
+			visible				0
+			descText			"Choose the mixed-reality diorama or the original first-person JKXR experience."
+			action
+			{
+				play			"sound/interface/button1.wav"
+			}
+			mouseenter
+			{
+				show			highlight4
+			}
+			mouseexit
+			{
+				hide			highlight4
+			}
+		}
+
+		itemDef
+		{
+			name				diorama_mode_heading
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"DIORAMA MR"
+			rect				280 278 300 14
+			font				3
+			textscale			0.65
+			forecolor			1 .682 0 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			decoration
+		}
+		itemDef
+		{
+			name				diorama_mode_desc1
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"Play from outside a movable miniature world over passthrough."
+			rect				280 300 300 14
+			font				2
+			textscale			0.7
+			forecolor			1 1 1 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			decoration
+		}
+		itemDef
+		{
+			name				diorama_mode_desc2
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"Uses observer-relative movement and dedicated diorama controls."
+			rect				280 318 300 14
+			font				2
+			textscale			0.7
+			forecolor			1 1 1 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			decoration
+		}
+
+		itemDef
+		{
+			name				vr_mode_heading
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"IMMERSIVE VR"
+			rect				280 278 300 14
+			font				3
+			textscale			0.65
+			forecolor			1 .682 0 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
+			decoration
+		}
+		itemDef
+		{
+			name				vr_mode_desc1
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"Play inside the world using the original JKXR first-person view."
+			rect				280 300 300 14
+			font				2
+			textscale			0.7
+			forecolor			1 1 1 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
+			decoration
+		}
+		itemDef
+		{
+			name				vr_mode_desc2
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"Uses Team Beef's inherited immersive VR controls and gestures."
+			rect				280 318 300 14
+			font				2
+			textscale			0.7
+			forecolor			1 1 1 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
+			decoration
+		}
+
+		itemDef
+		{
+			name				mrvr_controls_note
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"The Controls menu automatically shows the guide for the active mode."
+			rect				280 368 300 14
+			font				2
+			textscale			0.68
+			forecolor			.8 .8 .9 1
+			visible				0
+			decoration
+		}
+
 
 //----------------------------------------------------------------------------------------------
 //   MOD GAME MENU specific stuff

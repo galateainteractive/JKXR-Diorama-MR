@@ -32,6 +32,8 @@ All notable Diorama MR changes will be documented in this file.
   `com.galateainteractive.jkxrdioramamr` and isolated game data under
   `/sdcard/JKXR-Diorama-MR` so Diorama MR can coexist with upstream JKXR.
 - Set the first alpha version to `0.1.0-alpha.1`.
+- Moved the presentation selector from Difficulty to a dedicated **MR / VR**
+  setup page and added mode-aware in-game control titles and help content.
 - Lightsaber attacks in Diorama MR use avatar animation and collision instead
   of tracked-hand velocity.
 - Grips are reserved for diorama manipulation in Diorama MR.

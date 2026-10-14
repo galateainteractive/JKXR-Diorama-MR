@@ -25,9 +25,9 @@ single-player campaign is playable, but the full campaign and special gameplay
 states have not yet completed release-level testing.
 
 The same APK also retains the original immersive JKXR mode. Choose
-**Diorama MR** or **VR** under **Setup > Difficulty**. A clean installation
-starts in Diorama MR; an existing installation remembers the last selected
-mode.
+**Diorama MR** or **Immersive VR** under **Setup > MR / VR**. A clean
+installation starts in Diorama MR; an existing installation remembers the
+last selected mode.
 
 Diorama MR installs as a separate Quest application and stores its game data,
 saves, and settings separately from upstream JKXR, so both can coexist on the
