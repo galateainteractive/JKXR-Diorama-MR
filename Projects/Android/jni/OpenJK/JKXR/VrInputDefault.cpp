@@ -325,9 +325,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
         float controllerYawHeading = 0.0f;
 
         // Tabletop uses both grip buttons to manipulate the miniature, so the
-        // stock grip-opened radial menus need another home.  A short face-button
-        // tap keeps its original action; holding it opens the corresponding
-        // radial selector until release.
+        // stock grip-opened radial menus need another home.  The dominant-hand
+        // upper face button opens the weapon selector, matching the hand used
+        // to point at weapons.  The off-hand upper button opens the Force
+        // selector.  A short tap keeps each button's paired menu action.
         if (tabletopActive)
         {
             const int now = Sys_Milliseconds();
@@ -384,7 +385,7 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 }
             }
 
-            if (secondaryButton1New)
+            if (primaryButton2New)
             {
                 if (tabletopItemMenuPressTime < 0)
                 {
@@ -975,9 +976,15 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 sendButtonAction("+moveup", (primaryButtonsNew & primaryButton1));
             }
 
-            //B Button
+            // Dominant-hand upper face button (B in the default right-handed
+            // layout). In Diorama MR it is handled by the tap/hold weapon-menu
+            // logic above. Immersive VR keeps the inherited alternate attack.
             if (primaryButton2New != primaryButton2Old) {
-                if (vr.cgzoommode == 1 || vr.cgzoommode == 3)
+                if (tabletopActive)
+                {
+                    // Handled by the Diorama MR selector logic above.
+                }
+                else if (vr.cgzoommode == 1 || vr.cgzoommode == 3)
                 {   // Exit scope only when using binoculars or nightvision
                     sendButtonActionSimple("exitscope");
                 }
@@ -1112,6 +1119,15 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                     sendButtonAction("+use", (primaryButtonsNew & primaryThumb));
                 }
             }
+
+            // Diorama MR moves alternate attack to the off-hand lower face
+            // button (X in the default right-handed layout). This is a direct
+            // down/up mapping, so saber throw and held alternate-fire actions
+            // remain responsive while B can safely use tap/hold semantics.
+            if (tabletopActive && secondaryButton1New != secondaryButton1Old)
+            {
+                sendButtonAction("+altattack", secondaryButton1New);
+            }
         }
 
         {
@@ -1179,8 +1195,8 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             remote_movementForward = move_speed_multiplier * v[1];
             
 
-            //X button invokes menu now. In tabletop a tap is handled by the
-            // hold/tap radial-menu logic above.
+            // The off-hand lower face button invokes the menu in Immersive VR.
+            // Diorama MR maps it directly to alternate attack above.
             if (!tabletopActive && (secondaryButtonsNew & secondaryButton1) &&
                 !(secondaryButtonsOld & secondaryButton1))
             {

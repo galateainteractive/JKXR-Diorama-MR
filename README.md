@@ -10,6 +10,8 @@ around the diorama using headset positional tracking, and can grab, move,
 rotate, and resize the world with the Touch controllers. The environment is
 rendered over Meta Quest passthrough.
 
+Diorama MR is developed under the **Galatea Diorama Mods** name.
+
 This project is based on [Team Beef's JKXR](https://github.com/Team-Beef-Studios/JKXR),
 which in turn is based on [OpenJK](https://github.com/JACoders/OpenJK).
 
@@ -66,11 +68,11 @@ Diorama MR release target.
 
 ## Credits
 
-Diorama MR is a modified version of JKXR. The original VR port and its systems
-were created by Team Beef, including DrBeef, BaggyG, and Bummser, with
-additional contributions credited by the upstream project. JKXR is based on
-the work of the OpenJK development team and the original game technology
-released by Raven Software.
+The Diorama MR adaptation is developed by **Galatea Diorama Mods**. It is a
+modified version of JKXR; the original VR port and its systems were created by
+Team Beef, including DrBeef, BaggyG, and Bummser, with additional contributions
+credited by the upstream project. JKXR is based on the work of the OpenJK
+development team and the original game technology released by Raven Software.
 
 See the [upstream JKXR repository](https://github.com/Team-Beef-Studios/JKXR)
 for its complete credits, supported platforms, and original immersive VR

@@ -18,7 +18,7 @@ control scheme and tutorials when immersive VR is active.
 | Right stick | Turn the character using the configured snap- or smooth-turn mode. |
 | Right stick click | Use panels, bombs, switches, and other interactive objects. |
 | A | Jump. |
-| B | Alternate attack. With the lightsaber, this preserves saber throw when the move is available. |
+| X | Alternate attack. With the lightsaber, this preserves saber throw when the move is available. |
 | Right trigger | Primary attack or weapon fire. When the hand interaction icon is visible, the trigger becomes contextual Use instead. |
 | Left trigger | Use the selected Force power. Keep it held for powers that have a continuous action, such as Grip, Lightning, or Drain. |
 
@@ -29,13 +29,17 @@ query. The physical headset does not need to be close to the panel or object.
 
 | Input | Action |
 | --- | --- |
-| Tap X | Open or close the pause menu. |
-| Hold X | Open the weapon/item selector. Point with the dominant hand and release X to confirm. |
+| Tap B | Open or close the pause menu. |
+| Hold B | Open the weapon/item selector. Point with the dominant hand and release B to confirm. |
 | Tap Y | Open the datapad. |
 | Hold Y | Open the Force-power selector. Point with the off hand and release Y to confirm. |
 
 The hold threshold is 250 milliseconds. The selectors were moved from the
-grips because both grips are reserved for manipulating the diorama.
+grips because both grips are reserved for manipulating the diorama. The weapon
+selector uses the dominant-hand upper face button so the same hand opens and
+points at the weapon wheel. In the default right-handed layout, that button is
+B; alternate attack moves to X on the off hand. Hand roles are mirrored by the
+left-handed control scheme.
 
 ## Manipulating the diorama
 

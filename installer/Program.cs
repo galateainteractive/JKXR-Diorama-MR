@@ -85,7 +85,7 @@ namespace JKXRDioramaMRInstaller
             Controls.Add(title);
 
             Label subtitle = new Label();
-            subtitle.Text = "Installs Diorama MR and your legally owned Jedi Academy data directly on Meta Quest.";
+            subtitle.Text = "Galatea Diorama Mods — installs Diorama MR and your legally owned Jedi Academy data on Meta Quest.";
             subtitle.ForeColor = Color.FromArgb(72, 82, 103);
             subtitle.AutoSize = true;
             subtitle.Location = new Point(27, 60);

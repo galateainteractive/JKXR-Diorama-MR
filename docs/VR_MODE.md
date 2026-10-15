@@ -19,7 +19,7 @@ movement basis.
 | Viewpoint | External 6DoF miniature view | First-person tracked view |
 | Passthrough | Enabled behind transparent sky | Standard immersive background |
 | Grips | Move, rotate, and resize the diorama | Weapon stabilization and radial selectors |
-| Weapon selector | Hold X and point with the dominant hand | Inherited JKXR grip-based selector |
+| Weapon selector | Hold B and point with the dominant hand | Inherited JKXR grip-based selector |
 | Force selector | Hold Y and point with the off hand | Inherited JKXR grip-based selector |
 | Lightsaber attack | Trigger-driven third-person animation and avatar collision | Physical controller velocity and motion controls |
 | Force activation | Off-hand trigger | Inherited JKXR buttons and optional motion gestures |

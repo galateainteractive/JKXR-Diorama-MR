@@ -14,7 +14,10 @@ All notable Diorama MR changes will be documented in this file.
 - Player-character pivot for two-hand rotation and scaling.
 - Observer-to-avatar movement orientation.
 - Dominant-hand weapon aiming and off-hand Force aiming.
-- X/Y hold actions for the weapon and Force radial selectors.
+- Dominant-hand B and off-hand Y hold actions for the weapon and Force radial
+  selectors in the default right-handed Diorama MR layout.
+- Galatea Diorama Mods attribution in the app credits, mode setup page,
+  installer, and project documentation.
 - Contextual avatar-centered Use support for panels, triggers, and low scripted
   objects.
 - Player-focused visibility, PVS, LOD, shadows, effects, doors, movers, NPCs,
@@ -38,6 +41,9 @@ All notable Diorama MR changes will be documented in this file.
   of tracked-hand velocity.
 - Grips are reserved for diorama manipulation in Diorama MR.
 - The dominant trigger becomes Use while an interactive target is available.
+- Swapped the Diorama MR B/X roles: B now opens pause on tap or the weapon
+  selector on hold, while X provides immediate alternate attack and saber
+  throw. Immersive VR controls remain unchanged.
 
 ### Fixed
 

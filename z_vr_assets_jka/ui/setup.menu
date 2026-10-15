@@ -3023,6 +3023,22 @@
 
 		itemDef
 		{
+			name				galatea_diorama_brand
+			group				mrvr
+			type				ITEM_TYPE_TEXT
+			text				"Diorama MR by Galatea Diorama Mods"
+			rect				280 344 300 14
+			font				2
+			textscale			0.68
+			forecolor			1 .682 0 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			decoration
+		}
+
+		itemDef
+		{
 			name				mrvr_controls_note
 			group				mrvr
 			type				ITEM_TYPE_TEXT

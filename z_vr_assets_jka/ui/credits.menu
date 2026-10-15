@@ -36,7 +36,7 @@
 			name				none
 			type				ITEM_TYPE_TEXT
 			rect				0 10 640 40
-			text				"JKXR by Team Beef"
+			text				"JKXR Diorama MR"
 			font				2
 			forecolor			1 0 0 1
 			textscale			1.2
@@ -51,7 +51,7 @@
 			name				none
 			type				ITEM_TYPE_TEXT
 			rect				0 35 640 40
-			text				"--------------------"
+			text				"by Galatea Diorama Mods"
 			font				2
 			forecolor			1 1 1 1
 			textscale			1.2
@@ -65,7 +65,22 @@
 		{
 			name				none
 			type				ITEM_TYPE_TEXT
-			rect				0 70 640 40
+			rect				0 55 640 20
+			text				"Original JKXR VR port by Team Beef"
+			font				2
+			forecolor			1 1 1 1
+			textscale			0.7
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			320
+			visible			1
+			decoration
+		}
+
+		itemDef
+		{
+			name				none
+			type				ITEM_TYPE_TEXT
+			rect				0 78 640 40
 			text				"Team Beef are DrBeef,  Baggyg,  Bummser"
 			font				2
 			forecolor			0 0 1 1

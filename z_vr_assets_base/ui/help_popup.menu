@@ -213,7 +213,7 @@
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "A  Jump        B  Alternate attack / saber throw"
+			group none name none type ITEM_TYPE_TEXT text "A  Jump        X  Alternate attack / saber throw"
 			rect 80 172 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
@@ -238,7 +238,7 @@
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "HOLD X + POINT RIGHT HAND  Weapon selector; release X to confirm"
+			group none name none type ITEM_TYPE_TEXT text "HOLD B + POINT RIGHT HAND  Weapon selector; release B to confirm"
 			rect 80 262 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
@@ -246,6 +246,12 @@
 		{
 			group none name none type ITEM_TYPE_TEXT text "HOLD Y + POINT LEFT HAND  Force selector; release Y to confirm"
 			rect 80 280 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "TAP B  Pause menu        TAP Y  Datapad"
+			rect 80 298 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 
