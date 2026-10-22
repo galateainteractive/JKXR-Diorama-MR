@@ -78,6 +78,10 @@ namespace JKXRDioramaMRInstaller
     {
         internal GalateaMark()
         {
+            SetStyle(ControlStyles.SupportsTransparentBackColor |
+                     ControlStyles.UserPaint |
+                     ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer, true);
             DoubleBuffered = true;
             BackColor = Color.Transparent;
         }
@@ -1030,6 +1034,12 @@ namespace JKXRDioramaMRInstaller
                 report.Add("Assembly=" + Assembly.GetExecutingAssembly().GetName().Version);
                 report.Add("Android-package=" + ProductProfile.AndroidPackage);
                 report.Add("Device-root=" + ProductProfile.DeviceRoot);
+                using (InstallerForm form = new InstallerForm())
+                {
+                    if (!String.Equals(form.Text, ProductProfile.InstallerTitle, StringComparison.Ordinal))
+                        throw new InvalidOperationException("The installer window title does not match the product profile.");
+                }
+                report.Add("UI=OK");
                 AdbBundle.EnsureExtracted();
                 report.Add("Resources=OK");
 
