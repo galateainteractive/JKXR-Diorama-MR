@@ -74,33 +74,6 @@ namespace JKXRDioramaMRInstaller
         }
     }
 
-    internal sealed class GalateaMark : Control
-    {
-        internal GalateaMark()
-        {
-            SetStyle(ControlStyles.SupportsTransparentBackColor |
-                     ControlStyles.UserPaint |
-                     ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.OptimizedDoubleBuffer, true);
-            DoubleBuffered = true;
-            BackColor = Color.Transparent;
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            Rectangle orbit = new Rectangle(10, 18, Width - 20, Height - 36);
-            using (Pen outer = new Pen(Color.FromArgb(215, GalateaTheme.PurpleBright), 4F))
-                e.Graphics.DrawEllipse(outer, orbit);
-            using (Pen inner = new Pen(Color.FromArgb(150, Color.White), 2F))
-                e.Graphics.DrawArc(inner, 18, 8, Width - 36, Height - 16, 200, 250);
-            using (SolidBrush planet = new SolidBrush(GalateaTheme.Orange))
-                e.Graphics.FillEllipse(planet, Width / 2 - 11, Height / 2 - 11, 22, 22);
-            using (SolidBrush moon = new SolidBrush(Color.White))
-                e.Graphics.FillEllipse(moon, Width - 19, Height / 2 - 5, 9, 9);
-        }
-    }
-
     internal sealed class CardPanel : Panel
     {
         internal CardPanel()
@@ -200,44 +173,21 @@ namespace JKXRDioramaMRInstaller
             header.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(header);
 
-            GalateaMark mark = new GalateaMark();
-            mark.Location = new Point(29, 24);
-            mark.Size = new Size(72, 72);
-            header.Controls.Add(mark);
-
             Label brand = new Label();
             brand.Text = ProductProfile.BrandName.ToUpperInvariant();
-            brand.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            brand.Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold);
             brand.ForeColor = GalateaTheme.Orange;
             brand.AutoSize = true;
-            brand.Location = new Point(119, 18);
+            brand.Location = new Point(29, 27);
             header.Controls.Add(brand);
 
             Label title = new Label();
             title.Text = ProductProfile.ProductName;
-            title.Font = new Font("Segoe UI Semibold", 24F, FontStyle.Bold);
+            title.Font = new Font("Segoe UI Semibold", 27F, FontStyle.Bold);
             title.ForeColor = Color.White;
             title.AutoSize = true;
-            title.Location = new Point(115, 39);
+            title.Location = new Point(25, 59);
             header.Controls.Add(title);
-
-            Label subtitle = new Label();
-            subtitle.Text = "A guided installer for your legally owned " + ProductProfile.GameName + " data.";
-            subtitle.ForeColor = Color.FromArgb(205, 211, 230);
-            subtitle.AutoSize = true;
-            subtitle.Location = new Point(119, 87);
-            header.Controls.Add(subtitle);
-
-            Label badge = new Label();
-            badge.Text = ProductProfile.PlatformBadge;
-            badge.Font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold);
-            badge.ForeColor = Color.White;
-            badge.BackColor = Color.FromArgb(74, 52, 120);
-            badge.TextAlign = ContentAlignment.MiddleCenter;
-            badge.Location = new Point(680, 27);
-            badge.Size = new Size(190, 30);
-            badge.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            header.Controls.Add(badge);
 
             CardPanel gameGroup = new CardPanel();
             gameGroup.Location = new Point(28, 168);

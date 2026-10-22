@@ -7,8 +7,6 @@ namespace JKXRDioramaMRInstaller
         internal const string BrandName = "Galatea Diorama Mods";
         internal const string ProductName = "JKXR Diorama MR";
         internal const string InstallerTitle = ProductName + " Installer";
-        internal const string PlatformBadge = "META QUEST  |  DIORAMA MR";
-
         internal const string GameName = "Jedi Academy";
         internal const string GameLongName = "Star Wars Jedi Knight: Jedi Academy";
         internal const string GameRegistrySearchTerm = "Jedi Academy";
