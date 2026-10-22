@@ -1,8 +1,8 @@
-# Windows installer — JKXR Diorama MR
+# Galatea Diorama Mods installer — JKXR Diorama MR
 
-The installer is a standalone Windows executable that embeds the Diorama MR
-APK and the official Android SDK platform-tools components required for ADB.
-It does not contain Jedi Academy game data.
+The installer is a branded, standalone Windows executable that embeds the
+Diorama MR APK and the official Android SDK platform-tools components required
+for ADB. It does not contain Jedi Academy game data.
 
 ## User workflow
 
@@ -26,14 +26,32 @@ Generate the current APK first, then run:
 The installer is compiled with the Windows .NET Framework 4.8 C# compiler, so
 it does not require a separate modern .NET runtime installation.
 
-The current build script still needs its APK and output defaults made portable
-before public release. Both paths can already be supplied explicitly:
+The scripts discover Java, Gradle, and the Android SDK across fixed drives and
+write release artifacts to the repository's sibling `artifacts` directory.
+Every detected path can still be overridden explicitly:
 
 ```powershell
 .\installer\build-installer.ps1 `
-  -ApkPath D:\path\to\JKXR-Diorama-MR.apk `
-  -OutputPath D:\path\to\JKXR-Diorama-MR-Installer.exe
+  -ApkPath X:\path\to\JKXR-Diorama-MR.apk `
+  -AndroidSdk X:\Android\Sdk `
+  -OutputPath X:\path\to\JKXR-Diorama-MR-Installer.exe
 ```
+
+## Reusing the Galatea installer shell
+
+The visual shell and installation workflow are intentionally reusable across
+Galatea Diorama Mods projects. Product-specific values live in
+`ProductProfile.cs`, including the product and game names, Android package,
+Quest data paths, Steam app ID, command-line selector, and required game files.
+
+To adapt the installer for another mod:
+
+1. Copy the `installer` directory into that project's repository.
+2. Edit only `ProductProfile.cs` for the new game and Android package.
+3. Pass the new APK and optional product icon to `build-installer.ps1`.
+4. Extend `GameLocator` only if that game needs a storefront-specific lookup
+   beyond the existing Steam, uninstall-registry, drive-scan, and folder-picker
+   workflow.
 
 ## Distribution
 

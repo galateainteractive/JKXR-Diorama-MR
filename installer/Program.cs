@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -11,16 +12,23 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("0.5.0.0")]
-[assembly: AssemblyFileVersion("0.5.0.0")]
+[assembly: AssemblyVersion("0.6.0.0")]
+[assembly: AssemblyFileVersion("0.6.0.0")]
 
 namespace JKXRDioramaMRInstaller
 {
-    internal static class AppIdentity
+    internal static class GalateaTheme
     {
-        internal const string AndroidPackage = "com.galateainteractive.jkxrdioramamr";
-        internal const string DeviceRoot = "/sdcard/JKXR-Diorama-MR";
-        internal const string JediAcademyBase = DeviceRoot + "/JK3/base";
+        internal static readonly Color Background = Color.FromArgb(8, 12, 24);
+        internal static readonly Color Card = Color.FromArgb(18, 25, 43);
+        internal static readonly Color CardBorder = Color.FromArgb(48, 59, 88);
+        internal static readonly Color Text = Color.FromArgb(238, 241, 250);
+        internal static readonly Color Muted = Color.FromArgb(157, 169, 198);
+        internal static readonly Color Purple = Color.FromArgb(133, 95, 246);
+        internal static readonly Color PurpleBright = Color.FromArgb(172, 139, 255);
+        internal static readonly Color Orange = Color.FromArgb(246, 151, 79);
+        internal static readonly Color Green = Color.FromArgb(76, 204, 144);
+        internal static readonly Color Red = Color.FromArgb(244, 114, 118);
     }
 
     internal static class Program
@@ -40,6 +48,109 @@ namespace JKXRDioramaMRInstaller
         }
     }
 
+    internal sealed class BrandHeader : Panel
+    {
+        internal BrandHeader()
+        {
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            Rectangle bounds = ClientRectangle;
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+            using (LinearGradientBrush brush = new LinearGradientBrush(
+                bounds, Color.FromArgb(24, 31, 63), Color.FromArgb(55, 27, 82), 12F))
+            {
+                e.Graphics.FillRectangle(brush, bounds);
+            }
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (SolidBrush glow = new SolidBrush(Color.FromArgb(24, GalateaTheme.PurpleBright)))
+                e.Graphics.FillEllipse(glow, bounds.Width - 250, -150, 360, 360);
+            using (Pen accent = new Pen(GalateaTheme.Orange, 3F))
+                e.Graphics.DrawLine(accent, 0, bounds.Height - 2, bounds.Width, bounds.Height - 2);
+        }
+    }
+
+    internal sealed class GalateaMark : Control
+    {
+        internal GalateaMark()
+        {
+            DoubleBuffered = true;
+            BackColor = Color.Transparent;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle orbit = new Rectangle(10, 18, Width - 20, Height - 36);
+            using (Pen outer = new Pen(Color.FromArgb(215, GalateaTheme.PurpleBright), 4F))
+                e.Graphics.DrawEllipse(outer, orbit);
+            using (Pen inner = new Pen(Color.FromArgb(150, Color.White), 2F))
+                e.Graphics.DrawArc(inner, 18, 8, Width - 36, Height - 16, 200, 250);
+            using (SolidBrush planet = new SolidBrush(GalateaTheme.Orange))
+                e.Graphics.FillEllipse(planet, Width / 2 - 11, Height / 2 - 11, 22, 22);
+            using (SolidBrush moon = new SolidBrush(Color.White))
+                e.Graphics.FillEllipse(moon, Width - 19, Height / 2 - 5, 9, 9);
+        }
+    }
+
+    internal sealed class CardPanel : Panel
+    {
+        internal CardPanel()
+        {
+            DoubleBuffered = true;
+            BackColor = GalateaTheme.Card;
+            ResizeRedraw = true;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            using (Pen border = new Pen(GalateaTheme.CardBorder, 1F))
+                e.Graphics.DrawRectangle(border, 0, 0, Width - 1, Height - 1);
+        }
+    }
+
+    internal sealed class GalateaProgressBar : Control
+    {
+        private int progressValue;
+        internal int Minimum { get; set; }
+        internal int Maximum { get; set; }
+        internal int Value
+        {
+            get { return progressValue; }
+            set
+            {
+                progressValue = Math.Max(Minimum, Math.Min(Maximum, value));
+                Invalidate();
+            }
+        }
+
+        internal GalateaProgressBar()
+        {
+            Minimum = 0;
+            Maximum = 100;
+            Height = 10;
+            DoubleBuffered = true;
+            BackColor = Color.FromArgb(29, 37, 60);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(BackColor);
+            int range = Math.Max(1, Maximum - Minimum);
+            int width = (int)((Width * (double)(Value - Minimum)) / range);
+            if (width <= 0) return;
+            Rectangle fill = new Rectangle(0, 0, width, Height);
+            using (LinearGradientBrush brush = new LinearGradientBrush(
+                fill, GalateaTheme.Purple, GalateaTheme.Orange, 0F))
+                e.Graphics.FillRectangle(brush, fill);
+        }
+    }
+
     internal sealed class InstallerForm : Form
     {
         private readonly TextBox gamePath = new TextBox();
@@ -51,19 +162,20 @@ namespace JKXRDioramaMRInstaller
         private readonly Button browseButton = new Button();
         private readonly Button refreshButton = new Button();
         private readonly Button installButton = new Button();
-        private readonly ProgressBar progress = new ProgressBar();
+        private readonly GalateaProgressBar progress = new GalateaProgressBar();
         private readonly TextBox log = new TextBox();
         private readonly Label footer = new Label();
         private bool busy;
 
         public InstallerForm()
         {
-            Text = "JKXR Diorama MR Installer";
-            ClientSize = new Size(820, 700);
-            MinimumSize = new Size(760, 640);
+            Text = ProductProfile.InstallerTitle;
+            ClientSize = new Size(900, 760);
+            MinimumSize = new Size(820, 700);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Segoe UI", 9F);
-            BackColor = Color.FromArgb(245, 247, 251);
+            BackColor = GalateaTheme.Background;
+            ForeColor = GalateaTheme.Text;
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             BuildInterface();
@@ -76,125 +188,201 @@ namespace JKXRDioramaMRInstaller
 
         private void BuildInterface()
         {
+            SuspendLayout();
+
+            BrandHeader header = new BrandHeader();
+            header.Location = new Point(0, 0);
+            header.Size = new Size(ClientSize.Width, 146);
+            header.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            Controls.Add(header);
+
+            GalateaMark mark = new GalateaMark();
+            mark.Location = new Point(29, 24);
+            mark.Size = new Size(72, 72);
+            header.Controls.Add(mark);
+
+            Label brand = new Label();
+            brand.Text = ProductProfile.BrandName.ToUpperInvariant();
+            brand.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            brand.ForeColor = GalateaTheme.Orange;
+            brand.AutoSize = true;
+            brand.Location = new Point(119, 18);
+            header.Controls.Add(brand);
+
             Label title = new Label();
-            title.Text = "JKXR Diorama MR";
-            title.Font = new Font("Segoe UI Semibold", 21F, FontStyle.Bold);
-            title.ForeColor = Color.FromArgb(29, 43, 72);
+            title.Text = ProductProfile.ProductName;
+            title.Font = new Font("Segoe UI Semibold", 24F, FontStyle.Bold);
+            title.ForeColor = Color.White;
             title.AutoSize = true;
-            title.Location = new Point(24, 18);
-            Controls.Add(title);
+            title.Location = new Point(115, 39);
+            header.Controls.Add(title);
 
             Label subtitle = new Label();
-            subtitle.Text = "Galatea Diorama Mods — installs Diorama MR and your legally owned Jedi Academy data on Meta Quest.";
-            subtitle.ForeColor = Color.FromArgb(72, 82, 103);
+            subtitle.Text = "A guided installer for your legally owned " + ProductProfile.GameName + " data.";
+            subtitle.ForeColor = Color.FromArgb(205, 211, 230);
             subtitle.AutoSize = true;
-            subtitle.Location = new Point(27, 60);
-            Controls.Add(subtitle);
+            subtitle.Location = new Point(119, 87);
+            header.Controls.Add(subtitle);
 
-            GroupBox gameGroup = new GroupBox();
-            gameGroup.Text = "1. Jedi Academy on this PC";
-            gameGroup.Location = new Point(24, 94);
-            gameGroup.Size = new Size(772, 166);
+            Label badge = new Label();
+            badge.Text = ProductProfile.PlatformBadge;
+            badge.Font = new Font("Segoe UI Semibold", 8F, FontStyle.Bold);
+            badge.ForeColor = Color.White;
+            badge.BackColor = Color.FromArgb(74, 52, 120);
+            badge.TextAlign = ContentAlignment.MiddleCenter;
+            badge.Location = new Point(680, 27);
+            badge.Size = new Size(190, 30);
+            badge.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            header.Controls.Add(badge);
+
+            CardPanel gameGroup = new CardPanel();
+            gameGroup.Location = new Point(28, 168);
+            gameGroup.Size = new Size(844, 170);
             gameGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(gameGroup);
 
-            gamePath.Location = new Point(16, 31);
-            gamePath.Size = new Size(626, 25);
+            Label gameStep = CreateStepLabel("01", ProductProfile.GameName + " on this PC");
+            gameStep.Location = new Point(17, 13);
+            gameGroup.Controls.Add(gameStep);
+
+            gamePath.Location = new Point(17, 51);
+            gamePath.Size = new Size(665, 27);
             gamePath.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            StyleTextBox(gamePath);
             gamePath.TextChanged += delegate { ValidateCurrentPath(); };
             gameGroup.Controls.Add(gamePath);
 
             browseButton.Text = "Choose folder...";
-            browseButton.Location = new Point(650, 29);
-            browseButton.Size = new Size(106, 29);
+            browseButton.Location = new Point(692, 49);
+            browseButton.Size = new Size(132, 31);
             browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            StyleSecondaryButton(browseButton);
             browseButton.Click += BrowseClicked;
             gameGroup.Controls.Add(browseButton);
 
             detectButton.Text = "Detect Steam/GOG";
-            detectButton.Location = new Point(16, 70);
-            detectButton.Size = new Size(150, 31);
+            detectButton.Location = new Point(17, 91);
+            detectButton.Size = new Size(154, 32);
+            StyleSecondaryButton(detectButton);
             detectButton.Click += async delegate { await DetectGame(true); };
             gameGroup.Controls.Add(detectButton);
 
             fullScanButton.Text = "Search drives";
-            fullScanButton.Location = new Point(174, 70);
-            fullScanButton.Size = new Size(140, 31);
+            fullScanButton.Location = new Point(181, 91);
+            fullScanButton.Size = new Size(140, 32);
+            StyleSecondaryButton(fullScanButton);
             fullScanButton.Click += async delegate { await FullScan(); };
             gameGroup.Controls.Add(fullScanButton);
 
-            gameStatus.Location = new Point(16, 112);
-            gameStatus.Size = new Size(740, 40);
+            gameStatus.Location = new Point(17, 135);
+            gameStatus.Size = new Size(807, 24);
             gameStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             gameStatus.Text = "Waiting for the game folder.";
-            gameStatus.ForeColor = Color.FromArgb(110, 80, 20);
+            gameStatus.ForeColor = GalateaTheme.Muted;
             gameGroup.Controls.Add(gameStatus);
 
-            GroupBox questGroup = new GroupBox();
-            questGroup.Text = "2. Meta Quest over USB";
-            questGroup.Location = new Point(24, 272);
-            questGroup.Size = new Size(772, 112);
+            CardPanel questGroup = new CardPanel();
+            questGroup.Location = new Point(28, 352);
+            questGroup.Size = new Size(844, 116);
             questGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(questGroup);
 
+            Label questStep = CreateStepLabel("02", "Meta Quest over USB");
+            questStep.Location = new Point(17, 13);
+            questGroup.Controls.Add(questStep);
+
             devices.DropDownStyle = ComboBoxStyle.DropDownList;
-            devices.Location = new Point(16, 31);
-            devices.Size = new Size(626, 25);
+            devices.Location = new Point(17, 51);
+            devices.Size = new Size(665, 27);
             devices.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            devices.BackColor = Color.FromArgb(28, 36, 58);
+            devices.ForeColor = GalateaTheme.Text;
+            devices.FlatStyle = FlatStyle.Flat;
             devices.SelectedIndexChanged += delegate { UpdateInstallState(); };
             questGroup.Controls.Add(devices);
 
             refreshButton.Text = "Refresh";
-            refreshButton.Location = new Point(650, 29);
-            refreshButton.Size = new Size(106, 29);
+            refreshButton.Location = new Point(692, 49);
+            refreshButton.Size = new Size(132, 31);
             refreshButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            StyleSecondaryButton(refreshButton);
             refreshButton.Click += async delegate { await RefreshDevices(); };
             questGroup.Controls.Add(refreshButton);
 
-            questStatus.Location = new Point(16, 69);
-            questStatus.Size = new Size(740, 31);
+            questStatus.Location = new Point(17, 87);
+            questStatus.Size = new Size(807, 24);
             questStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             questStatus.Text = "Enable Developer Mode, connect the Quest, and allow USB debugging inside the headset.";
-            questStatus.ForeColor = Color.FromArgb(72, 82, 103);
+            questStatus.ForeColor = GalateaTheme.Muted;
             questGroup.Controls.Add(questStatus);
 
-            installButton.Text = "INSTALL ON QUEST";
+            installButton.Text = "INSTALL " + ProductProfile.ProductName.ToUpperInvariant() + " ON QUEST";
             installButton.Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold);
-            installButton.BackColor = Color.FromArgb(48, 92, 196);
+            installButton.BackColor = GalateaTheme.Purple;
             installButton.ForeColor = Color.White;
             installButton.FlatStyle = FlatStyle.Flat;
             installButton.FlatAppearance.BorderSize = 0;
             installButton.Enabled = false;
-            installButton.Location = new Point(24, 400);
-            installButton.Size = new Size(772, 46);
+            installButton.Location = new Point(28, 484);
+            installButton.Size = new Size(844, 48);
             installButton.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             installButton.Click += async delegate { await Install(); };
             Controls.Add(installButton);
 
-            progress.Location = new Point(24, 457);
-            progress.Size = new Size(772, 18);
+            progress.Location = new Point(28, 544);
+            progress.Size = new Size(844, 10);
             progress.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             progress.Minimum = 0;
             progress.Maximum = 100;
             Controls.Add(progress);
 
-            log.Location = new Point(24, 487);
-            log.Size = new Size(772, 163);
+            log.Location = new Point(28, 568);
+            log.Size = new Size(844, 142);
             log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             log.Multiline = true;
             log.ReadOnly = true;
             log.ScrollBars = ScrollBars.Vertical;
-            log.BackColor = Color.FromArgb(26, 31, 43);
+            log.BorderStyle = BorderStyle.FixedSingle;
+            log.BackColor = Color.FromArgb(11, 16, 29);
             log.ForeColor = Color.FromArgb(219, 226, 239);
             log.Font = new Font("Consolas", 8.5F);
             Controls.Add(log);
 
-            footer.Text = "The installer does not contain the game. It only copies assets0.pk3–assets3.pk3 from your legal installation.";
-            footer.ForeColor = Color.FromArgb(92, 102, 123);
-            footer.Location = new Point(24, 662);
-            footer.Size = new Size(772, 24);
+            footer.Text = ProductProfile.BrandName + "  |  The installer never contains commercial game data.";
+            footer.ForeColor = GalateaTheme.Muted;
+            footer.Location = new Point(28, 724);
+            footer.Size = new Size(844, 24);
             footer.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(footer);
+
+            ResumeLayout(false);
+        }
+
+        private static Label CreateStepLabel(string number, string text)
+        {
+            Label label = new Label();
+            label.Text = number + "   " + text.ToUpperInvariant();
+            label.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            label.ForeColor = GalateaTheme.PurpleBright;
+            label.AutoSize = true;
+            return label;
+        }
+
+        private static void StyleSecondaryButton(Button button)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderColor = GalateaTheme.CardBorder;
+            button.FlatAppearance.BorderSize = 1;
+            button.BackColor = Color.FromArgb(28, 36, 58);
+            button.ForeColor = GalateaTheme.Text;
+            button.Cursor = Cursors.Hand;
+        }
+
+        private static void StyleTextBox(TextBox textBox)
+        {
+            textBox.BorderStyle = BorderStyle.FixedSingle;
+            textBox.BackColor = Color.FromArgb(28, 36, 58);
+            textBox.ForeColor = GalateaTheme.Text;
         }
 
         private async Task DetectGame(bool announceFailure)
@@ -213,7 +401,7 @@ namespace JKXRDioramaMRInstaller
             {
                 AppendLog("No registered installation was found. Search the drives or choose the folder manually.");
                 MessageBox.Show(this,
-                    "Jedi Academy was not found in the registered game libraries.\n\n" +
+                    ProductProfile.GameName + " was not found in the registered game libraries.\n\n" +
                     "Use 'Search drives' or 'Choose folder...' to locate it.",
                     "Game not found", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -243,7 +431,7 @@ namespace JKXRDioramaMRInstaller
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Select the Jedi Academy, GameData, or GameData\\base folder";
+                dialog.Description = "Select the " + ProductProfile.GameName + ", GameData, or GameData\\base folder";
                 dialog.ShowNewFolderButton = false;
                 if (Directory.Exists(gamePath.Text)) dialog.SelectedPath = gamePath.Text;
                 if (dialog.ShowDialog(this) == DialogResult.OK) gamePath.Text = dialog.SelectedPath;
@@ -256,13 +444,13 @@ namespace JKXRDioramaMRInstaller
             string problem = "";
             if (!String.IsNullOrEmpty(resolved) && GameLocator.ValidateBaseDirectory(resolved, out problem))
             {
-                gameStatus.Text = "✓ Valid Jedi Academy installation: assets0.pk3 through assets3.pk3 were found.";
-                gameStatus.ForeColor = Color.FromArgb(22, 117, 67);
+                gameStatus.Text = "✓ Valid " + ProductProfile.GameName + " installation: all required game archives were found.";
+                gameStatus.ForeColor = GalateaTheme.Green;
             }
             else
             {
-                gameStatus.Text = String.IsNullOrEmpty(problem) ? "Select the Jedi Academy folder." : problem;
-                gameStatus.ForeColor = Color.FromArgb(166, 71, 50);
+                gameStatus.Text = String.IsNullOrEmpty(problem) ? "Select the " + ProductProfile.GameName + " folder." : problem;
+                gameStatus.ForeColor = GalateaTheme.Red;
             }
             UpdateInstallState();
         }
@@ -293,13 +481,13 @@ namespace JKXRDioramaMRInstaller
             {
                 devices.SelectedIndex = 0;
                 questStatus.Text = "✓ Quest authorized and ready for installation.";
-                questStatus.ForeColor = Color.FromArgb(22, 117, 67);
+                questStatus.ForeColor = GalateaTheme.Green;
                 AppendLog("Quest detected: " + devices.SelectedItem);
             }
             else
             {
                 questStatus.Text = "Quest not detected. Connect USB and allow USB debugging inside the headset.";
-                questStatus.ForeColor = Color.FromArgb(166, 71, 50);
+                questStatus.ForeColor = GalateaTheme.Red;
                 AppendLog("No authorized ADB device was found.");
             }
             UpdateInstallState();
@@ -327,8 +515,8 @@ namespace JKXRDioramaMRInstaller
                 progress.Value = 100;
                 AppendLog("Installation and verification complete.");
                 MessageBox.Show(this,
-                    "JKXR Diorama MR was installed successfully.\n\n" +
-                    "Jedi Academy will open on the Quest. Put on the headset and complete any permission request that appears.",
+                    ProductProfile.ProductName + " was installed successfully.\n\n" +
+                    ProductProfile.GameName + " will open on the Quest. Put on the headset and complete any permission request that appears.",
                     "Installation complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
@@ -350,27 +538,27 @@ namespace JKXRDioramaMRInstaller
             AdbResult state = AdbClient.Run(device.Serial, "get-state", 15000);
             RequireSuccess(state, "The Quest stopped responding. Reconnect the USB cable.");
 
-            SetProgress(18, "Installing the JKXR Diorama MR APK...");
+            SetProgress(18, "Installing the " + ProductProfile.ProductName + " APK...");
             AdbResult install = AdbClient.Run(device.Serial,
                 "install -r -d " + AdbClient.Quote(AdbBundle.ApkPath), 180000);
             RequireSuccess(install,
-                "APK installation failed. If an earlier Diorama MR build uses a different signing key, uninstall only JKXR Diorama MR and try again. Its game-data folder is not deleted.");
+                "APK installation failed. If an earlier build uses a different signing key, uninstall only " + ProductProfile.ProductName + " and try again. Its game-data folder is not deleted.");
 
-            SetProgress(30, "Preparing the Jedi Academy folder...");
-            RequireSuccess(AdbClient.Run(device.Serial, "shell mkdir -p " + AppIdentity.JediAcademyBase, 15000),
-                "Unable to create " + AppIdentity.JediAcademyBase + ".");
+            SetProgress(30, "Preparing the " + ProductProfile.GameName + " folder...");
+            RequireSuccess(AdbClient.Run(device.Serial, "shell mkdir -p " + ProductProfile.GameDataDirectory, 15000),
+                "Unable to create " + ProductProfile.GameDataDirectory + ".");
 
             string commandFile = Path.Combine(AdbBundle.WorkDirectory, "commandline.txt");
-            File.WriteAllText(commandFile, "ja\n", new UTF8Encoding(false));
+            File.WriteAllText(commandFile, ProductProfile.CommandLineValue + "\n", new UTF8Encoding(false));
             RequireSuccess(AdbClient.Run(device.Serial,
-                "push " + AdbClient.Quote(commandFile) + " " + AppIdentity.DeviceRoot + "/commandline.txt", 30000),
-                "Unable to select Jedi Academy on the Quest.");
+                "push " + AdbClient.Quote(commandFile) + " " + ProductProfile.DeviceRoot + "/commandline.txt", 30000),
+                "Unable to select " + ProductProfile.GameName + " on the Quest.");
 
             // On Quest/Android 11+, this app-op is the programmatic equivalent
             // of the all-files access page. Failure is non-fatal: the headset
             // will present the permission screen on first launch instead.
             AdbClient.Run(device.Serial,
-                "shell appops set " + AppIdentity.AndroidPackage + " MANAGE_EXTERNAL_STORAGE allow", 15000);
+                "shell appops set " + ProductProfile.AndroidPackage + " MANAGE_EXTERNAL_STORAGE allow", 15000);
 
             string[] files = GameLocator.RequiredFiles;
             for (int i = 0; i < files.Length; ++i)
@@ -380,7 +568,7 @@ namespace JKXRDioramaMRInstaller
                 string source = Path.Combine(baseDirectory, name);
                 SetProgress(percent, "Copying " + name + "...");
                 AdbResult pushed = AdbClient.Run(device.Serial,
-                    "push " + AdbClient.Quote(source) + " " + AppIdentity.JediAcademyBase + "/" + name, 600000);
+                    "push " + AdbClient.Quote(source) + " " + ProductProfile.GameDataDirectory + "/" + name, 600000);
                 RequireSuccess(pushed, "Failed to copy " + name + ". Check the cable and free space on the Quest.");
             }
 
@@ -389,7 +577,7 @@ namespace JKXRDioramaMRInstaller
             {
                 long localSize = new FileInfo(Path.Combine(baseDirectory, name)).Length;
                 AdbResult remote = AdbClient.Run(device.Serial,
-                    "shell stat -c %s " + AppIdentity.JediAcademyBase + "/" + name, 20000);
+                    "shell stat -c %s " + ProductProfile.GameDataDirectory + "/" + name, 20000);
                 long remoteSize;
                 if (!remote.Success || !Int64.TryParse(remote.Output.Trim(), out remoteSize) || remoteSize != localSize)
                 {
@@ -398,11 +586,11 @@ namespace JKXRDioramaMRInstaller
                 AppendLogThreadSafe("Verified: " + name + " (" + localSize + " bytes)");
             }
 
-            SetProgress(96, "Launching JKXR Diorama MR...");
-            AdbClient.Run(device.Serial, "shell am force-stop " + AppIdentity.AndroidPackage, 15000);
+            SetProgress(96, "Launching " + ProductProfile.ProductName + "...");
+            AdbClient.Run(device.Serial, "shell am force-stop " + ProductProfile.AndroidPackage, 15000);
             AdbResult launch = AdbClient.Run(device.Serial,
-                "shell monkey -p " + AppIdentity.AndroidPackage + " -c android.intent.category.LAUNCHER 1", 30000);
-            RequireSuccess(launch, "The files were installed, but the app could not be launched automatically. Open JKXR Diorama MR from Library > Unknown Sources.");
+                "shell monkey -p " + ProductProfile.AndroidPackage + " -c android.intent.category.LAUNCHER 1", 30000);
+            RequireSuccess(launch, "The files were installed, but the app could not be launched automatically. Open " + ProductProfile.ProductName + " from Library > Unknown Sources.");
         }
 
         private void RequireSuccess(AdbResult result, string friendlyMessage)
@@ -424,7 +612,7 @@ namespace JKXRDioramaMRInstaller
             }
             progress.Value = Math.Max(progress.Minimum, Math.Min(progress.Maximum, value));
             questStatus.Text = message;
-            questStatus.ForeColor = Color.FromArgb(48, 92, 196);
+            questStatus.ForeColor = GalateaTheme.PurpleBright;
             AppendLog(message);
         }
 
@@ -469,8 +657,7 @@ namespace JKXRDioramaMRInstaller
 
     internal static class GameLocator
     {
-        internal static readonly string[] RequiredFiles =
-            { "assets0.pk3", "assets1.pk3", "assets2.pk3", "assets3.pk3" };
+        internal static readonly string[] RequiredFiles = ProductProfile.RequiredFiles;
 
         internal static List<string> FindKnownInstallations()
         {
@@ -526,7 +713,7 @@ namespace JKXRDioramaMRInstaller
             foreach (string library in libraries)
             {
                 string steamApps = Path.Combine(library, "steamapps");
-                string manifest = Path.Combine(steamApps, "appmanifest_6020.acf");
+                string manifest = Path.Combine(steamApps, "appmanifest_" + ProductProfile.SteamAppId + ".acf");
                 if (File.Exists(manifest))
                 {
                     try
@@ -536,8 +723,8 @@ namespace JKXRDioramaMRInstaller
                     }
                     catch { }
                 }
-                candidates.Add(Path.Combine(steamApps, "common", "Jedi Academy"));
-                candidates.Add(Path.Combine(steamApps, "common", "Star Wars Jedi Knight - Jedi Academy"));
+                foreach (string name in ProductProfile.CommonInstallNames)
+                    candidates.Add(Path.Combine(steamApps, "common", name));
             }
         }
 
@@ -560,7 +747,7 @@ namespace JKXRDioramaMRInstaller
                             {
                                 if (sub == null) continue;
                                 string display = Convert.ToString(sub.GetValue("DisplayName"));
-                                if (display.IndexOf("Jedi Academy", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                                if (display.IndexOf(ProductProfile.GameRegistrySearchTerm, StringComparison.OrdinalIgnoreCase) < 0) continue;
                                 string location = Convert.ToString(sub.GetValue("InstallLocation"));
                                 if (!String.IsNullOrWhiteSpace(location)) candidates.Add(location.Trim('"'));
                             }
@@ -579,11 +766,7 @@ namespace JKXRDioramaMRInstaller
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
                 @"C:\GOG Games", @"D:\GOG Games", @"C:\Games", @"D:\Games"
             };
-            string[] names =
-            {
-                "Jedi Academy", "Star Wars Jedi Knight - Jedi Academy",
-                "STAR WARS Jedi Knight - Jedi Academy"
-            };
+            string[] names = ProductProfile.CommonInstallNames;
             foreach (string root in roots)
             foreach (string name in names)
             {
@@ -593,7 +776,7 @@ namespace JKXRDioramaMRInstaller
                 candidates.Add(Path.Combine(root, "LucasArts", name));
             }
 
-            string besideInstaller = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "game-data-local", "JediAcademy");
+            string besideInstaller = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "game-data-local", ProductProfile.LocalBundleFolder);
             candidates.Add(besideInstaller);
         }
 
@@ -678,7 +861,7 @@ namespace JKXRDioramaMRInstaller
             problem = "";
             if (String.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
             {
-                problem = "Select the Jedi Academy installation, GameData, or GameData\\base folder.";
+                problem = "Select the " + ProductProfile.GameName + " installation, GameData, or GameData\\base folder.";
                 return false;
             }
 
@@ -687,7 +870,7 @@ namespace JKXRDioramaMRInstaller
                 string path = Path.Combine(directory, name);
                 if (!File.Exists(path))
                 {
-                    problem = "Missing file: " + name + ". Make sure you selected Jedi Academy, not Jedi Outcast.";
+                    problem = "Missing file: " + name + ". Make sure you selected " + ProductProfile.GameName + ", not another game.";
                     return false;
                 }
                 try
@@ -751,13 +934,13 @@ namespace JKXRDioramaMRInstaller
             lock (Sync)
             {
                 if (!String.IsNullOrEmpty(AdbPath) && File.Exists(AdbPath) && File.Exists(ApkPath)) return;
-                WorkDirectory = Path.Combine(Path.GetTempPath(), "JKXRDioramaMRInstaller", "v0");
+                WorkDirectory = Path.Combine(Path.GetTempPath(), ProductProfile.TempFolderName);
                 Directory.CreateDirectory(WorkDirectory);
                 AdbPath = Extract("Installer.adb.exe", "adb.exe");
                 Extract("Installer.AdbWinApi.dll", "AdbWinApi.dll");
                 Extract("Installer.AdbWinUsbApi.dll", "AdbWinUsbApi.dll");
                 Extract("Installer.ADB-NOTICE.txt", "ADB-NOTICE.txt");
-                ApkPath = Extract("Installer.JKXRDioramaMR.apk", "JKXR-Diorama-MR.apk");
+                ApkPath = Extract(ProductProfile.EmbeddedApkResource, ProductProfile.ExtractedApkName);
             }
         }
 
@@ -842,10 +1025,11 @@ namespace JKXRDioramaMRInstaller
             List<string> report = new List<string>();
             try
             {
-                report.Add("JKXR Diorama MR Installer self-test");
+                report.Add(ProductProfile.InstallerTitle + " self-test");
+                report.Add("Brand=" + ProductProfile.BrandName);
                 report.Add("Assembly=" + Assembly.GetExecutingAssembly().GetName().Version);
-                report.Add("Android-package=" + AppIdentity.AndroidPackage);
-                report.Add("Device-root=" + AppIdentity.DeviceRoot);
+                report.Add("Android-package=" + ProductProfile.AndroidPackage);
+                report.Add("Device-root=" + ProductProfile.DeviceRoot);
                 AdbBundle.EnsureExtracted();
                 report.Add("Resources=OK");
 
@@ -856,8 +1040,9 @@ namespace JKXRDioramaMRInstaller
                     using (StreamReader reader = new StreamReader(command.Open()))
                     {
                         string value = reader.ReadToEnd().Trim();
-                        if (value != "ja") throw new InvalidOperationException("APK is not configured for Jedi Academy: " + value);
-                        report.Add("APK-commandline=ja");
+                        if (value != ProductProfile.CommandLineValue)
+                            throw new InvalidOperationException("APK is not configured for " + ProductProfile.GameName + ": " + value);
+                        report.Add("APK-commandline=" + ProductProfile.CommandLineValue);
                     }
                 }
 

@@ -6,6 +6,8 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Added
 
+- Branded Galatea Diorama Mods installer interface with a reusable product
+  profile for future diorama projects.
 - Mixed-reality miniature presentation for Jedi Academy on Meta Quest.
 - Native passthrough with a transparent sky and clean premultiplied-alpha
   composition.
@@ -31,6 +33,9 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Changed
 
+- Made Android and installer build scripts portable across drive letters and
+  Windows user profiles by automatically discovering Java, Gradle, the Android
+  SDK, and the sibling artifacts directory.
 - Assigned the standalone Android package ID
   `com.galateainteractive.jkxrdioramamr` and isolated game data under
   `/sdcard/JKXR-Diorama-MR` so Diorama MR can coexist with upstream JKXR.

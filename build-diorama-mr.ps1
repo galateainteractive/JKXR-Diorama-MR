@@ -1,15 +1,94 @@
 [CmdletBinding()]
-param()
+param(
+    [string]$JavaHome,
+    [string]$AndroidSdk,
+    [string]$Gradle,
+    [string]$GradleHome,
+    [string]$ArtifactDirectory
+)
 
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = $PSScriptRoot
 $androidProject = Join-Path $projectRoot 'Projects\Android'
-$javaHome = 'C:\Users\User\.jdks\temurin-17.0.20.1'
-$androidSdk = 'D:\Android\Sdk'
-$gradle = 'D:\Android\Gradle\gradle-8.5\bin\gradle.bat'
-$gradleHome = 'D:\Android\CodexGradle\jkxr-gradle-home'
-$artifactDirectory = 'D:\Codex\jkxr-tabletop-mr\artifacts'
+$repositoryContainer = Split-Path -Parent $projectRoot
+
+function Get-FixedDriveRoots {
+    [System.IO.DriveInfo]::GetDrives() |
+        Where-Object { $_.IsReady -and $_.DriveType -eq [System.IO.DriveType]::Fixed } |
+        ForEach-Object { $_.RootDirectory.FullName }
+}
+
+function Select-ExistingPath {
+    param([string[]]$Candidates, [string]$Description, [switch]$Directory)
+    foreach ($candidate in $Candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        if ($Directory) {
+            if (Test-Path -LiteralPath $candidate -PathType Container) {
+                return (Resolve-Path -LiteralPath $candidate).Path
+            }
+        } elseif (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+    throw "$Description was not found. Supply it explicitly when running the script."
+}
+
+$driveRoots = @(Get-FixedDriveRoots)
+
+if ([string]::IsNullOrWhiteSpace($ArtifactDirectory)) {
+    $ArtifactDirectory = Join-Path $repositoryContainer 'artifacts'
+}
+
+if ([string]::IsNullOrWhiteSpace($JavaHome)) {
+    $javaCandidates = @($env:JAVA_HOME)
+    if ($env:ProgramFiles) { $javaCandidates += Join-Path $env:ProgramFiles 'Android\Android Studio\jbr' }
+    if ($env:LOCALAPPDATA) { $javaCandidates += Join-Path $env:LOCALAPPDATA 'Programs\Android Studio\jbr' }
+    foreach ($driveRoot in $driveRoots) {
+        $javaCandidates += Join-Path $driveRoot 'Program Files\Android\Android Studio\jbr'
+        $javaCandidates += Join-Path $driveRoot 'Android\Android Studio\jbr'
+    }
+    $javaExecutable = Select-ExistingPath -Candidates ($javaCandidates | ForEach-Object {
+        if ($_){ Join-Path $_ 'bin\java.exe' }
+    }) -Description 'A Java 17 runtime'
+    $JavaHome = Split-Path -Parent (Split-Path -Parent $javaExecutable)
+} else {
+    $javaExecutable = Select-ExistingPath -Candidates @((Join-Path $JavaHome 'bin\java.exe')) -Description 'JAVA_HOME'
+    $JavaHome = Split-Path -Parent (Split-Path -Parent $javaExecutable)
+}
+
+if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
+    $sdkCandidates = @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME)
+    if ($env:LOCALAPPDATA) { $sdkCandidates += Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
+    foreach ($driveRoot in $driveRoots) { $sdkCandidates += Join-Path $driveRoot 'Android\Sdk' }
+    $AndroidSdk = Select-ExistingPath -Candidates $sdkCandidates -Description 'The Android SDK' -Directory
+} else {
+    $AndroidSdk = Select-ExistingPath -Candidates @($AndroidSdk) -Description 'The Android SDK' -Directory
+}
+
+if ([string]::IsNullOrWhiteSpace($Gradle)) {
+    $gradleCandidates = @()
+    foreach ($driveRoot in $driveRoots) {
+        $gradleCandidates += Join-Path $driveRoot 'Android\Gradle\gradle-8.5\bin\gradle.bat'
+    }
+    $Gradle = Select-ExistingPath -Candidates $gradleCandidates -Description 'Gradle 8.5'
+} else {
+    $Gradle = Select-ExistingPath -Candidates @($Gradle) -Description 'Gradle'
+}
+
+if ([string]::IsNullOrWhiteSpace($GradleHome)) {
+    $gradleHomeCandidates = @($env:GRADLE_USER_HOME)
+    foreach ($driveRoot in $driveRoots) {
+        $gradleHomeCandidates += Join-Path $driveRoot 'Android\CodexGradle\jkxr-gradle-home'
+    }
+    $GradleHome = $gradleHomeCandidates | Where-Object {
+        $_ -and (Test-Path -LiteralPath $_ -PathType Container)
+    } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($GradleHome)) {
+        $GradleHome = Join-Path $env:LOCALAPPDATA 'GalateaDioramaMods\Gradle'
+    }
+}
+
 $sourceApk = Join-Path $androidProject 'build\outputs\apk\release\jkxr-release.apk'
 $targetApk = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.1.apk'
 $localProperties = Join-Path $androidProject 'local.properties'
@@ -20,25 +99,61 @@ $originalLocalProperties = if ($hadLocalProperties) {
     $null
 }
 
-foreach ($requiredPath in @(
-    (Join-Path $javaHome 'bin\java.exe'),
-    $androidSdk,
-    $gradle,
-    $androidProject
-)) {
+foreach ($requiredPath in @($javaExecutable, $AndroidSdk, $Gradle, $androidProject)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required dependency not found: $requiredPath"
     }
 }
 
-$env:JAVA_HOME = $javaHome
-$env:ANDROID_HOME = $androidSdk
-$env:ANDROID_SDK_ROOT = $androidSdk
-$env:GRADLE_USER_HOME = $gradleHome
+New-Item -ItemType Directory -Path $GradleHome -Force | Out-Null
+New-Item -ItemType Directory -Path $ArtifactDirectory -Force | Out-Null
+
+$env:JAVA_HOME = $JavaHome
+$env:ANDROID_HOME = $AndroidSdk
+$env:ANDROID_SDK_ROOT = $AndroidSdk
+$env:GRADLE_USER_HOME = $GradleHome
+
+# CMake/Gradle stores absolute source paths below build\.cxx.  A project moved
+# between drives cannot reuse that generated cache, so discard it when its
+# metadata points to files that no longer exist.  It will be regenerated by
+# the Android build and contains no source files.
+$cxxCache = Join-Path $androidProject 'build\.cxx'
+$staleCxxCache = $false
+if (Test-Path -LiteralPath $cxxCache -PathType Container) {
+    $metadataFiles = Get-ChildItem -LiteralPath $cxxCache -Filter 'android_gradle_build.json' -File -Recurse -ErrorAction SilentlyContinue
+    foreach ($metadataFile in $metadataFiles) {
+        try {
+            $metadata = Get-Content -LiteralPath $metadataFile.FullName -Raw | ConvertFrom-Json
+            foreach ($buildFile in @($metadata.buildFiles)) {
+                if ($buildFile -and -not (Test-Path -LiteralPath ([string]$buildFile))) {
+                    $staleCxxCache = $true
+                    break
+                }
+            }
+        }
+        catch {
+            $staleCxxCache = $true
+        }
+
+        if ($staleCxxCache) {
+            break
+        }
+    }
+}
+
+if ($staleCxxCache) {
+    $resolvedCxxCache = (Resolve-Path -LiteralPath $cxxCache).Path
+    $expectedCxxCache = [System.IO.Path]::GetFullPath((Join-Path $androidProject 'build\.cxx'))
+    if (-not $resolvedCxxCache.Equals($expectedCxxCache, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to remove unexpected CMake cache path: $resolvedCxxCache"
+    }
+    Write-Host "Removing stale CMake cache: $resolvedCxxCache"
+    Remove-Item -LiteralPath $resolvedCxxCache -Recurse -Force
+}
 
 # Upstream accidentally tracks a local.properties file from another machine.
 # Generate the correct local configuration before Gradle without committing it.
-$escapedSdk = $androidSdk.Replace('\', '\\').Replace(':', '\:')
+$escapedSdk = $AndroidSdk.Replace('\', '\\').Replace(':', '\:')
 @(
     '# Generated by build-diorama-mr.ps1; machine-specific configuration.'
     "sdk.dir=$escapedSdk"
@@ -46,7 +161,11 @@ $escapedSdk = $androidSdk.Replace('\', '\\').Replace(':', '\:')
 
 Push-Location $androidProject
 try {
-    & $gradle assembleRelease --no-daemon
+    Write-Host "Java: $JavaHome"
+    Write-Host "Android SDK: $AndroidSdk"
+    Write-Host "Gradle: $Gradle"
+    Write-Host "Artifacts: $ArtifactDirectory"
+    & $Gradle assembleRelease --no-daemon
     if ($LASTEXITCODE -ne 0) {
         throw "Gradle exited with code $LASTEXITCODE."
     }

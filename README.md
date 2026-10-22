@@ -35,6 +35,11 @@ Diorama MR installs as a separate Quest application and stores its game data,
 saves, and settings separately from upstream JKXR, so both can coexist on the
 same headset.
 
+The Windows installer uses the shared **Galatea Diorama Mods** visual shell,
+automatically detects common game-library locations, supports manual folder
+selection, installs over ADB, verifies copied game archives, and launches the
+Quest application.
+
 ## Highlights
 
 - Native Meta Quest passthrough with a transparent game sky.

@@ -1,16 +1,62 @@
 [CmdletBinding()]
 param(
-    [string]$ApkPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Diorama-MR-0.1.0-alpha.1.apk',
-    [string]$AndroidSdk = 'D:\Android\Sdk',
-    [string]$OutputPath = 'D:\Codex\jkxr-tabletop-mr\artifacts\JKXR-Diorama-MR-Installer.exe'
+    [string]$ApkPath,
+    [string]$AndroidSdk,
+    [string]$OutputPath,
+    [string]$IconPath
 )
 
 $ErrorActionPreference = 'Stop'
 $sourceDirectory = $PSScriptRoot
 $repository = Split-Path -Parent $sourceDirectory
-$csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+$repositoryContainer = Split-Path -Parent $repository
+$artifactDirectory = Join-Path $repositoryContainer 'artifacts'
+$csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+
+function Get-FixedDriveRoots {
+    [System.IO.DriveInfo]::GetDrives() |
+        Where-Object { $_.IsReady -and $_.DriveType -eq [System.IO.DriveType]::Fixed } |
+        ForEach-Object { $_.RootDirectory.FullName }
+}
+
+function Select-ExistingPath {
+    param([string[]]$Candidates, [string]$Description, [switch]$Directory)
+    foreach ($candidate in $Candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        if ($Directory) {
+            if (Test-Path -LiteralPath $candidate -PathType Container) {
+                return (Resolve-Path -LiteralPath $candidate).Path
+            }
+        } elseif (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+    throw "$Description was not found. Supply it explicitly when running the script."
+}
+
+if ([string]::IsNullOrWhiteSpace($ApkPath)) {
+    $ApkPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.1.apk'
+}
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-Installer.exe'
+}
+if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
+    $sdkCandidates = @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME)
+    if ($env:LOCALAPPDATA) { $sdkCandidates += Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
+    foreach ($driveRoot in @(Get-FixedDriveRoots)) {
+        $sdkCandidates += Join-Path $driveRoot 'Android\Sdk'
+    }
+    $AndroidSdk = Select-ExistingPath -Candidates $sdkCandidates -Description 'The Android SDK' -Directory
+} else {
+    $AndroidSdk = Select-ExistingPath -Candidates @($AndroidSdk) -Description 'The Android SDK' -Directory
+}
+if ([string]::IsNullOrWhiteSpace($IconPath)) {
+    $IconPath = Join-Path $repository 'Projects\Android\jni\OpenJK\code\win32\starwars.ico'
+}
+
 $platformTools = Join-Path $AndroidSdk 'platform-tools'
-$icon = Join-Path $repository 'Projects\Android\jni\OpenJK\code\win32\starwars.ico'
+$programSource = Join-Path $sourceDirectory 'Program.cs'
+$profileSource = Join-Path $sourceDirectory 'ProductProfile.cs'
 
 $required = @(
     $csc,
@@ -19,9 +65,10 @@ $required = @(
     (Join-Path $platformTools 'AdbWinApi.dll'),
     (Join-Path $platformTools 'AdbWinUsbApi.dll'),
     (Join-Path $platformTools 'NOTICE.txt'),
-    (Join-Path $sourceDirectory 'Program.cs'),
+    $programSource,
+    $profileSource,
     (Join-Path $sourceDirectory 'app.manifest'),
-    $icon
+    $IconPath
 )
 foreach ($path in $required) {
     if (-not (Test-Path -LiteralPath $path)) {
@@ -38,7 +85,7 @@ $arguments = @(
     '/optimize+',
     '/platform:anycpu',
     "/out:$OutputPath",
-    "/win32icon:$icon",
+    "/win32icon:$IconPath",
     "/win32manifest:$(Join-Path $sourceDirectory 'app.manifest')",
     '/reference:System.dll',
     '/reference:System.Core.dll',
@@ -46,13 +93,18 @@ $arguments = @(
     '/reference:System.Windows.Forms.dll',
     '/reference:System.IO.Compression.dll',
     '/reference:System.IO.Compression.FileSystem.dll',
-    "/resource:$ApkPath,Installer.JKXRDioramaMR.apk",
+    "/resource:$ApkPath,Installer.Product.apk",
     "/resource:$(Join-Path $platformTools 'adb.exe'),Installer.adb.exe",
     "/resource:$(Join-Path $platformTools 'AdbWinApi.dll'),Installer.AdbWinApi.dll",
     "/resource:$(Join-Path $platformTools 'AdbWinUsbApi.dll'),Installer.AdbWinUsbApi.dll",
     "/resource:$(Join-Path $platformTools 'NOTICE.txt'),Installer.ADB-NOTICE.txt",
-    (Join-Path $sourceDirectory 'Program.cs')
+    $profileSource,
+    $programSource
 )
+
+Write-Host "Android SDK: $AndroidSdk"
+Write-Host "APK: $ApkPath"
+Write-Host "Output: $OutputPath"
 
 & $csc @arguments
 if ($LASTEXITCODE -ne 0) {
