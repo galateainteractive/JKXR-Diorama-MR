@@ -6,6 +6,8 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Fixed
 
+- Reflowed the in-game Diorama MR control guide into short, explicit lines so
+  every instruction remains visible on the headset menu surface.
 - Sequenced first-run storage permission before OpenXR startup so the Quest
   permission screens no longer race the mixed-reality session.
 - Added automatic passthrough recovery when permission or session transitions

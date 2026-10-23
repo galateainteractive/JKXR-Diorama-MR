@@ -149,141 +149,236 @@
 			showCvar				{ 9 }
 		}
 
-		// Diorama MR uses a text guide because its external-camera controls
-		// differ substantially from the inherited immersive VR scheme.
+		// ITEM_TYPE_TEXT does not wrap. Keep every Diorama MR help row short and
+		// split longer explanations into explicit lines so the guide remains
+		// readable on the curved in-headset menu surface.
 		itemDef
 		{
-			group						none
-			name						diorama_help_title
-			type						ITEM_TYPE_TEXT
-			text						"DIORAMA MR CONTROLS"
-			rect						60 42 520 18
-			font						3
-			textscale				0.8
-			textalign				ITEM_ALIGN_CENTER
-			textalignx				260
-			forecolor				.549 .854 1 1
-			visible					1
-			cvarTest				show_help_item
-			showCvar				{ 10 }
-			decoration
+			group none name diorama_help_panel
+			rect 20 15 600 450 style WINDOW_STYLE_FILLED backcolor .02 .03 .05 .94 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
 		}
-
 		itemDef
 		{
-			group						none
-			name						diorama_help_handedness
-			type						ITEM_TYPE_TEXT
-			text						"Default right-handed layout. Dominant and off-hand roles swap in left-handed mode."
-			rect						50 66 540 14
-			font						2
-			textscale				0.7
-			textalign				ITEM_ALIGN_CENTER
-			textalignx				270
-			forecolor				.8 .8 .9 1
-			visible					1
-			cvarTest				show_help_item
-			showCvar				{ 10 }
-			decoration
+			group none name diorama_help_title type ITEM_TYPE_TEXT text "DIORAMA MR CONTROLS"
+			rect 60 38 520 18 font 3 textscale 0.8 textalign ITEM_ALIGN_CENTER textalignx 260
+			forecolor .549 .854 1 1 visible 1 cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "DEFAULT RIGHT-HANDED LAYOUT"
+			rect 60 63 520 14 font 2 textscale 0.58 textalign ITEM_ALIGN_CENTER textalignx 260
+			forecolor .8 .8 .9 1 visible 1 cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Left-handed mode swaps dominant-hand and off-hand roles."
+			rect 60 77 520 14 font 2 textscale 0.58 textalign ITEM_ALIGN_CENTER textalignx 260
+			forecolor .8 .8 .9 1 visible 1 cvarTest show_help_item showCvar { 10 } decoration
 		}
 
+		// Left column: locomotion and direct gameplay actions.
 		itemDef
 		{
 			group none name none type ITEM_TYPE_TEXT text "MOVEMENT & ACTIONS"
-			rect 70 96 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			rect 52 105 252 14 font 3 textscale 0.62 forecolor 1 .682 0 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "LEFT STICK  Move relative to your physical position around the diorama."
-			rect 80 118 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "LEFT STICK"
+			rect 60 127 244 14 font 2 textscale 0.6 forecolor .549 .854 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "LEFT STICK CLICK  Crouch        RIGHT STICK  Turn character"
-			rect 80 136 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "Move relative to your position"
+			rect 70 141 234 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "RIGHT STICK CLICK  Use panels, bombs, switches and other objects"
-			rect 80 154 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "around the diorama."
+			rect 70 154 234 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "A  Jump        X  Alternate attack / saber throw"
-			rect 80 172 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "LEFT STICK CLICK    Crouch"
+			rect 60 176 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
-
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT STICK         Turn character"
+			rect 60 196 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT STICK CLICK   Use / interact"
+			rect 60 216 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "A                   Jump"
+			rect 60 236 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "X                   Alternate attack"
+			rect 60 256 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "                    / saber throw"
+			rect 60 269 244 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
 		itemDef
 		{
 			group none name none type ITEM_TYPE_TEXT text "WEAPONS & FORCE"
-			rect 70 204 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			rect 52 298 252 14 font 3 textscale 0.62 forecolor 1 .682 0 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "RIGHT TRIGGER  Primary attack; contextual Use when the hand icon appears"
-			rect 80 226 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "RIGHT TRIGGER"
+			rect 60 320 244 14 font 2 textscale 0.6 forecolor .549 .854 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "LEFT TRIGGER  Use the selected Force power"
-			rect 80 244 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "Fire; contextual Use with hand icon"
+			rect 70 334 234 14 font 2 textscale 0.55 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "HOLD B + POINT RIGHT HAND  Weapon selector; release B to confirm"
-			rect 80 262 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "LEFT TRIGGER"
+			rect 60 356 244 14 font 2 textscale 0.6 forecolor .549 .854 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "HOLD Y + POINT LEFT HAND  Force selector; release Y to confirm"
-			rect 80 280 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
-			cvarTest show_help_item showCvar { 10 } decoration
-		}
-		itemDef
-		{
-			group none name none type ITEM_TYPE_TEXT text "TAP B  Pause menu        TAP Y  Datapad"
-			rect 80 298 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "Use selected Force power"
+			rect 70 370 234 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 
+		// Right column: selectors and miniature manipulation. The pointing hand
+		// is stated explicitly because each selector is opened and aimed with the
+		// same physical hand in the default layout.
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RADIAL SELECTORS"
+			rect 330 105 258 14 font 3 textscale 0.62 forecolor 1 .682 0 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "HOLD B   Weapon / item selector"
+			rect 338 127 250 14 font 2 textscale 0.58 forecolor .549 .854 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Point with RIGHT hand."
+			rect 348 141 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Release B to confirm."
+			rect 348 154 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "HOLD Y   Force-power selector"
+			rect 338 176 250 14 font 2 textscale 0.58 forecolor .549 .854 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Point with LEFT hand."
+			rect 348 190 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Release Y to confirm."
+			rect 348 203 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "TAP B    Pause menu"
+			rect 338 225 250 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "TAP Y    Datapad"
+			rect 338 245 250 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
 		itemDef
 		{
 			group none name none type ITEM_TYPE_TEXT text "DIORAMA MANIPULATION"
-			rect 70 312 500 14 font 3 textscale 0.65 forecolor 1 .682 0 1 visible 1
+			rect 330 278 258 14 font 3 textscale 0.62 forecolor 1 .682 0 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "ONE GRIP  Drag the diorama with that controller"
-			rect 80 334 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "ONE GRIP"
+			rect 338 300 250 14 font 2 textscale 0.6 forecolor .549 .854 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "BOTH GRIPS  Move, rotate and resize around the player character"
-			rect 80 352 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "Drag with that controller"
+			rect 348 314 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "RIGHT HAND  Weapon aim        LEFT HAND  Force aim"
-			rect 80 370 480 14 font 2 textscale 0.68 forecolor 1 1 1 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "BOTH GRIPS"
+			rect 338 336 250 14 font 2 textscale 0.6 forecolor .549 .854 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "Select MR / VR under Setup to change presentation and control mode."
-			rect 80 406 480 14 font 2 textscale 0.65 forecolor .8 .8 .9 1 visible 1
+			group none name none type ITEM_TYPE_TEXT text "Move, rotate and resize"
+			rect 348 350 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
 			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "around the player character"
+			rect 348 363 240 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "RIGHT HAND   Weapon aim"
+			rect 338 385 250 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "LEFT HAND    Force aim"
+			rect 338 405 250 14 font 2 textscale 0.58 forecolor 1 1 1 1 visible 1
+			cvarTest show_help_item showCvar { 10 } decoration
+		}
+		itemDef
+		{
+			group none name none type ITEM_TYPE_TEXT text "Change mode in SETUP > MR / VR"
+			rect 60 435 520 14 font 2 textscale 0.58 textalign ITEM_ALIGN_CENTER textalignx 260
+			forecolor .8 .8 .9 1 visible 1 cvarTest show_help_item showCvar { 10 } decoration
 		}
 
 	}
