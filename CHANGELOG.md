@@ -13,6 +13,8 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Added
 
+- A cancel button for the installer's full fixed-drive game search, preserving
+  manual folder selection when scanning large disks takes too long.
 - Branded Galatea Diorama Mods installer interface with a reusable product
   profile for future diorama projects.
 - Mixed-reality miniature presentation for Jedi Academy on Meta Quest.

@@ -8,12 +8,13 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("0.6.0.0")]
-[assembly: AssemblyFileVersion("0.6.0.0")]
+[assembly: AssemblyVersion("0.6.1.0")]
+[assembly: AssemblyFileVersion("0.6.1.0")]
 
 namespace JKXRDioramaMRInstaller
 {
@@ -136,6 +137,7 @@ namespace JKXRDioramaMRInstaller
         private readonly Label questStatus = new Label();
         private readonly Button detectButton = new Button();
         private readonly Button fullScanButton = new Button();
+        private readonly Button cancelScanButton = new Button();
         private readonly Button browseButton = new Button();
         private readonly Button refreshButton = new Button();
         private readonly Button installButton = new Button();
@@ -143,6 +145,8 @@ namespace JKXRDioramaMRInstaller
         private readonly TextBox log = new TextBox();
         private readonly Label footer = new Label();
         private bool busy;
+        private bool driveSearchActive;
+        private CancellationTokenSource driveSearchCancellation;
 
         public InstallerForm()
         {
@@ -156,6 +160,10 @@ namespace JKXRDioramaMRInstaller
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             BuildInterface();
+            FormClosing += delegate
+            {
+                if (driveSearchCancellation != null) driveSearchCancellation.Cancel();
+            };
             Shown += async delegate
             {
                 await DetectGame(false);
@@ -227,6 +235,14 @@ namespace JKXRDioramaMRInstaller
             StyleSecondaryButton(fullScanButton);
             fullScanButton.Click += async delegate { await FullScan(); };
             gameGroup.Controls.Add(fullScanButton);
+
+            cancelScanButton.Text = "Cancel search";
+            cancelScanButton.Location = new Point(331, 91);
+            cancelScanButton.Size = new Size(124, 32);
+            cancelScanButton.Enabled = false;
+            StyleSecondaryButton(cancelScanButton);
+            cancelScanButton.Click += delegate { CancelFullScan(); };
+            gameGroup.Controls.Add(cancelScanButton);
 
             gameStatus.Location = new Point(17, 135);
             gameStatus.Size = new Size(807, 24);
@@ -364,10 +380,45 @@ namespace JKXRDioramaMRInstaller
         private async Task FullScan()
         {
             if (busy) return;
+
+            CancellationTokenSource cancellation = new CancellationTokenSource();
+            driveSearchCancellation = cancellation;
+            driveSearchActive = true;
             SetBusy(true, "Searching all fixed drives. This may take a while...");
+            gameStatus.Text = "Searching all fixed drives. You can cancel and choose the folder manually.";
+            gameStatus.ForeColor = GalateaTheme.PurpleBright;
             AppendLog("Full search started on fixed drives.");
-            string found = await Task.Run(delegate { return GameLocator.FindOnFixedDrives(); });
-            SetBusy(false, null);
+
+            string found = null;
+            bool cancelled = false;
+            try
+            {
+                found = await Task.Run(delegate
+                {
+                    return GameLocator.FindOnFixedDrives(cancellation.Token);
+                }, cancellation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+            }
+            finally
+            {
+                driveSearchActive = false;
+                if (ReferenceEquals(driveSearchCancellation, cancellation))
+                    driveSearchCancellation = null;
+                cancellation.Dispose();
+                SetBusy(false, null);
+            }
+
+            if (cancelled)
+            {
+                gameStatus.Text = "Drive search cancelled. Choose the game folder manually or search again.";
+                gameStatus.ForeColor = GalateaTheme.Muted;
+                AppendLog("Full drive search cancelled.");
+                return;
+            }
+
             if (!String.IsNullOrEmpty(found))
             {
                 gamePath.Text = found;
@@ -379,6 +430,16 @@ namespace JKXRDioramaMRInstaller
                 MessageBox.Show(this, "The game was not found. Select the installation folder manually.",
                     "Search complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+        }
+
+        private void CancelFullScan()
+        {
+            if (!driveSearchActive || driveSearchCancellation == null) return;
+            cancelScanButton.Enabled = false;
+            gameStatus.Text = "Cancelling drive search...";
+            gameStatus.ForeColor = GalateaTheme.Muted;
+            AppendLog("Cancelling full drive search...");
+            driveSearchCancellation.Cancel();
         }
 
         private void BrowseClicked(object sender, EventArgs e)
@@ -576,6 +637,7 @@ namespace JKXRDioramaMRInstaller
             UseWaitCursor = value;
             detectButton.Enabled = !value;
             fullScanButton.Enabled = !value;
+            cancelScanButton.Enabled = driveSearchActive;
             browseButton.Enabled = !value;
             refreshButton.Enabled = !value;
             gamePath.Enabled = !value;
@@ -734,24 +796,27 @@ namespace JKXRDioramaMRInstaller
             candidates.Add(besideInstaller);
         }
 
-        internal static string FindOnFixedDrives()
+        internal static string FindOnFixedDrives(CancellationToken cancellationToken)
         {
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!drive.IsReady || drive.DriveType != DriveType.Fixed) continue;
-                string found = SearchTree(drive.RootDirectory.FullName, 9, 250000);
+                string found = SearchTree(drive.RootDirectory.FullName, 9, 250000, cancellationToken);
                 if (!String.IsNullOrEmpty(found)) return found;
             }
             return null;
         }
 
-        private static string SearchTree(string root, int maxDepth, int maxDirectories)
+        private static string SearchTree(string root, int maxDepth, int maxDirectories,
+            CancellationToken cancellationToken)
         {
             Stack<SearchNode> pending = new Stack<SearchNode>();
             pending.Push(new SearchNode(root, 0));
             int visited = 0;
             while (pending.Count > 0 && visited < maxDirectories)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 SearchNode node = pending.Pop();
                 ++visited;
                 string resolved = ResolveBaseDirectory(node.Path);
@@ -765,6 +830,7 @@ namespace JKXRDioramaMRInstaller
 
                 foreach (string child in children)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
                         DirectoryInfo info = new DirectoryInfo(child);
@@ -1041,6 +1107,18 @@ namespace JKXRDioramaMRInstaller
                     throw new InvalidOperationException("Game/GameData/base resolution did not produce the same folder.");
                 report.Add("Path-root-GameData-base=OK");
                 Directory.Delete(testRoot, true);
+
+                using (CancellationTokenSource cancellation = new CancellationTokenSource())
+                {
+                    cancellation.Cancel();
+                    try
+                    {
+                        GameLocator.FindOnFixedDrives(cancellation.Token);
+                        throw new InvalidOperationException("A cancelled drive search continued running.");
+                    }
+                    catch (OperationCanceledException) { }
+                }
+                report.Add("Drive-search-cancel=OK");
                 report.Add("RESULT=PASS");
                 Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
                 File.WriteAllLines(reportPath, report.ToArray(), new UTF8Encoding(false));
