@@ -42,6 +42,10 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Changed
 
+- Diorama MR now starts each app launch at the minimum miniature scale while
+  keeping the avatar at the standard physical distance; scale adjustments are
+  preserved through loads, respawns, and level transitions within the session.
+
 - Made Android and installer build scripts portable across drive letters and
   Windows user profiles by automatically discovering Java, Gradle, the Android
   SDK, and the sibling artifacts directory.

@@ -4701,6 +4701,7 @@ typedef struct tabletopTransform_s
 } tabletopTransform_t;
 
 static tabletopTransform_t cg_tabletopTransform;
+static const float TABLETOP_STARTUP_VISUAL_SCALE = 0.01f;
 
 void CG_LogTabletopDirection( const char *event )
 {
@@ -4854,6 +4855,8 @@ static void CG_ResetTabletopTransform( void )
 	const float forward = Com_Clamp(0.25f, 3.0f, cg_tabletopForward.value);
 	const float down = Com_Clamp(0.10f, 1.50f, cg_tabletopDown.value);
 	const float yaw = DEG2RAD(vr->hmdorientation[YAW]);
+	const qboolean applyStartupScale =
+		(qboolean)!vr->tabletop_startup_scale_applied;
 
 	memset(&cg_tabletopTransform, 0, sizeof(cg_tabletopTransform));
 	cg_tabletopTransform.initialized = qtrue;
@@ -4861,8 +4864,14 @@ static void CG_ResetTabletopTransform( void )
 	cg_tabletopTransform.baseYaw = cg.refdef.viewangles[YAW]
 		- (vr->hmdorientation[YAW] - vr->hmdorientation_first[YAW]);
 	cg_tabletopTransform.hmdFirstYaw = vr->hmdorientation_first[YAW];
-	cg_tabletopTransform.visualScale =
-		Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
+	cg_tabletopTransform.visualScale = applyStartupScale
+		? TABLETOP_STARTUP_VISUAL_SCALE
+		: Com_Clamp(0.01f, 0.20f, cg_tabletopScale.value);
+	if (applyStartupScale)
+	{
+		vr->tabletop_startup_scale_applied = true;
+		cgi_Cvar_Set("cg_tabletopScale", "0.01");
+	}
 
 	VectorCopy(cg.predicted_player_state.origin,
 		cg_tabletopTransform.gameAnchor);

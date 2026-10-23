@@ -78,6 +78,7 @@ typedef struct {
     vec3_t tabletop_hand_position[2];
     float  tabletop_grip[2];
     float  tabletop_scale;
+    bool   tabletop_startup_scale_applied; // minimum scale is applied once per app launch
     float  tabletop_forward_yaw; // world yaw that points from the HMD toward the avatar
     bool   tabletop_transform_valid;
     unsigned int tabletop_transform_serial; // changes whenever a map rebuilds the tabletop basis

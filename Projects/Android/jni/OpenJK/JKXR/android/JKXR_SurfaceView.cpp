@@ -1157,6 +1157,9 @@ JNIEXPORT jlong JNICALL Java_com_drbeef_jkxr_GLES3JNILib_onCreate( JNIEnv * env,
 																	   jstring commandLineParams)
 {
 	ALOGV( "    GLES3JNILib::onCreate()" );
+	// A new Activity launch starts Diorama MR from the same predictable,
+	// fully zoomed-out scale. Map loads and respawns keep the user's scale.
+	vr.tabletop_startup_scale_applied = false;
 
 	/* the global arg_xxx structs are initialised within the argtable */
 	void *argtable[] = {
