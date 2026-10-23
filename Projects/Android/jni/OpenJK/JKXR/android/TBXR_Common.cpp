@@ -154,6 +154,7 @@ static qboolean openXrExtPicoConfigs = qfalse;
 static XrPassthroughFB tabletopPassthrough = XR_NULL_HANDLE;
 static XrPassthroughLayerFB tabletopPassthroughLayer = XR_NULL_HANDLE;
 static qboolean tabletopPassthroughActive = qfalse;
+static double tabletopPassthroughNextRetryMs = 0.0;
 static PFN_xrCreatePassthroughFB pfnCreatePassthroughFB = NULL;
 static PFN_xrDestroyPassthroughFB pfnDestroyPassthroughFB = NULL;
 static PFN_xrPassthroughStartFB pfnPassthroughStartFB = NULL;
@@ -162,6 +163,8 @@ static PFN_xrCreatePassthroughLayerFB pfnCreatePassthroughLayerFB = NULL;
 static PFN_xrDestroyPassthroughLayerFB pfnDestroyPassthroughLayerFB = NULL;
 static PFN_xrPassthroughLayerPauseFB pfnPassthroughLayerPauseFB = NULL;
 static PFN_xrPassthroughLayerResumeFB pfnPassthroughLayerResumeFB = NULL;
+
+double TBXR_GetTimeInMilliSeconds();
 
 static qboolean TBXR_StringContainsNoCase(const char* haystack, const char* needle)
 {
@@ -300,12 +303,23 @@ static uint32_t TBXR_BuildEnabledExtensionList(const char** enabledExtensionName
 	return enabledExtensionCount;
 }
 
-static void TBXR_InitTabletopPassthrough()
+static qboolean TBXR_InitTabletopPassthrough()
 {
 	if (!openXrExtFBPassthrough)
 	{
 		ALOGV("XR_FB_passthrough unavailable; tabletop will use a VR background.");
-		return;
+		return qfalse;
+	}
+
+	if (tabletopPassthrough != XR_NULL_HANDLE &&
+		tabletopPassthroughLayer != XR_NULL_HANDLE)
+	{
+		return qtrue;
+	}
+
+	if (gAppState.Session == XR_NULL_HANDLE)
+	{
+		return qfalse;
 	}
 
 	xrGetInstanceProcAddr(gAppState.Instance, "xrCreatePassthroughFB",
@@ -332,18 +346,22 @@ static void TBXR_InitTabletopPassthrough()
 	{
 		ALOGE("XR_FB_passthrough entry points are incomplete.");
 		openXrExtFBPassthrough = qfalse;
-		return;
+		return qfalse;
 	}
 
-	XrPassthroughCreateInfoFB passthroughInfo = {};
-	passthroughInfo.type = XR_TYPE_PASSTHROUGH_CREATE_INFO_FB;
-	XrResult result = pfnCreatePassthroughFB(
-		gAppState.Session, &passthroughInfo, &tabletopPassthrough);
-	if (XR_FAILED(result))
+	XrResult result = XR_SUCCESS;
+	if (tabletopPassthrough == XR_NULL_HANDLE)
 	{
-		ALOGE("xrCreatePassthroughFB failed: %d", result);
-		openXrExtFBPassthrough = qfalse;
-		return;
+		XrPassthroughCreateInfoFB passthroughInfo = {};
+		passthroughInfo.type = XR_TYPE_PASSTHROUGH_CREATE_INFO_FB;
+		result = pfnCreatePassthroughFB(
+			gAppState.Session, &passthroughInfo, &tabletopPassthrough);
+		if (XR_FAILED(result))
+		{
+			ALOGE("xrCreatePassthroughFB failed: %d; will retry after the session resumes.", result);
+			tabletopPassthrough = XR_NULL_HANDLE;
+			return qfalse;
+		}
 	}
 
 	XrPassthroughLayerCreateInfoFB layerInfo = {};
@@ -354,22 +372,44 @@ static void TBXR_InitTabletopPassthrough()
 		gAppState.Session, &layerInfo, &tabletopPassthroughLayer);
 	if (XR_FAILED(result))
 	{
-		ALOGE("xrCreatePassthroughLayerFB failed: %d", result);
+		ALOGE("xrCreatePassthroughLayerFB failed: %d; will retry after the session resumes.", result);
 		pfnDestroyPassthroughFB(tabletopPassthrough);
 		tabletopPassthrough = XR_NULL_HANDLE;
-		openXrExtFBPassthrough = qfalse;
-		return;
+		tabletopPassthroughLayer = XR_NULL_HANDLE;
+		return qfalse;
 	}
 
+	tabletopPassthroughNextRetryMs = 0.0;
 	ALOGV("Tabletop passthrough layer is ready.");
+	return qtrue;
 }
 
 static void TBXR_UpdateTabletopPassthrough()
 {
-	const qboolean requested = (qboolean)(openXrExtFBPassthrough &&
+	const qboolean tabletopRequested =
+		(qboolean)(Cvar_VariableIntegerValue("cg_tabletop") != 0);
+	const double nowMs = TBXR_GetTimeInMilliSeconds();
+
+	if (tabletopRequested && openXrExtFBPassthrough &&
+		(tabletopPassthrough == XR_NULL_HANDLE ||
+		 tabletopPassthroughLayer == XR_NULL_HANDLE))
+	{
+		if (!gAppState.SessionActive || nowMs < tabletopPassthroughNextRetryMs)
+		{
+			return;
+		}
+
+		if (!TBXR_InitTabletopPassthrough())
+		{
+			tabletopPassthroughNextRetryMs = nowMs + 1500.0;
+			return;
+		}
+	}
+
+	const qboolean requested = (qboolean)(tabletopRequested &&
+		openXrExtFBPassthrough &&
 		tabletopPassthrough != XR_NULL_HANDLE &&
-		tabletopPassthroughLayer != XR_NULL_HANDLE &&
-		Cvar_VariableIntegerValue("cg_tabletop") != 0);
+		tabletopPassthroughLayer != XR_NULL_HANDLE);
 
 	if (requested == tabletopPassthroughActive)
 	{
@@ -378,6 +418,11 @@ static void TBXR_UpdateTabletopPassthrough()
 
 	if (requested)
 	{
+		if (!gAppState.SessionActive || nowMs < tabletopPassthroughNextRetryMs)
+		{
+			return;
+		}
+
 		XrResult result = pfnPassthroughStartFB(tabletopPassthrough);
 		if (XR_SUCCEEDED(result))
 		{
@@ -386,9 +431,11 @@ static void TBXR_UpdateTabletopPassthrough()
 		if (XR_FAILED(result))
 		{
 			pfnPassthroughPauseFB(tabletopPassthrough);
-			ALOGE("Could not activate tabletop passthrough: %d", result);
+			tabletopPassthroughNextRetryMs = nowMs + 1500.0;
+			ALOGE("Could not activate tabletop passthrough: %d; will retry.", result);
 			return;
 		}
+		tabletopPassthroughNextRetryMs = 0.0;
 		tabletopPassthroughActive = qtrue;
 		ALOGV("Tabletop passthrough activated.");
 	}
@@ -402,6 +449,7 @@ static void TBXR_UpdateTabletopPassthrough()
 
 static void TBXR_DestroyTabletopPassthrough()
 {
+	tabletopPassthroughNextRetryMs = 0.0;
 	if (tabletopPassthroughActive)
 	{
 		pfnPassthroughLayerPauseFB(tabletopPassthroughLayer);

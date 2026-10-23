@@ -4,6 +4,13 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Sequenced first-run storage permission before OpenXR startup so the Quest
+  permission screens no longer race the mixed-reality session.
+- Added automatic passthrough recovery when permission or session transitions
+  interrupt its initial creation or activation.
+
 ### Added
 
 - Branded Galatea Diorama Mods installer interface with a reusable product

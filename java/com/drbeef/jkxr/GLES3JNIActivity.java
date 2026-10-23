@@ -63,6 +63,7 @@ import java.util.Vector;
 
 
 	private boolean permissionsGranted = false;
+	private boolean storagePermissionRequestInFlight = false;
 	private static final int READ_EXTERNAL_STORAGE_PERMISSION_ID = 1;
 	private static final int WRITE_EXTERNAL_STORAGE_PERMISSION_ID = 2;
 	private static final int MANAGE_EXTERNAL_STORAGE_PERMISSION_ID = 3;
@@ -129,6 +130,10 @@ import java.util.Vector;
 	private void checkPermissionsAndInitialize() {
 		// Boilerplate for checking runtime permissions in Android.
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+			if (storagePermissionRequestInFlight) {
+				return;
+			}
+			storagePermissionRequestInFlight = true;
 			try {
 				Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
 				intent.setData(Uri.parse("package:" + getPackageName()));
@@ -140,6 +145,7 @@ import java.util.Vector;
 		} else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
 				ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 				!= PackageManager.PERMISSION_GRANTED){
+			storagePermissionRequestInFlight = true;
 			ActivityCompat.requestPermissions(
 					GLES3JNIActivity.this,
 					new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
@@ -147,6 +153,7 @@ import java.util.Vector;
 		} else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
 				ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
 				!= PackageManager.PERMISSION_GRANTED){
+			storagePermissionRequestInFlight = true;
             ActivityCompat.requestPermissions(
                     GLES3JNIActivity.this,
 					new String[] {Manifest.permission.READ_EXTERNAL_STORAGE},
@@ -156,25 +163,23 @@ import java.util.Vector;
 		{
 			permissionsGranted = true;
 		}
-
-		if (permissionsGranted) {
-			// Permissions have already been granted.
-			create();
-		}
 	}
 
 	/** Handles the user accepting the permission. */
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+		storagePermissionRequestInFlight = false;
 		if (requestCode == READ_EXTERNAL_STORAGE_PERMISSION_ID) {
 			if (results.length > 0 && results[0] != PackageManager.PERMISSION_GRANTED) {
-				System.exit(0);
+				finish();
+				return;
 			}
 		}
 
 		if (requestCode == WRITE_EXTERNAL_STORAGE_PERMISSION_ID) {
 			if (results.length > 0 && results[0] != PackageManager.PERMISSION_GRANTED) {
-				System.exit(0);
+				finish();
+				return;
 			}
 		}
 
@@ -185,6 +190,12 @@ import java.util.Vector;
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		if (requestCode == MANAGE_EXTERNAL_STORAGE_PERMISSION_ID) {
+			storagePermissionRequestInFlight = false;
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+				Log.w(TAG, "All-files access was not granted; closing before OpenXR starts.");
+				finish();
+				return;
+			}
 			checkPermissionsAndInitialize();
 		}
 	}
@@ -288,6 +299,15 @@ import java.util.Vector;
 		}
 
 		mNativeHandle = GLES3JNILib.onCreate( this, commandLineParams );
+
+		// Permission activities can create the SurfaceView before native OpenXR is
+		// allowed to start. Replay the current surface so the resumed session does
+		// not depend on Android delivering another surface callback.
+		if (mNativeHandle != 0 && mSurfaceHolder != null && mSurfaceHolder.getSurface() != null &&
+				mSurfaceHolder.getSurface().isValid()) {
+			GLES3JNILib.onSurfaceCreated(mNativeHandle, mSurfaceHolder.getSurface());
+			GLES3JNILib.onSurfaceChanged(mNativeHandle, mSurfaceHolder.getSurface());
+		}
 	}
 
 	public void copy_asset_with_rename(String path, String name, String name_out, boolean force) {
@@ -372,6 +392,20 @@ import java.util.Vector;
 		Log.v( TAG, "GLES3JNIActivity::onResume()" );
 		super.onResume();
 
+		if (!isFinishing() && !permissionsGranted && !storagePermissionRequestInFlight) {
+			checkPermissionsAndInitialize();
+		}
+
+		// Starting OpenXR from onActivityResult races the Quest permission UI.
+		// Wait until Android has fully resumed this Activity, then deliver the
+		// lifecycle callback that was skipped while permission UI was visible.
+		if (!isFinishing() && permissionsGranted && mNativeHandle == 0) {
+			create();
+			if (mNativeHandle != 0) {
+				GLES3JNILib.onStart(mNativeHandle, this);
+			}
+		}
+
 		if ( mNativeHandle != 0 )
 		{
 			GLES3JNILib.onResume(mNativeHandle);
@@ -402,7 +436,7 @@ import java.util.Vector;
 	{
 		Log.v( TAG, "GLES3JNIActivity::onDestroy()" );
 
-		if ( mSurfaceHolder != null )
+		if ( mNativeHandle != 0 && mSurfaceHolder != null )
 		{
 			GLES3JNILib.onSurfaceDestroyed( mNativeHandle );
 		}
@@ -421,20 +455,20 @@ import java.util.Vector;
 	@Override public void surfaceCreated( SurfaceHolder holder )
 	{
 		Log.v( TAG, "GLES3JNIActivity::surfaceCreated()" );
+		mSurfaceHolder = holder;
 		if ( mNativeHandle != 0 )
 		{
 			GLES3JNILib.onSurfaceCreated( mNativeHandle, holder.getSurface() );
-			mSurfaceHolder = holder;
 		}
 	}
 
 	@Override public void surfaceChanged( SurfaceHolder holder, int format, int width, int height )
 	{
 		Log.v( TAG, "GLES3JNIActivity::surfaceChanged()" );
+		mSurfaceHolder = holder;
 		if ( mNativeHandle != 0 )
 		{
 			GLES3JNILib.onSurfaceChanged( mNativeHandle, holder.getSurface() );
-			mSurfaceHolder = holder;
 		}
 	}
 	
@@ -444,8 +478,8 @@ import java.util.Vector;
 		if ( mNativeHandle != 0 )
 		{
 			GLES3JNILib.onSurfaceDestroyed( mNativeHandle );
-			mSurfaceHolder = null;
 		}
+		mSurfaceHolder = null;
 	}
 
 	public void haptic_event(String event, int position, int flags, int intensity, float angle, float yHeight)  {
