@@ -9,7 +9,8 @@ for ADB. It does not contain Jedi Academy game data.
 1. Detect Jedi Academy through Steam, GOG, LucasArts, or Windows registry data.
 2. Optionally search fixed drives or select any folder manually.
 3. Validate `assets0.pk3` through `assets3.pk3` as readable game archives.
-4. Detect an authorized Meta Quest over USB/ADB.
+4. Monitor Meta Quest USB/ADB status automatically, including disconnected,
+   waiting-for-authorization, offline, and ready states.
 5. Install the APK, create `/sdcard/JKXR-Diorama-MR/JK3/base`, and copy the four PK3 files.
 6. Compare each local and remote file size, then launch the game.
 
@@ -20,11 +21,16 @@ The folder picker accepts the game root, `GameData`, or `GameData\base`.
 Generate the current APK first, then run:
 
 ```powershell
-.\installer\build-installer.ps1
+.\installer\build-installer.ps1 -RunSelfTest
 ```
 
 The installer is compiled with the Windows .NET Framework 4.8 C# compiler, so
 it does not require a separate modern .NET runtime installation.
+
+While the installer is open, connecting the Quest, approving USB debugging,
+disconnecting the cable, or an ADB offline transition updates the device status
+without requiring the **Refresh** button. Refresh remains available as a manual
+fallback.
 
 The scripts discover Java, Gradle, and the Android SDK across fixed drives and
 write release artifacts to the repository's sibling `artifacts` directory.

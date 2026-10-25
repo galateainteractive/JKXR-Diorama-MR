@@ -3,7 +3,8 @@ param(
     [string]$ApkPath,
     [string]$AndroidSdk,
     [string]$OutputPath,
-    [string]$IconPath
+    [string]$IconPath,
+    [switch]$RunSelfTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -116,3 +117,15 @@ $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $OutputPath
 Write-Host "Installer: $($file.FullName)"
 Write-Host "Size: $($file.Length) bytes"
 Write-Host "SHA-256: $($hash.Hash)"
+
+if ($RunSelfTest) {
+    $reportPath = Join-Path $env:TEMP (([System.IO.Path]::GetFileNameWithoutExtension($OutputPath)) + '-self-test.txt')
+    Remove-Item -LiteralPath $reportPath -Force -ErrorAction SilentlyContinue
+    $process = Start-Process -FilePath $file.FullName -ArgumentList @('--self-test', $reportPath) `
+        -WindowStyle Hidden -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        if (Test-Path -LiteralPath $reportPath) { Get-Content -LiteralPath $reportPath }
+        throw "Installer self-test failed with exit code $($process.ExitCode)."
+    }
+    Get-Content -LiteralPath $reportPath
+}

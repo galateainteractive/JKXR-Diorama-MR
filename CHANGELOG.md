@@ -15,6 +15,9 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Added
 
+- Updated the Windows installer to Galatea Diorama Installer engine 1.2.1,
+  including automatic Quest USB monitoring with distinct disconnected,
+  authorization, offline, and ready states.
 - A cancel button for the installer's full fixed-drive game search, preserving
   manual folder selection when scanning large disks takes too long.
 - Branded Galatea Diorama Mods installer interface with a reusable product
