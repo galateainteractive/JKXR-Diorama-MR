@@ -67,15 +67,29 @@ adb logcat -s JKXR-USE:I *:S
 movement after a transition. `JKXR-USE` follows the interaction target, raw
 controller event, user command, movement event, and interaction result.
 
-## Release engineering still required
+## Release engineering
 
 - Create and securely store the permanent release signing key outside Git.
-- Make build and installer scripts independent of local absolute paths.
 - Run the release test matrix described in `KNOWN_ISSUES.md` and the project
   release checklist.
 
 The private alpha uses package ID `com.galateainteractive.jkxrdioramamr`, data
-root `/sdcard/JKXR-Diorama-MR`, and semantic version `0.1.0-alpha.1`. The
+root `/sdcard/JKXR-Diorama-MR`, semantic version `0.1.0-alpha.1`, and Android
+version code `93`. The
 inherited Java namespace remains `com.drbeef.jkxr` so its JNI bindings do not
 need to change; Gradle's application ID provides the separate installed-app
 identity.
+
+Normal builds use the inherited development key and are not public-release
+artifacts. A public build must be requested explicitly:
+
+```powershell
+$env:GALATEA_ANDROID_KEYSTORE = 'X:\secure\galatea-diorama-mods.jks'
+$env:GALATEA_ANDROID_STORE_PASSWORD = '<secret>'
+$env:GALATEA_ANDROID_KEY_ALIAS = 'galatea-diorama-mods'
+$env:GALATEA_ANDROID_KEY_PASSWORD = '<secret>'
+.\build-diorama-mr.ps1 -PublicRelease
+```
+
+The build fails if any signing value is missing or if the supplied keystore is
+the inherited development keystore. Never commit the keystore or passwords.

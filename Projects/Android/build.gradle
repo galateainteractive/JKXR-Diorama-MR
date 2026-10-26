@@ -65,32 +65,48 @@ android {
     }
 
     signingConfigs {
-        def keystorePath = (project.hasProperty('key.store')) ?
+        def developmentKeystorePath = (project.hasProperty('key.store')) ?
                 new File(project.getProperty('key.store')) :
                 project.file('android.debug.keystore')
 
-        def keystorePassword = (project.hasProperty('key.store.password')) ?
+        def developmentKeystorePassword = (project.hasProperty('key.store.password')) ?
                 project.getProperty('key.store.password') : 'android'
 
-        def keystoreKeyAlias = (project.hasProperty('key.alias')) ?
+        def developmentKeyAlias = (project.hasProperty('key.alias')) ?
                 project.getProperty('key.alias') : 'androiddebugkey'
 
-        def keystoreKeyPassword = (project.hasProperty('key.alias.password')) ?
+        def developmentKeyPassword = (project.hasProperty('key.alias.password')) ?
                 project.getProperty('key.alias.password') : 'android'
 
+        // Public artifacts must never silently fall back to the inherited
+        // development key. The release script enables this path explicitly and
+        // supplies credentials through process-scoped environment variables.
+        def publicRelease = System.getenv('GALATEA_PUBLIC_RELEASE') == '1'
+        def publicKeystore = System.getenv('GALATEA_ANDROID_KEYSTORE')
+        def publicStorePassword = System.getenv('GALATEA_ANDROID_STORE_PASSWORD')
+        def publicKeyAlias = System.getenv('GALATEA_ANDROID_KEY_ALIAS')
+        def publicKeyPassword = System.getenv('GALATEA_ANDROID_KEY_PASSWORD')
+
+        if (publicRelease &&
+                ([publicKeystore, publicStorePassword, publicKeyAlias, publicKeyPassword].any {
+                    it == null || it.trim().isEmpty()
+                })) {
+            throw new GradleException('A public release requires the permanent Galatea signing environment variables.')
+        }
+
         debug {
-            storeFile keystorePath
-            storePassword keystorePassword
-            keyAlias keystoreKeyAlias
-            keyPassword keystoreKeyPassword
+            storeFile developmentKeystorePath
+            storePassword developmentKeystorePassword
+            keyAlias developmentKeyAlias
+            keyPassword developmentKeyPassword
             v2SigningEnabled true
         }
 
         release {
-            storeFile keystorePath
-            storePassword keystorePassword
-            keyAlias keystoreKeyAlias
-            keyPassword keystoreKeyPassword
+            storeFile publicRelease ? file(publicKeystore) : developmentKeystorePath
+            storePassword publicRelease ? publicStorePassword : developmentKeystorePassword
+            keyAlias publicRelease ? publicKeyAlias : developmentKeyAlias
+            keyPassword publicRelease ? publicKeyPassword : developmentKeyPassword
             v2SigningEnabled true
         }
     }

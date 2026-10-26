@@ -23,6 +23,7 @@
 - [ ] Create the permanent Android release signing key outside the repository.
 - [ ] Store encrypted backups and document who controls the key.
 - [x] Set the first public version to `0.1.0-alpha.1`.
+- [x] Keep Android `versionCode` at `93` for the first public alpha.
 
 ## Branding and documentation
 
@@ -37,12 +38,13 @@
 
 ## Build and installer
 
-- [ ] Remove machine-specific absolute paths from the Android and installer
+- [x] Remove machine-specific absolute paths from the Android and installer
   build scripts.
 - [x] Build the private alpha APK with the permanent package identifier and a
   development signing key.
 - [ ] Build the public APK with the permanent release signing key.
 - [x] Update the Windows installer to embed the `0.1.0-alpha.1` APK.
+- [x] Use versioned release filenames for both APK and Windows installer.
 - [ ] Confirm that Steam, GOG, registry, disk search, and manual folder selection
   all find valid Jedi Academy installations.
 - [ ] Confirm that the installer rejects Jedi Outcast and incomplete PK3 sets.

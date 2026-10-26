@@ -47,6 +47,14 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Changed
 
+- Standardized the first alpha artifacts as
+  `JKXR-Diorama-MR-0.1.0-alpha.1.apk` and
+  `JKXR-Diorama-MR-0.1.0-alpha.1-Installer.exe`, retaining Android version
+  code `93`.
+- Added an explicit public-release signing path that requires an external
+  Galatea keystore and refuses the inherited development keystore.
+- Restricted the portable Android build to Gradle-compatible Java 17 through
+  21 runtimes and isolated its cache by Java version.
 - Diorama MR now starts each app launch at the minimum miniature scale while
   keeping the avatar at the standard physical distance; scale adjustments are
   preserved through loads, respawns, and level transitions within the session.

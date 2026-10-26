@@ -24,6 +24,10 @@ Generate the current APK first, then run:
 .\installer\build-installer.ps1 -RunSelfTest
 ```
 
+The default versioned output is
+`JKXR-Diorama-MR-0.1.0-alpha.1-Installer.exe`. The embedded APK is
+`JKXR-Diorama-MR-0.1.0-alpha.1.apk`.
+
 The installer is compiled with the Windows .NET Framework 4.8 C# compiler, so
 it does not require a separate modern .NET runtime installation.
 
