@@ -1,0 +1,99 @@
+name: Diorama MR bug report
+description: Report a reproducible JKXR Diorama MR gameplay, rendering, control, or installation issue.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing JKXR Diorama MR. Please remove copyrighted game files and personal information from every attachment.
+
+  - type: input
+    id: version
+    attributes:
+      label: Diorama MR version
+      description: Include both the visible version and Android version code when known.
+      placeholder: 0.1.0-alpha.1 / version code 93
+    validations:
+      required: true
+
+  - type: input
+    id: headset
+    attributes:
+      label: Headset and system version
+      placeholder: Meta Quest model and Quest system version
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Presentation mode
+      options:
+        - Diorama MR
+        - VR
+        - Switched from VR to Diorama MR
+        - Switched from Diorama MR to VR
+        - Installer or first launch
+    validations:
+      required: true
+
+  - type: input
+    id: level
+    attributes:
+      label: Level or mission
+      description: Include a map name or mission description when possible.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transition
+    attributes:
+      label: What happened immediately before the issue?
+      options:
+        - Normal gameplay
+        - New game or first spawn
+        - Save load
+        - Death or respawn
+        - Map or level transition
+        - Cutscene or scripted camera
+        - Switching MR / VR mode
+        - Installer or data copy
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the actual result and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Load save ...
+        2. Move to ...
+        3. Press or hold ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Logs, screenshots, or video
+      description: Attach diagnostic logs or media when available. Do not upload original Jedi Academy game data.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked that this report does not contain commercial game files, signing keys, passwords, or personal information.
+          required: true

@@ -80,5 +80,5 @@
 - [ ] Publish the corresponding GPL-2.0 source at the same time as the binaries.
 - [ ] State clearly that users must supply a legally purchased copy of Jedi
   Academy and that commercial game data is not included.
-- [ ] Open a structured issue template for level, save, reproduction steps,
+- [x] Open a structured issue template for level, save, reproduction steps,
   selected mode, headset model, and relevant diagnostic logs.
