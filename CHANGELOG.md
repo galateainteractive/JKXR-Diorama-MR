@@ -15,6 +15,8 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Added
 
+- Shared Galatea Diorama Mods installer icon in lime green and electric purple,
+  replacing the inherited game-specific Windows executable icon.
 - Permanent Galatea Android release signing with a 4096-bit RSA certificate,
   protected local configuration, separate recovery backup, and one-command
   repeatable public builds.

@@ -52,7 +52,7 @@ if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
     $AndroidSdk = Select-ExistingPath -Candidates @($AndroidSdk) -Description 'The Android SDK' -Directory
 }
 if ([string]::IsNullOrWhiteSpace($IconPath)) {
-    $IconPath = Join-Path $repository 'Projects\Android\jni\OpenJK\code\win32\starwars.ico'
+    $IconPath = Join-Path $sourceDirectory 'assets\galatea-diorama-mods.ico'
 }
 
 $platformTools = Join-Path $AndroidSdk 'platform-tools'
