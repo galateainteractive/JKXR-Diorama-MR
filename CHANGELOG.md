@@ -15,6 +15,11 @@ All notable Diorama MR changes will be documented in this file.
 
 ### Added
 
+- Permanent Galatea Android release signing with a 4096-bit RSA certificate,
+  protected local configuration, separate recovery backup, and one-command
+  repeatable public builds.
+- English website release copy covering downloads, requirements, installation,
+  source availability, attribution, checksums, alpha status, and issue reports.
 - Updated the Windows installer to Galatea Diorama Installer engine 1.2.1,
   including automatic Quest USB monitoring with distinct disconnected,
   authorization, offline, and ready states.

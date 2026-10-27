@@ -62,6 +62,8 @@ Quest application.
 - [Known limitations](docs/KNOWN_ISSUES.md)
 - [Building and development notes](docs/DEVELOPMENT.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Public release signing](docs/PUBLIC_RELEASE_SIGNING.md)
+- [Website and download-page copy](docs/WEBSITE_RELEASE_COPY.md)
 - [Changelog](CHANGELOG.md)
 
 ## Supported game and headset
