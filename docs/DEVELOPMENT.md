@@ -74,8 +74,8 @@ controller event, user command, movement event, and interaction result.
   release checklist.
 
 The private alpha uses package ID `com.galateainteractive.jkxrdioramamr`, data
-root `/sdcard/JKXR-Diorama-MR`, semantic version `0.1.0-alpha.1`, and Android
-version code `93`. The
+root `/sdcard/JKXR-Diorama-MR`, semantic version `0.1.0-alpha.2`, and Android
+version code `94`. The
 inherited Java namespace remains `com.drbeef.jkxr` so its JNI bindings do not
 need to change; Gradle's application ID provides the separate installed-app
 identity.

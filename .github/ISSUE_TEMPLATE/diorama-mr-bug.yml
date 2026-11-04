@@ -14,7 +14,7 @@ body:
     attributes:
       label: Diorama MR version
       description: Include both the visible version and Android version code when known.
-      placeholder: 0.1.0-alpha.1 / version code 93
+      placeholder: 0.1.0-alpha.2 / version code 94
     validations:
       required: true
 

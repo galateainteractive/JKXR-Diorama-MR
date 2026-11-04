@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,8 +15,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("1.2.1.0")]
-[assembly: AssemblyFileVersion("1.2.1.0")]
+[assembly: AssemblyVersion("1.2.2.0")]
+[assembly: AssemblyFileVersion("1.2.2.0")]
 
 namespace GalateaDioramaInstaller
 {
@@ -68,6 +69,195 @@ namespace GalateaDioramaInstaller
         internal static readonly Color Orange = Color.FromArgb(246, 151, 79);
         internal static readonly Color Green = Color.FromArgb(76, 204, 144);
         internal static readonly Color Red = Color.FromArgb(244, 114, 118);
+    }
+
+    [Flags]
+    internal enum FileOpenOptions : uint
+    {
+        PickFolders = 0x00000020,
+        ForceFileSystem = 0x00000040,
+        NoChangeDirectory = 0x00000008,
+        PathMustExist = 0x00000800,
+        DontAddToRecent = 0x02000000
+    }
+
+    internal enum ShellItemDisplayName : uint
+    {
+        FileSystemPath = 0x80058000
+    }
+
+    [ComImport]
+    [Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IShellItem
+    {
+        void BindToHandler(IntPtr bindingContext, ref Guid handler, ref Guid interfaceId, out IntPtr result);
+        void GetParent(out IShellItem parent);
+        void GetDisplayName(ShellItemDisplayName displayName, out IntPtr name);
+        void GetAttributes(uint mask, out uint attributes);
+        void Compare(IShellItem shellItem, uint hint, out int order);
+    }
+
+    [ComImport]
+    [Guid("42F85136-DB7E-439C-85F1-E4075D135FC8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IFileDialog
+    {
+        [PreserveSig]
+        int Show(IntPtr owner);
+        void SetFileTypes(uint count, IntPtr filterSpecs);
+        void SetFileTypeIndex(uint fileTypeIndex);
+        void GetFileTypeIndex(out uint fileTypeIndex);
+        void Advise(IntPtr events, out uint cookie);
+        void Unadvise(uint cookie);
+        void SetOptions(FileOpenOptions options);
+        void GetOptions(out FileOpenOptions options);
+        void SetDefaultFolder(IShellItem shellItem);
+        void SetFolder(IShellItem shellItem);
+        void GetFolder(out IShellItem shellItem);
+        void GetCurrentSelection(out IShellItem shellItem);
+        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+        void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string name);
+        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+        void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+        void GetResult(out IShellItem shellItem);
+        void AddPlace(IShellItem shellItem, uint alignment);
+        void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string extension);
+        void Close(int result);
+        void SetClientGuid(ref Guid clientGuid);
+        void ClearClientData();
+        void SetFilter(IntPtr filter);
+    }
+
+    [ComImport]
+    [Guid("DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7")]
+    [ClassInterface(ClassInterfaceType.None)]
+    internal class FileOpenDialogNative
+    {
+    }
+
+    internal static class ModernFolderPicker
+    {
+        private const int CancelledHResult = unchecked((int)0x800704C7);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+        private static extern int SHCreateItemFromParsingName(
+            [MarshalAs(UnmanagedType.LPWStr)] string path,
+            IntPtr bindingContext,
+            ref Guid interfaceId,
+            [MarshalAs(UnmanagedType.Interface)] out IShellItem shellItem);
+
+        internal static string Show(IWin32Window owner, string title, string initialPath)
+        {
+            try
+            {
+                return ShowModern(owner, title, initialPath);
+            }
+            catch (COMException)
+            {
+                return ShowLegacy(owner, title, initialPath);
+            }
+            catch (InvalidCastException)
+            {
+                return ShowLegacy(owner, title, initialPath);
+            }
+            catch (TypeLoadException)
+            {
+                return ShowLegacy(owner, title, initialPath);
+            }
+        }
+
+        internal static bool IsModernDialogAvailable()
+        {
+            IFileDialog dialog = null;
+            try
+            {
+                dialog = (IFileDialog)new FileOpenDialogNative();
+                FileOpenOptions options;
+                dialog.GetOptions(out options);
+                return true;
+            }
+            catch (COMException)
+            {
+                return false;
+            }
+            catch (InvalidCastException)
+            {
+                return false;
+            }
+            finally
+            {
+                ReleaseComObject(dialog);
+            }
+        }
+
+        private static string ShowModern(IWin32Window owner, string title, string initialPath)
+        {
+            IFileDialog dialog = null;
+            IShellItem initialItem = null;
+            IShellItem selectedItem = null;
+            IntPtr selectedPathPointer = IntPtr.Zero;
+            try
+            {
+                dialog = (IFileDialog)new FileOpenDialogNative();
+                FileOpenOptions options;
+                dialog.GetOptions(out options);
+                dialog.SetOptions(options | FileOpenOptions.PickFolders | FileOpenOptions.ForceFileSystem |
+                    FileOpenOptions.NoChangeDirectory | FileOpenOptions.PathMustExist |
+                    FileOpenOptions.DontAddToRecent);
+                dialog.SetTitle(title);
+                dialog.SetOkButtonLabel("Select folder");
+
+                if (Directory.Exists(initialPath))
+                {
+                    try
+                    {
+                        Guid shellItemInterface = typeof(IShellItem).GUID;
+                        int createResult = SHCreateItemFromParsingName(initialPath, IntPtr.Zero,
+                            ref shellItemInterface, out initialItem);
+                        if (createResult == 0 && initialItem != null) dialog.SetFolder(initialItem);
+                    }
+                    catch (COMException)
+                    {
+                        // The modern picker can still open at its normal default location.
+                    }
+                }
+
+                int result = dialog.Show(owner == null ? IntPtr.Zero : owner.Handle);
+                if (result == CancelledHResult) return null;
+                if (result != 0) Marshal.ThrowExceptionForHR(result);
+
+                dialog.GetResult(out selectedItem);
+                selectedItem.GetDisplayName(ShellItemDisplayName.FileSystemPath, out selectedPathPointer);
+                return selectedPathPointer == IntPtr.Zero
+                    ? null
+                    : Marshal.PtrToStringUni(selectedPathPointer);
+            }
+            finally
+            {
+                if (selectedPathPointer != IntPtr.Zero) Marshal.FreeCoTaskMem(selectedPathPointer);
+                ReleaseComObject(selectedItem);
+                ReleaseComObject(initialItem);
+                ReleaseComObject(dialog);
+            }
+        }
+
+        private static string ShowLegacy(IWin32Window owner, string title, string initialPath)
+        {
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = title;
+                dialog.ShowNewFolderButton = false;
+                if (Directory.Exists(initialPath)) dialog.SelectedPath = initialPath;
+                return dialog.ShowDialog(owner) == DialogResult.OK ? dialog.SelectedPath : null;
+            }
+        }
+
+        private static void ReleaseComObject(object value)
+        {
+            if (value != null && Marshal.IsComObject(value)) Marshal.FinalReleaseComObject(value);
+        }
     }
 
     internal static class Program
@@ -715,13 +905,9 @@ namespace GalateaDioramaInstaller
 
         private void BrowseClicked(object sender, EventArgs e)
         {
-            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
-            {
-                dialog.Description = "Select the " + ProductProfile.GameName + " installation folder";
-                dialog.ShowNewFolderButton = false;
-                if (Directory.Exists(gamePath.Text)) dialog.SelectedPath = gamePath.Text;
-                if (dialog.ShowDialog(this) == DialogResult.OK) gamePath.Text = dialog.SelectedPath;
-            }
+            string selected = ModernFolderPicker.Show(this,
+                "Select the " + ProductProfile.GameName + " installation folder", gamePath.Text);
+            if (!String.IsNullOrWhiteSpace(selected)) gamePath.Text = selected;
         }
 
         private void BrowseSourceFile(TextBox target, string filter)
@@ -737,13 +923,8 @@ namespace GalateaDioramaInstaller
 
         private void BrowseSourceFolder(TextBox target, string description)
         {
-            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
-            {
-                dialog.Description = description;
-                dialog.ShowNewFolderButton = false;
-                if (Directory.Exists(target.Text)) dialog.SelectedPath = target.Text;
-                if (dialog.ShowDialog(this) == DialogResult.OK) target.Text = dialog.SelectedPath;
-            }
+            string selected = ModernFolderPicker.Show(this, description, target.Text);
+            if (!String.IsNullOrWhiteSpace(selected)) target.Text = selected;
         }
 
         private static bool ExistingFileOrDirectory(string value)
@@ -1910,6 +2091,9 @@ namespace GalateaDioramaInstaller
                         throw new InvalidOperationException("The installer window title does not match the product profile.");
                 }
                 report.Add("UI=OK");
+                if (!ModernFolderPicker.IsModernDialogAvailable())
+                    throw new InvalidOperationException("The modern Windows Explorer folder picker is unavailable.");
+                report.Add("Folder-picker=Modern");
                 AdbBundle.EnsureExtracted();
                 report.Add("Resources=OK");
 

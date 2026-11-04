@@ -13,8 +13,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $androidProject = Join-Path $projectRoot 'Projects\Android'
 $repositoryContainer = Split-Path -Parent $projectRoot
-$productVersion = '0.1.0-alpha.1'
-$androidVersionCode = 93
+$productVersion = '0.1.0-alpha.2'
+$androidVersionCode = 94
 
 function Get-FixedDriveRoots {
     [System.IO.DriveInfo]::GetDrives() |

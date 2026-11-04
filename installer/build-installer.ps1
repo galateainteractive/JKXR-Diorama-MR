@@ -36,10 +36,10 @@ function Select-ExistingPath {
 }
 
 if ([string]::IsNullOrWhiteSpace($ApkPath)) {
-    $ApkPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.1.apk'
+    $ApkPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.2.apk'
 }
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    $OutputPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.1-Installer.exe'
+    $OutputPath = Join-Path $artifactDirectory 'JKXR-Diorama-MR-0.1.0-alpha.2-Installer.exe'
 }
 if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
     $sdkCandidates = @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME)

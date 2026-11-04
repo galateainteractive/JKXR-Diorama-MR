@@ -4,11 +4,25 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
-### Fixed
+## 0.1.0-alpha.2 - 2026-11-04
+
+### Added
+
+- Modern Windows Explorer folder selection in the installer, with the legacy
+  folder tree retained only as a compatibility fallback.
+
+### Changed
 
 - Made the Diorama MR and immersive VR control guides directly accessible from
   the play-mode page, kept the legacy Controls Help entry always visible, and
   reflowed the remaining play-mode descriptions into headset-safe lines.
+- Updated the public package to Android version code `94` and release version
+  `0.1.0-alpha.2`.
+
+## 0.1.0-alpha.1 - 2026-10-27
+
+### Fixed
+
 - Reflowed the in-game Diorama MR control guide into short, explicit lines so
   every instruction remains visible on the headset menu surface.
 - Sequenced first-run storage permission before OpenXR startup so the Quest
