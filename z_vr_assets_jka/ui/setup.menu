@@ -860,12 +860,12 @@
 			}
 		}
 
-		// MR / VR presentation-mode button
+		// Diorama / VR play-mode button
 		itemDef
 		{
 			name				mrvrmenubutton
 			group				none
-			text				"MR / VR"
+			text				"DIORAMA / VR"
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			rect				80 281 170 24
@@ -877,7 +877,7 @@
 			textstyle			1
 			forecolor			1 .682 0 1
 			visible				1
-			descText			"Choose Diorama MR or the original immersive VR presentation."
+			descText			"Switch between Diorama MR and immersive VR."
 
 			mouseEnter
 			{
@@ -2876,7 +2876,7 @@
 
 
 //----------------------------------------------------------------------------------------------
-//	MR / VR PRESENTATION MODE
+//	DIORAMA / VR PLAY MODE
 //----------------------------------------------------------------------------------------------
 		itemDef
 		{
@@ -2899,7 +2899,7 @@
 			name				tabletop_mode
 			group				mrvr
 			type				ITEM_TYPE_MULTI
-			text				"Presentation"
+			text				"Mode"
 			cvar				"cg_tabletop"
 			cvarFloatList
 			{
@@ -2914,7 +2914,7 @@
 			textscale			1
 			forecolor			.615 .615 .956 1
 			visible				0
-			descText			"Choose the mixed-reality diorama or the original first-person JKXR experience."
+			descText			"Choose Diorama MR or immersive VR."
 			action
 			{
 				play			"sound/interface/button1.wav"
@@ -2949,10 +2949,10 @@
 			name				diorama_mode_desc1
 			group				mrvr
 			type				ITEM_TYPE_TEXT
-			text				"Play from outside a movable miniature world over passthrough."
+			text				"Play Jedi Academy as a mixed-reality diorama."
 			rect				280 300 300 14
 			font				2
-			textscale			0.7
+			textscale			0.58
 			forecolor			1 1 1 1
 			visible				0
 			cvarTest			"cg_tabletop"
@@ -2964,10 +2964,10 @@
 			name				diorama_mode_desc2
 			group				mrvr
 			type				ITEM_TYPE_TEXT
-			text				"Uses observer-relative movement and dedicated diorama controls."
+			text				"Move, rotate and resize the world in your room."
 			rect				280 318 300 14
 			font				2
-			textscale			0.7
+			textscale			0.58
 			forecolor			1 1 1 1
 			visible				0
 			cvarTest			"cg_tabletop"
@@ -2995,10 +2995,10 @@
 			name				vr_mode_desc1
 			group				mrvr
 			type				ITEM_TYPE_TEXT
-			text				"Play inside the world using the original JKXR first-person view."
+			text				"Play inside the world in first person."
 			rect				280 300 300 14
 			font				2
-			textscale			0.7
+			textscale			0.62
 			forecolor			1 1 1 1
 			visible				0
 			cvarTest			"cg_tabletop"
@@ -3010,10 +3010,10 @@
 			name				vr_mode_desc2
 			group				mrvr
 			type				ITEM_TYPE_TEXT
-			text				"Uses Team Beef's inherited immersive VR controls and gestures."
+			text				"Use the original JKXR VR controls and gestures."
 			rect				280 318 300 14
 			font				2
-			textscale			0.7
+			textscale			0.62
 			forecolor			1 1 1 1
 			visible				0
 			cvarTest			"cg_tabletop"
@@ -3039,16 +3039,54 @@
 
 		itemDef
 		{
-			name				mrvr_controls_note
+			name				diorama_controls_button
 			group				mrvr
-			type				ITEM_TYPE_TEXT
-			text				"The Controls menu automatically shows the guide for the active mode."
-			rect				280 368 300 14
-			font				2
-			textscale			0.68
-			forecolor			.8 .8 .9 1
+			type				ITEM_TYPE_BUTTON
+			style				WINDOW_STYLE_EMPTY
+			text				"VIEW DIORAMA MR CONTROLS"
+			rect				280 378 300 16
+			font				4
+			textscale			0.8
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			150
+			forecolor			.549 .854 1 1
 			visible				0
-			decoration
+			cvarTest			"cg_tabletop"
+			showCvar			{ 1 }
+			mouseenter { show highlight14 }
+			mouseexit { hide highlight14 }
+			action
+			{
+				play sound/interface/button1
+				setcvar show_help_item 10
+				open helpPopupMenu
+			}
+		}
+
+		itemDef
+		{
+			name				vr_controls_button
+			group				mrvr
+			type				ITEM_TYPE_BUTTON
+			style				WINDOW_STYLE_EMPTY
+			text				"VIEW IMMERSIVE VR CONTROLS"
+			rect				280 378 300 16
+			font				4
+			textscale			0.8
+			textalign			ITEM_ALIGN_CENTER
+			textalignx			150
+			forecolor			.549 .854 1 1
+			visible				0
+			cvarTest			"cg_tabletop"
+			showCvar			{ 0 }
+			mouseenter { show highlight14 }
+			mouseexit { hide highlight14 }
+			action
+			{
+				play sound/interface/button1
+				setcvar show_help_item 1
+				open helpPopupMenu
+			}
 		}
 
 

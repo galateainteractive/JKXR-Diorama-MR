@@ -80,10 +80,11 @@ SHA-256 checksum before running it.
 
 The first clean launch defaults to **Diorama MR** at the minimum miniature
 scale. The game also includes a **VR** mode based on the original JKXR immersive
-presentation. Use the in-game MR/VR mode setting to switch between them.
+presentation. Open **Setup > Diorama / VR** to switch between them.
 
-Open **Setup > Controls > Help > Diorama MR Control Guide** for the current
-Diorama MR controls and interaction instructions.
+Select **View Diorama MR Controls** on that page for the current controls and
+interaction instructions. The legacy **Controls > Help** route remains
+available as a secondary path.
 
 Game saves are stored separately from the installer. Installing a correctly
 signed update over the existing application is intended to preserve the current

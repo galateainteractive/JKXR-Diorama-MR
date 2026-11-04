@@ -376,7 +376,7 @@
 		}
 		itemDef
 		{
-			group none name none type ITEM_TYPE_TEXT text "Change mode in SETUP > MR / VR"
+			group none name none type ITEM_TYPE_TEXT text "Change mode in SETUP > DIORAMA / VR"
 			rect 60 435 520 14 font 2 textscale 0.58 textalign ITEM_ALIGN_CENTER textalignx 260
 			forecolor .8 .8 .9 1 visible 1 cvarTest show_help_item showCvar { 10 } decoration
 		}

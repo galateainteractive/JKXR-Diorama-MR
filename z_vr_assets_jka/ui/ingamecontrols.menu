@@ -748,9 +748,7 @@
 			textstyle			1
 			forecolor			1 .682 0 1
 			visible				1
-			descText			@MENUS_VR_HELP_BUTTON_DESC
-			cvarTest			g_JKXRHelpEnabled
-			showCvar			{ 1 }
+			descText			"Open the control guide for the active Diorama MR or immersive VR mode."
 
 			mouseEnter 
 			{ 

@@ -79,5 +79,5 @@ not removed by a normal Android application uninstall.
 4. Move your head sideways to verify 6DoF parallax.
 5. Move the character and verify that the diorama remains physically anchored.
 6. Use one grip to drag it and both grips to rotate or resize it.
-7. Open **Setup > MR / VR** to switch between **Diorama MR** and
-   **Immersive VR**.
+7. Open **Setup > Diorama / VR** to switch modes or open the control guide for
+   the active mode.

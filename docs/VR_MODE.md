@@ -7,7 +7,8 @@ The APK contains two presentation and control modes:
 - **VR** restores the inherited Team Beef first-person immersive experience and
   its original interaction model.
 
-Switch modes under **Setup > MR / VR**. Returning to Diorama MR clears the
+Switch modes under **Setup > Diorama / VR**. The same page opens the control
+guide for the active mode. Returning to Diorama MR clears the
 immersive VR command yaw and movement accumulator before rebuilding the
 miniature anchor, preventing the VR orientation from changing the diorama's
 movement basis.
