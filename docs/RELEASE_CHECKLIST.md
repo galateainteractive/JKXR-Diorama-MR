@@ -29,6 +29,8 @@
 - [x] Keep Android `versionCode` at `93` for the first public alpha.
 - [x] Advance the menu and installer update to `0.1.0-alpha.2` with Android
   `versionCode` `94`.
+- [x] Advance the tabletop player-effects fix to `0.1.0-alpha.3` with Android
+  `versionCode` `95`.
 
 ## Branding and documentation
 
@@ -48,7 +50,7 @@
 - [x] Build the private alpha APK with the permanent package identifier and a
   development signing key.
 - [x] Build the public APK with the permanent release signing key.
-- [x] Update the Windows installer to embed the `0.1.0-alpha.2` APK.
+- [x] Update the Windows installer to embed the `0.1.0-alpha.3` APK.
 - [x] Use versioned release filenames for both APK and Windows installer.
 - [ ] Confirm that Steam, GOG, registry, disk search, and manual folder selection
   all find valid Jedi Academy installations.

@@ -4,6 +4,21 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
+## 0.1.0-alpha.3 - 2026-11-08
+
+### Fixed
+
+- Kept lightsabers, weapon/Force radial selectors, shots, weapon trails, and
+  particles visible from every Diorama MR observer angle when gameplay is
+  inside a BSP fog volume and the external headset camera is outside it.
+- Prevented the lightsaber core from collapsing into zero-area geometry when
+  the camera, hilt, and blade tip become nearly collinear.
+
+### Changed
+
+- Updated the public package to Android version code `95` and release version
+  `0.1.0-alpha.3`.
+
 ## 0.1.0-alpha.2 - 2026-11-04
 
 ### Added

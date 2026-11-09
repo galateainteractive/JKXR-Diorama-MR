@@ -108,7 +108,11 @@ void R_AddPolygonSurfaces( void ) {
 
 	for ( i = 0, poly = tr.refdef.polys; i < tr.refdef.numPolys ; i++, poly++ ) {
 		sh = R_GetShaderByHandle( poly->hShader );
-		R_AddDrawSurf( ( surfaceType_t * )poly, sh, poly->fogIndex, qfalse );
+		// Discrete polygons are also used by weapon trails and particles.  Apply
+		// the same tabletop fog rule as procedural ref entities so those effects
+		// do not disappear when the observer is outside the gameplay fog volume.
+		const int fogIndex = tr.refdef.tabletopFocusValid ? 0 : poly->fogIndex;
+		R_AddDrawSurf( ( surfaceType_t * )poly, sh, fogIndex, qfalse );
 	}
 }
 

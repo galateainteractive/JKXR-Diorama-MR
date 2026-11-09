@@ -385,7 +385,14 @@ static void RB_SurfaceLine( void )
 	VectorSubtract( start, backEnd.viewParms.ori.origin, v1 );
 	VectorSubtract( end, backEnd.viewParms.ori.origin, v2 );
 	CrossProduct( v1, v2, right );
-	VectorNormalize( right );
+	if ( VectorNormalize( right ) < 0.0001f )
+	{
+		// When the camera, hilt and blade tip are nearly collinear the cross
+		// product has no usable width and the line collapses to zero-area
+		// triangles.  Camera-right is a stable perpendicular for that exact
+		// end-on case, so keep a visible core instead of dropping the blade.
+		VectorCopy( backEnd.viewParms.ori.axis[1], right );
+	}
 
 	DoLine( start, end, right, e->radius);
 }

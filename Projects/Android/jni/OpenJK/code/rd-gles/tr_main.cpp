@@ -1409,6 +1409,7 @@ void R_AddEntitySurfaces (void) {
 		case RT_LINE:
 		case RT_ELECTRICITY:
 		case RT_SABER_GLOW:
+		{
 			// self blood sprites, talk balloons, etc should not be drawn in the primary
 			// view.  We can't just do this check for all entities, because md3
 			// entities may still want to cast shadows from them
@@ -1416,8 +1417,17 @@ void R_AddEntitySurfaces (void) {
 				continue;
 			}
 			shader = R_GetShaderByHandle( ent->e.customShader );
-			R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), 0 );
+			// The external tabletop observer can sit outside a BSP fog volume while
+			// gameplay and its procedural effects remain inside it.  Fog coordinates
+			// then depend on the observation angle and can attenuate sabers, shots,
+			// selector icons and other effects all the way to zero.  Keep procedural
+			// presentation effects unfogged only in tabletop; world/model surfaces
+			// and immersive VR retain the original fog path.
+			const int fogNum = tr.refdef.tabletopFocusValid
+				? 0 : R_SpriteFogNum( ent );
+			R_AddDrawSurf( &entitySurface, shader, fogNum, 0 );
 			break;
+		}
 
 		case RT_MODEL:
 			// we must set up parts of tr.or for model culling
