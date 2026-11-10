@@ -4,6 +4,12 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Prepared the source repository for public access with centralized
+  third-party notices, a security-reporting policy, portable signing-tool
+  discovery, and stronger local-secret ignore rules.
+
 ## 0.1.0-alpha.3 - 2026-11-08
 
 ### Fixed

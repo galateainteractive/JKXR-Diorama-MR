@@ -22,7 +22,7 @@ which in turn is based on [OpenJK](https://github.com/JACoders/OpenJK).
 
 ## Project status
 
-Diorama MR is currently in private alpha development. The Jedi Academy
+Diorama MR is currently in public alpha development. The Jedi Academy
 single-player campaign is playable, but the full campaign and special gameplay
 states have not yet completed release-level testing.
 
@@ -63,6 +63,8 @@ Quest application.
 - [Building and development notes](docs/DEVELOPMENT.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Public release signing](docs/PUBLIC_RELEASE_SIGNING.md)
+- [Security policy](SECURITY.md)
+- [Third-party notices and credits](THIRD_PARTY_NOTICES.md)
 - [Website and download-page copy](docs/WEBSITE_RELEASE_COPY.md)
 - [Changelog](CHANGELOG.md)
 
@@ -81,14 +83,17 @@ Team Beef, including DrBeef, BaggyG, and Bummser, with additional contributions
 credited by the upstream project. JKXR is based on the work of the OpenJK
 development team and the original game technology released by Raven Software.
 
-See the [upstream JKXR repository](https://github.com/Team-Beef-Studios/JKXR)
-for its complete credits, supported platforms, and original immersive VR
-documentation.
+See [Third-party notices and credits](THIRD_PARTY_NOTICES.md) and the
+[upstream JKXR repository](https://github.com/Team-Beef-Studios/JKXR) for
+complete attribution, component notices, supported platforms, and original
+immersive VR documentation.
 
 ## License
 
 Source code is distributed under the GNU General Public License v2.0. See
-[LICENSE.txt](LICENSE.txt).
+[LICENSE.txt](LICENSE.txt). Bundled third-party components and art assets retain
+their respective notices and terms; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Disclaimer
 

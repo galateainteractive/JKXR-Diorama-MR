@@ -2,15 +2,16 @@
 
 ## Repository
 
-- [x] Create the standalone private `JKXR-Diorama-MR` repository.
+- [x] Create the standalone `JKXR-Diorama-MR` repository.
 - [x] Keep Team Beef's JKXR repository configured as the read-only `upstream`
   remote.
 - [x] Push the complete descendant history and the Diorama MR development
-  branch to the private repository.
+  branch to the project repository.
 - [x] Confirm that no Jedi Academy commercial PK3 files, generated APKs,
   installer binaries, credentials, or release keys are tracked.
-- [ ] Decide whether the final public home will be the standalone repository or
-  an official GitHub fork before opening the source.
+- [x] Select the standalone repository as the public project home.
+- [x] Audit the complete reachable history for secrets, release keys, personal
+  device data, commercial game archives, and unexpectedly large files.
 
 ## Application identity
 
@@ -40,14 +41,15 @@
   development, known-issues, and changelog documents.
 - [ ] Create a final application icon, repository banner, and screenshots.
 - [ ] Add a controller diagram based on the documented control table.
-- [ ] Review Team Beef, OpenJK, Raven Software, and contributor attribution.
-- [ ] Review the GPL-2.0 source and binary distribution package.
+- [x] Review Team Beef, OpenJK, Raven Software, and contributor attribution.
+- [x] Review the GPL-2.0 source and binary distribution package.
+- [x] Add centralized third-party notices and a security-reporting policy.
 
 ## Build and installer
 
 - [x] Remove machine-specific absolute paths from the Android and installer
   build scripts.
-- [x] Build the private alpha APK with the permanent package identifier and a
+- [x] Build the development alpha APK with the permanent package identifier and a
   development signing key.
 - [x] Build the public APK with the permanent release signing key.
 - [x] Update the Windows installer to embed the `0.1.0-alpha.3` APK.
@@ -78,11 +80,11 @@
 
 ## Alpha release
 
-- [ ] Freeze a tested commit and tag it.
-- [ ] Build APK and installer from the tagged commit.
-- [ ] Publish SHA-256 hashes and installation instructions.
-- [ ] Publish the corresponding GPL-2.0 source at the same time as the binaries.
-- [ ] State clearly that users must supply a legally purchased copy of Jedi
+- [x] Freeze a tested commit and tag it.
+- [x] Build APK and installer from the tagged commit.
+- [x] Publish SHA-256 hashes and installation instructions.
+- [x] Publish the corresponding GPL-2.0 source at the same time as the binaries.
+- [x] State clearly that users must supply a legally purchased copy of Jedi
   Academy and that commercial game data is not included.
 - [x] Open a structured issue template for level, save, reproduction steps,
   selected mode, headset model, and relevant diagnostic logs.

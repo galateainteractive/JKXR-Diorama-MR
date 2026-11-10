@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$PrimaryDirectory,
-    [string]$BackupDirectory = "F:\Codex\_private\Galatea Android Signing Backup",
+    [string]$BackupDirectory,
     [string]$KeyAlias = "galatea-diorama-mr",
     [switch]$SkipBuild
 )
@@ -10,9 +10,12 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $repoRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSCommandPath)).TrimEnd('\')
+$documents = [Environment]::GetFolderPath("MyDocuments")
 if (-not $PrimaryDirectory) {
-    $documents = [Environment]::GetFolderPath("MyDocuments")
     $PrimaryDirectory = Join-Path $documents "Codex\Galatea Private\Android Signing"
+}
+if (-not $BackupDirectory) {
+    $BackupDirectory = Join-Path $documents "Codex\Galatea Private\Android Signing Backup"
 }
 
 $primaryPath = [System.IO.Path]::GetFullPath($PrimaryDirectory).TrimEnd('\')
@@ -37,8 +40,12 @@ $keytoolCandidates = @()
 if ($env:JAVA_HOME) {
     $keytoolCandidates += (Join-Path $env:JAVA_HOME "bin\keytool.exe")
 }
+$pathKeytool = Get-Command keytool.exe -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if ($pathKeytool) {
+    $keytoolCandidates += $pathKeytool.Source
+}
 $keytoolCandidates += @(
-    "F:\Android\Jdk17\jdk-17.0.20.1+1\bin\keytool.exe",
     "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe"
 )
 $keytool = $keytoolCandidates |

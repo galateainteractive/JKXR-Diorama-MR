@@ -5,13 +5,13 @@
 Diorama MR is maintained as a descendant of Team Beef's JKXR repository. Keep
 the official repository configured as the `upstream` remote and keep Diorama MR
 work on its own branch. This preserves attribution, makes upstream comparison
-straightforward, and allows the prepared history to be pushed to a later public
-fork without reimplementing the changes.
+straightforward, and keeps the complete inherited development history intact.
 
-The private repository should not contain Jedi Academy commercial PK3 files,
+The repository must not contain Jedi Academy commercial PK3 files,
 permanent release signing keys, local SDK credentials, generated APKs,
 installer executables, or ADB device data. The inherited Android debug
-keystore is not suitable for release signing.
+keystore is a public development key retained for reproducible local builds; it
+provides no identity or trust and must never be used for a public release.
 
 ## Local Android build
 
@@ -21,9 +21,9 @@ From the repository root on the configured Windows development machine:
 .\build-diorama-mr.ps1
 ```
 
-The script uses the locally configured JDK, Android SDK, NDK, and Gradle
-environment. Paths in the current development script are machine-specific and
-must be made portable before treating it as public build documentation.
+The script discovers the locally configured JDK, Android SDK, NDK, and Gradle
+environment. See the script's parameters and error messages for any local
+toolchain paths that still need to be supplied on a new workstation.
 
 ## Architecture summary
 
@@ -73,7 +73,7 @@ controller event, user command, movement event, and interaction result.
 - Run the release test matrix described in `KNOWN_ISSUES.md` and the project
   release checklist.
 
-The private alpha uses package ID `com.galateainteractive.jkxrdioramamr`, data
+The public alpha uses package ID `com.galateainteractive.jkxrdioramamr`, data
 root `/sdcard/JKXR-Diorama-MR`, semantic version `0.1.0-alpha.3`, and Android
 version code `95`. The
 inherited Java namespace remains `com.drbeef.jkxr` so its JNI bindings do not
