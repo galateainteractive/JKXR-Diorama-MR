@@ -37,3 +37,9 @@ void	SNDDMA_Shutdown(void);
 void	SNDDMA_BeginPainting (void);
 
 void	SNDDMA_Submit(void);
+
+#if defined(__ANDROID__)
+// Keeps the Android audio route in sync with the Activity/OpenXR lifecycle.
+// Must be called from the game thread.
+void	SNDDMA_SetAppState(qboolean active);
+#endif

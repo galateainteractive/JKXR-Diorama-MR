@@ -25,6 +25,7 @@ extern "C" {
 }
 
 #include <client/client.h>
+#include "sdl/sdl_sound.h"
 
 #include "VrInput.h"
 #include "VrCommon.h"
@@ -2130,6 +2131,8 @@ void TBXR_WaitForSessionActive()
 		if (ovrApp_HandleXrEvents(&gAppState)) {
 			TBXR_Recenter();
 		}
+		SNDDMA_SetAppState(qfalse);
+		usleep(10000);
 	}
 }
 
@@ -2182,8 +2185,13 @@ void TBXR_FrameSetup()
 			TBXR_Recenter();
         }
 
-        if (gAppState.SessionActive == GL_FALSE)
+		SNDDMA_SetAppState(
+			gAppState.Resumed && gAppState.SessionActive && gAppState.Focused
+				? qtrue : qfalse);
+
+		if (!gAppState.Resumed || gAppState.SessionActive == GL_FALSE)
         {
+			usleep(10000);
             continue;
         }
 
