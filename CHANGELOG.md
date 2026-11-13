@@ -4,11 +4,26 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
+## 0.1.0-alpha.4 - 2026-11-13
+
+### Fixed
+
+- Matched Quest audio output to the native 48 kHz mixer rate and recovered the
+  OpenAL device only after a confirmed disconnect, including safer XR pause and
+  resume handling.
+- Kept tabletop weapon, lightsaber, movement, and other spatial effects audible
+  at room scale while preserving headset-relative stereo direction and a 30%
+  distance floor.
+- Removed BSP fog and explicit weather-fog clouds from the tabletop view while
+  preserving rain, acid rain, snow, smoke, sand, and other useful effects.
+
 ### Changed
 
 - Prepared the source repository for public access with centralized
   third-party notices, a security-reporting policy, portable signing-tool
   discovery, and stronger local-secret ignore rules.
+- Updated the public package to Android version code `96` and release version
+  `0.1.0-alpha.4`.
 
 ## 0.1.0-alpha.3 - 2026-11-08
 

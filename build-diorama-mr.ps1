@@ -13,8 +13,17 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $androidProject = Join-Path $projectRoot 'Projects\Android'
 $repositoryContainer = Split-Path -Parent $projectRoot
-$productVersion = '0.1.0-alpha.3'
-$androidVersionCode = 95
+$productVersion = '0.1.0-alpha.4'
+$androidVersionCode = 96
+$androidManifest = Join-Path $androidProject 'AndroidManifest.xml'
+
+$manifestText = Get-Content -LiteralPath $androidManifest -Raw
+$expectedVersionName = 'android:versionName="' + [regex]::Escape($productVersion) + '"'
+$expectedVersionCode = 'android:versionCode="' + $androidVersionCode + '"'
+if ($manifestText -notmatch $expectedVersionName -or
+        $manifestText -notmatch $expectedVersionCode) {
+    throw "AndroidManifest.xml must match release $productVersion (versionCode $androidVersionCode)."
+}
 
 function Get-FixedDriveRoots {
     [System.IO.DriveInfo]::GetDrives() |

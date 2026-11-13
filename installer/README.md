@@ -26,8 +26,8 @@ Generate the current APK first, then run:
 ```
 
 The default versioned output is
-`JKXR-Diorama-MR-0.1.0-alpha.3-Installer.exe`. The embedded APK is
-`JKXR-Diorama-MR-0.1.0-alpha.3.apk`.
+`JKXR-Diorama-MR-0.1.0-alpha.4-Installer.exe`. The embedded APK is
+`JKXR-Diorama-MR-0.1.0-alpha.4.apk`.
 
 The installer is compiled with the Windows .NET Framework 4.8 C# compiler, so
 it does not require a separate modern .NET runtime installation.

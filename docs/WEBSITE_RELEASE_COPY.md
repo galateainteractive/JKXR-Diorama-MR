@@ -56,10 +56,10 @@ complete corresponding source code for this exact release is available here:
 Source archive: `[SOURCE_ARCHIVE_URL]`
 
 GitHub tag:
-`https://github.com/galateainteractive/JKXR-Diorama-MR/tree/v0.1.0-alpha.3`
+`https://github.com/galateainteractive/JKXR-Diorama-MR/tree/v0.1.0-alpha.4`
 
 License:
-`https://github.com/galateainteractive/JKXR-Diorama-MR/blob/v0.1.0-alpha.3/LICENSE.txt`
+`https://github.com/galateainteractive/JKXR-Diorama-MR/blob/v0.1.0-alpha.4/LICENSE.txt`
 
 ## Installation
 
@@ -92,13 +92,13 @@ installation and saves. Back up important saves before alpha updates.
 
 ## Version
 
-Version: `0.1.0-alpha.3`
+Version: `0.1.0-alpha.4`
 
-Android version code: `95`
+Android version code: `96`
 
 Package: `com.galateainteractive.jkxrdioramamr`
 
-Release date: `November 8, 2026`
+Release date: `November 13, 2026`
 
 ## File verification
 
