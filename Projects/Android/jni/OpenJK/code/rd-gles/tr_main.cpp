@@ -1273,6 +1273,10 @@ void R_AddDrawSurf( const surfaceType_t *surface, const jk_shader_t *shader, int
 	{
 		fogIndex = tr.world->numfogs;
 	}
+	else if ( tr.refdef.rdflags & RDF_NOFOG )
+	{
+		fogIndex = 0;
+	}
 
 	if ( (shader->surfaceFlags & SURF_FORCESIGHT) && !(tr.refdef.rdflags & RDF_ForceSightOn) )
 	{	//if shader is only seen with ForceSight and we don't have ForceSight on, then don't draw
