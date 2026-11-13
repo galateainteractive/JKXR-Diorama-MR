@@ -2526,9 +2526,25 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		memcpy( cg.refdef.areamask, cg.snap->areamask, sizeof( cg.refdef.areamask ) );
 	}
 
-	// update audio positions
-	//This is done from the vieworg to get origin for non-attenuated sounds
-	cgi_S_UpdateAmbientSet( CG_ConfigString( CS_AMBIENT_SET ), cg.refdef.vieworg );
+	// Update audio positions.  ENTITYNUM_NONE tells the software mixer that a
+	// tabletop listener should use the HMD for stereo direction but the avatar
+	// for normal game-distance attenuation.  This prevents room-scale movement
+	// from making otherwise audible weapon sounds disappear.
+	vec3_t audioListenerOrigin;
+	vec3_t ambientListenerOrigin;
+	int audioListenerEntity = cg.snap->ps.clientNum;
+	VectorCopy( cg.refdef.vieworg, audioListenerOrigin );
+	VectorCopy( cg.refdef.vieworg, ambientListenerOrigin );
+
+	if ( cg_tabletop.integer && !in_camera && !in_misccamera )
+	{
+		audioListenerEntity = ENTITYNUM_NONE;
+		VectorCopy( cg.predicted_player_state.origin, ambientListenerOrigin );
+		cgi_S_UpdateEntityPosition( audioListenerEntity,
+			cg.predicted_player_state.origin );
+	}
+
+	cgi_S_UpdateAmbientSet( CG_ConfigString( CS_AMBIENT_SET ), ambientListenerOrigin );
 	//NOTE: if we want to make you be able to hear far away sounds with electrobinoculars, add the hacked-in positional offset here (base on fov)
 	/*
 	vec3_t listener_origin;
@@ -2550,7 +2566,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	}
 	cgi_S_Respatialize( cg.snap->ps.clientNum, listener_origin, cg.refdef.viewaxis, inwater );
 	*/
-	cgi_S_Respatialize( cg.snap->ps.clientNum, cg.refdef.vieworg, cg.refdef.viewaxis, inwater );
+	cgi_S_Respatialize( audioListenerEntity, audioListenerOrigin,
+		cg.refdef.viewaxis, inwater );
 
 	// warning sounds when powerup is wearing off
 	CG_PowerupTimerSounds();

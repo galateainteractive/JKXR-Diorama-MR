@@ -160,6 +160,9 @@ dma_t		dma;
 int			listener_number;
 vec3_t		listener_origin;
 vec3_t		listener_axis[3];
+static qboolean listener_tabletop;
+static vec3_t listener_attenuation_origin;
+static float listener_tabletop_gain = 1.0f;
 
 int			s_soundtime;		// sample PAIRS
 int   		s_paintedtime; 		// sample PAIRS
@@ -1355,10 +1358,16 @@ static void S_SpatializeOrigin (const vec3_t origin, float master_vol, int *left
     vec3_t		source_vec;
 	float		dist_mult = SOUND_ATTENUATE;
 
-	// calculate stereo seperation and distance attenuation
+	// Keep stereo direction tied to the observer.  In tabletop mode, however,
+	// normal sound reach belongs to the avatar: applying game-scale distance to
+	// the room-scale camera makes ordinary SFX vanish a metre or two away.
 	VectorSubtract(origin, listener_origin, source_vec);
-
 	dist = VectorNormalize(source_vec);
+	if ( listener_tabletop )
+	{
+		dist = Distance( origin, listener_attenuation_origin );
+		master_vol *= listener_tabletop_gain;
+	}
 	if ( channel == CHAN_VOICE )
 	{
 		dist -= SOUND_FULLVOLUME * 3.0f;
@@ -2563,6 +2572,29 @@ void S_Respatialize( int entityNum, const vec3_t head, vec3_t axis[3], qboolean 
 		VectorCopy(axis[0], listener_axis[0]);
 		VectorCopy(axis[1], listener_axis[1]);
 		VectorCopy(axis[2], listener_axis[2]);
+		listener_tabletop = (qboolean)(entityNum == ENTITYNUM_NONE);
+		listener_tabletop_gain = 1.0f;
+		if ( listener_tabletop )
+		{
+			const float minimumTabletopGain = 0.30f;
+			float observerDistance;
+
+			VectorCopy( s_entityPosition[entityNum], listener_attenuation_origin );
+			observerDistance = Distance( head, listener_attenuation_origin );
+			observerDistance = (observerDistance - SOUND_FULLVOLUME) * SOUND_ATTENUATE;
+			if ( observerDistance > 0.0f )
+			{
+				listener_tabletop_gain = 1.0f - observerDistance;
+				if ( listener_tabletop_gain < minimumTabletopGain )
+				{
+					listener_tabletop_gain = minimumTabletopGain;
+				}
+			}
+		}
+		else
+		{
+			VectorCopy( head, listener_attenuation_origin );
+		}
 
 		// update spatialization for dynamic sounds
 		ch = s_channels;
