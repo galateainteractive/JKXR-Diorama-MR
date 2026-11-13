@@ -3062,6 +3062,11 @@ static void CG_DrawCrosshair3D(int type) // 0 - force, 1 - weapons
 		{
 			VectorCopy(vr->tabletop_force_angles, weaponangles);
 		}
+		else if (type == 1 && vr->emplaced_gun &&
+			vr->tabletop_turret_aim_mode == 1)
+		{
+			VectorCopy(vr->tabletop_turret_angles, weaponangles);
+		}
 		else if (type == 1 && vr->tabletop_weapon_aim_valid)
 		{
 			VectorCopy(vr->tabletop_weapon_angles, weaponangles);

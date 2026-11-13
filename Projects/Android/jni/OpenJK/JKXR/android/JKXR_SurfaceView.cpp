@@ -337,9 +337,18 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		*up = 0.0f;
 		*side = 0.0f;
 		*pos_side = 0.0f;
-		*yaw = vr.snapTurn + vr.hmdorientation_first[YAW] +
-				vr.weaponangles[ANGLES_ADJUSTED][YAW] - vr.weaponangles_first[ANGLES_ADJUSTED][YAW];
-		*pitch = vr.weaponangles[ANGLES_ADJUSTED][PITCH];
+		if (tabletopConfigured && vr.tabletop_turret_aim_mode == 2)
+		{
+			*yaw = vr.tabletop_turret_angles[YAW];
+			*pitch = vr.tabletop_turret_angles[PITCH];
+		}
+		else
+		{
+			*yaw = vr.snapTurn + vr.hmdorientation_first[YAW] +
+				vr.weaponangles[ANGLES_ADJUSTED][YAW] -
+				vr.weaponangles_first[ANGLES_ADJUSTED][YAW];
+			*pitch = vr.weaponangles[ANGLES_ADJUSTED][PITCH];
+		}
 		*roll = 0.0f;
 	}
 	else if (vr.cgzoommode == 2 || vr.cgzoommode == 4)
@@ -411,9 +420,15 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		const float magnitude = Com_Clamp(0.0f, 1.0f,
 			sqrtf(stickX * stickX + stickY * stickY));
 		const int weapon = cl.frame.ps.weapon;
-		const bool handAimedWeapon = vr.tabletop_weapon_aim_valid &&
+		const bool emplacedAimedWeapon = vr.emplaced_gun &&
+			vr.tabletop_turret_aim_mode == 1;
+		const bool handAimedWeapon = !emplacedAimedWeapon &&
+			vr.tabletop_weapon_aim_valid &&
 			weapon != WP_NONE && weapon != WP_SABER &&
 			weapon != WP_MELEE && weapon != WP_THERMAL;
+		const float *aimAngles = emplacedAimedWeapon
+			? vr.tabletop_turret_angles
+			: vr.tabletop_weapon_angles;
 
 		if (!tabletopYawValid)
 		{
@@ -434,7 +449,14 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 				RAD2DEG(atan2f(-stickX, stickY));
 		}
 
-		if (handAimedWeapon)
+		if (emplacedAimedWeapon)
+		{
+			// The player is physically locked to the gun. Do not leak the
+			// locomotion stick into the avatar while the other stick aims.
+			*forward = 0.0f;
+			*side = 0.0f;
+		}
+		else if (handAimedWeapon)
 		{
 			// Keep locomotion observer-relative while the avatar and its real shot
 			// direction follow the dominant hand.  Decompose the desired world
@@ -455,10 +477,11 @@ void VR_GetMove(float *forward, float *side, float *pos_forward, float *pos_side
 		// tabletopMoveYaw is already a world-space direction.  JKA adds
 		// delta_angles[YAW] inside PM_UpdateViewAngles, so remove it here or
 		// spawn/script camera deltas rotate locomotion a second time.
-		*yaw = (handAimedWeapon
-			? vr.tabletop_weapon_angles[YAW]
+		*yaw = ((handAimedWeapon || emplacedAimedWeapon)
+			? aimAngles[YAW]
 			: tabletopMoveYaw) - SHORT2ANGLE(cl.frame.ps.delta_angles[YAW]);
-		*pitch = handAimedWeapon ? vr.tabletop_weapon_angles[PITCH] : 0.0f;
+		*pitch = (handAimedWeapon || emplacedAimedWeapon)
+			? aimAngles[PITCH] : 0.0f;
 		*roll = 0.0f;
 
 		if (tabletopMoveLogPending && magnitude > 0.05f)

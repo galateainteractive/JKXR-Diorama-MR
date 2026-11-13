@@ -41,6 +41,21 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             vr_control_scheme->value == 99; // Always right-handed for weapon calibration
 
     const bool tabletopActive = !!((int) Cvar_VariableValue("cg_tabletop"));
+    bool tabletopAnimal = false;
+#ifndef JK2_MODE
+    tabletopAnimal = tabletopActive && vr.in_vehicle &&
+        vr.vehicle_type == VH_ANIMAL;
+#endif
+    bool tabletopSpeeder = false;
+#ifndef JK2_MODE
+    tabletopSpeeder = tabletopActive && vr.in_vehicle &&
+        vr.vehicle_type == VH_SPEEDER;
+#endif
+    const bool tabletopGroundVehicle = tabletopAnimal || tabletopSpeeder;
+    const bool tabletopEmplaced = tabletopActive && vr.emplaced_gun;
+    const bool tabletopRemoteTurret = tabletopActive && vr.remote_turret;
+    const bool tabletopJoystickTurret = tabletopEmplaced ||
+        tabletopRemoteTurret;
     bool thirdPersonActive = tabletopActive ||
         !!((int) Cvar_VariableValue("cg_thirdPerson"));
 
@@ -51,6 +66,7 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
     static int tabletopItemMenuPressTime = -1;
     static int tabletopItemMenuReleaseTime = -1;
     static bool tabletopItemMenuOpened = false;
+    static bool tabletopTriggerUsing = false;
 
     //Need this for the touch screen
     ovrTrackedController * pWeapon = pDominantTracking;
@@ -251,7 +267,32 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 	handleTrackedControllerButton(&rightTrackedRemoteState_new, &rightTrackedRemoteState_old, xrButton_Enter, A_ESCAPE);
 
     static float menuYaw = 0;
-    if (VR_UseScreenLayer() && !vr.misc_camera)
+    const bool useScreenLayer = VR_UseScreenLayer() && !vr.misc_camera;
+    static bool previousUseScreenLayer = false;
+    static bool previousCinematic = false;
+    static bool previousTabletopSpecialControl = false;
+    const bool returningToTabletop = tabletopActive &&
+        ((previousUseScreenLayer && !useScreenLayer) ||
+         (previousCinematic && !vr.cin_camera));
+    const bool tabletopSpecialControl = tabletopGroundVehicle ||
+        tabletopJoystickTurret;
+    const bool enteringTabletopSpecialControl = tabletopSpecialControl &&
+        !previousTabletopSpecialControl;
+
+    if (returningToTabletop || enteringTabletopSpecialControl)
+    {
+        // Pair any queued +use with a release, then synchronously clear the
+        // shared state. This prevents the interaction used to enter a vehicle
+        // or turret from immediately ejecting the player again.
+        sendButtonAction("+use", false);
+        CL_ClearTabletopUseButton();
+        tabletopTriggerUsing = false;
+    }
+    previousUseScreenLayer = useScreenLayer;
+    previousCinematic = vr.cin_camera;
+    previousTabletopSpecialControl = tabletopSpecialControl;
+
+    if (useScreenLayer)
     {
         if (vr.cin_camera && cinCameraTimestamp + 1000 < Sys_Milliseconds())
         {
@@ -679,8 +720,10 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
             }
         }
 
-        //Switch movement speed
-        if (!vr.cgzoommode && !vr_always_run->integer)
+        // While operating a turret the dominant stick belongs exclusively to
+        // the gun's yaw and pitch.
+        if (!vr.cgzoommode && !tabletopJoystickTurret &&
+            !vr_always_run->integer)
         {
             static bool switched = false;
             if (between(-0.2f, primaryJoystickX, 0.2f) &&
@@ -1005,8 +1048,6 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             static bool firing = false;
             static bool throwing = false;
-            static bool tabletopTriggerUsing = false;
-
             if (cl.frame.ps.weapon == WP_SABER && !thirdPersonActive && !vr.remote_turret &&
                 vr.cgzoommode == 0 && cl.frame.ps.stats[STAT_HEALTH] > 0)
             {
@@ -1193,6 +1234,106 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             remote_movementSideways = move_speed_multiplier * v[0];
             remote_movementForward = move_speed_multiplier * v[1];
+
+            // Tabletop ground vehicles deliberately follow a conventional
+            // gamepad: left-stick Y supplies full-range throttle and left-stick
+            // X steers the rider view consumed by the SP vehicle code. Do not
+            // also pass X as strafe, which can trigger the speeder's ram move.
+#ifndef JK2_MODE
+            if (tabletopGroundVehicle)
+            {
+                const float steering = v[0];
+                remote_movementForward = v[1];
+                remote_movementSideways = 0.0f;
+                float refresh = TBXR_GetRefresh();
+                if (refresh < 1.0f)
+                {
+                    refresh = 72.0f;
+                }
+                vr.snapTurn -= (90.0f / refresh) * steering;
+                if (vr.snapTurn < -180.0f)
+                {
+                    vr.snapTurn += 360.0f;
+                }
+                else if (vr.snapTurn > 180.0f)
+                {
+                    vr.snapTurn -= 360.0f;
+                }
+            }
+#endif
+
+            // Mounted and remote tabletop guns use conventional right-stick
+            // aim. Initialise from the exact pre-existing aim on entry so the
+            // camera never jumps when control changes from hand to joystick.
+            static int previousTabletopTurretMode = 0;
+            static unsigned int tabletopTurretTransformSerial = 0;
+            const int tabletopTurretMode = tabletopEmplaced ? 1 :
+                (tabletopRemoteTurret ? 2 : 0);
+            if (tabletopTurretMode)
+            {
+                if (previousTabletopTurretMode != tabletopTurretMode ||
+                    tabletopTurretTransformSerial != vr.tabletop_transform_serial)
+                {
+                    if (tabletopRemoteTurret)
+                    {
+                        vr.tabletop_turret_angles[YAW] = vr.snapTurn +
+                            vr.hmdorientation_first[YAW] +
+                            vr.weaponangles[ANGLES_ADJUSTED][YAW] -
+                            vr.weaponangles_first[ANGLES_ADJUSTED][YAW];
+                        vr.tabletop_turret_angles[PITCH] =
+                            vr.weaponangles[ANGLES_ADJUSTED][PITCH];
+                        vr.tabletop_turret_angles[ROLL] = 0.0f;
+                    }
+                    else
+                    {
+                        VectorCopy(cl.frame.ps.viewangles,
+                            vr.tabletop_turret_angles);
+                    }
+                }
+
+                const float deadzone = 0.15f;
+                float aimX = pPrimaryJoystick->x;
+                float aimY = pPrimaryJoystick->y;
+                if (fabsf(aimX) <= deadzone)
+                {
+                    aimX = 0.0f;
+                }
+                else
+                {
+                    aimX = copysignf((fabsf(aimX) - deadzone) /
+                        (1.0f - deadzone), aimX);
+                }
+                if (fabsf(aimY) <= deadzone)
+                {
+                    aimY = 0.0f;
+                }
+                else
+                {
+                    aimY = copysignf((fabsf(aimY) - deadzone) /
+                        (1.0f - deadzone), aimY);
+                }
+
+                float refresh = TBXR_GetRefresh();
+                if (refresh < 1.0f)
+                {
+                    refresh = 72.0f;
+                }
+                vr.tabletop_turret_angles[YAW] -= (75.0f / refresh) * aimX;
+                vr.tabletop_turret_angles[PITCH] -= (45.0f / refresh) * aimY;
+                vr.tabletop_turret_angles[PITCH] = tabletopRemoteTurret
+                    ? Com_Clamp(-60.0f, 60.0f,
+                        vr.tabletop_turret_angles[PITCH])
+                    : Com_Clamp(-35.0f, 30.0f,
+                        vr.tabletop_turret_angles[PITCH]);
+                vr.tabletop_turret_angles[ROLL] = 0.0f;
+                vr.tabletop_turret_aim_mode = tabletopTurretMode;
+                tabletopTurretTransformSerial = vr.tabletop_transform_serial;
+            }
+            else
+            {
+                vr.tabletop_turret_aim_mode = 0;
+            }
+            previousTabletopTurretMode = tabletopTurretMode;
             
 
             // The off-hand lower face button invokes the menu in Immersive VR.
@@ -1226,8 +1367,14 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 #ifndef JK2_MODE
             if (vr.in_vehicle)
             {
+                if (tabletopGroundVehicle)
+                {
+                    // Left-stick throttle and steering were prepared above for
+                    // animals and speeders.
+                    // Do not replace either axis with controller pitch/roll.
+                }
                 //Allow the controllers to affect the yaw rotation of the vehicle
-                if (!vr_vehicle_use_hmd_direction->integer)
+                else if (!vr_vehicle_use_hmd_direction->integer)
                 {
                     float refresh = TBXR_GetRefresh();
                     float weaponAngleToUse = cl.frame.ps.weapon == WP_SABER ? vr.offhandangles[ANGLES_ADJUSTED][ROLL] : vr.weaponangles[ANGLES_ADJUSTED][ROLL];
@@ -1236,7 +1383,8 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
                 }
 
                 //Only use controller angle for forwards on the following types of vehicle
-                if (vr_vehicle_use_controller_for_speed->integer && (
+                if (!tabletopGroundVehicle &&
+                    vr_vehicle_use_controller_for_speed->integer && (
                         vr.vehicle_type == VH_SPEEDER || vr.vehicle_type == VH_ANIMAL))
                 {
                     float weaponAngleToUse = cl.frame.ps.weapon == WP_SABER ? vr.offhandangles[ANGLES_ADJUSTED][PITCH] : vr.weaponangles[ANGLES_ADJUSTED][PITCH];
@@ -1263,7 +1411,8 @@ void HandleInput_Default( ovrInputStateTrackedRemote *pDominantTrackedRemoteNew,
 
             float previousSnap = vr.snapTurn;
             static int increaseSnap = true;
-            if (!vr.item_selector) {
+            if (!vr.item_selector && !tabletopGroundVehicle &&
+                !tabletopJoystickTurret) {
                 if (usingSnapTurn) {
                     if (primaryJoystickX > 0.7f) {
                         if (increaseSnap) {

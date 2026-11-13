@@ -88,6 +88,8 @@ typedef struct {
     vec3_t tabletop_force_angles; // off-hand ray expressed in tabletop game space
     bool   tabletop_weapon_aim_valid;
     vec3_t tabletop_weapon_angles; // dominant-hand ray expressed in tabletop game space
+    int    tabletop_turret_aim_mode; // 0 none, 1 emplaced, 2 remote
+    vec3_t tabletop_turret_angles; // right-stick aim for tabletop mounted/remote guns
 
     vec3_t clientviewangles; //orientation in the client - we use this in the cgame
     float snapTurn; // how much turn has been applied to the yaw by joystick

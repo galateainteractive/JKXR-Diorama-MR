@@ -193,6 +193,30 @@ void CL_SetTabletopUseButton( qboolean down, int source )
 #endif
 }
 
+/*
+========================
+CL_ClearTabletopUseButton
+
+Cinematic input uses queued textual +use/-use commands, while tabletop
+gameplay updates the same kbutton directly.  If a cinematic ends while its
+skip button is held, the release edge can arrive after the input path changes
+and leave BUTTON_USE permanently active.  Clear every source when crossing
+back into tabletop gameplay; the player must release and press again before a
+new interaction, which also prevents an accidental action after the cutscene.
+========================
+*/
+void CL_ClearTabletopUseButton( void )
+{
+	kbutton_t *button = &in_buttons[5];
+
+	button->down[0] = 0;
+	button->down[1] = 0;
+	button->downtime = 0;
+	button->msec = 0;
+	button->active = qfalse;
+	button->wasPressed = qfalse;
+}
+
 static void IN_UseGivenForce(void)
 {
 	const char *c = Cmd_Argv(1);
