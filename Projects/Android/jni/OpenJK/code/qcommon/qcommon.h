@@ -149,9 +149,13 @@ typedef enum {
 	NS_SERVER
 } netsrc_t;
 
-// For compatibility with shared code
-static inline void NET_Init( void ) {}
-static inline void NET_Shutdown( void ) {}
+// Implemented in net_ip.cpp. Networking stays off unless net_enabled is set,
+// in which case a plain singleplayer session never opens a socket.
+void		NET_Init( void );
+void		NET_Shutdown( void );
+void		NET_Restart( void );	// re-open the socket for the current cvars (coop_host)
+qboolean	NET_GetPacket( netadr_t *net_from, msg_t *net_message );
+qboolean	NET_IsSocketOpen( void );
 
 void		NET_SendPacket (netsrc_t sock, int length, const void *data, netadr_t to);
 void		NET_OutOfBandPrint( netsrc_t net_socket, netadr_t adr, const char *format, ...);
@@ -164,7 +168,7 @@ const char	*NET_AdrToString (netadr_t a);
 qboolean	NET_StringToAdr ( const char *s, netadr_t *a);
 qboolean	NET_GetLoopPacket (netsrc_t sock, netadr_t *net_from, msg_t *net_message);
 
-void		Sys_SendPacket( int length, const void *data, netadr_t to );
+void		Sys_SendPacket( int length, const void *data, const netadr_t *to );
 //Does NOT parse port numbers, only base addresses.
 qboolean	Sys_StringToAdr( const char *s, netadr_t *a );
 qboolean	Sys_IsLANAddress (netadr_t adr);
@@ -215,7 +219,12 @@ PROTOCOL
 ==============================================================
 */
 
-#define	PROTOCOL_VERSION	40
+// Diorama co-op uses a distinct protocol: MAX_CLIENTS changes the configstring
+// layout, and incompatible flat/stock clients must be rejected at connect.
+// CS_LIGHT_STYLES = CS_PLAYERS + MAX_CLIENTS renumbers every later configstring,
+// so a mismatched (stock 1-client) build must be rejected at connect rather than
+// left to silently desync.
+#define	PROTOCOL_VERSION	1060
 
 #define	PORT_SERVER			27960
 

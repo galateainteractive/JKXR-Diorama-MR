@@ -223,6 +223,8 @@ Ghoul2 Insert End
 
 cg_t				cg;
 cgs_t				cgs;
+// True while this cgame instance is running as a serverless co-op guest.
+qboolean			cg_remoteClient = qfalse;
 centity_t			cg_entities[MAX_GENTITIES];
 
 centity_t			*cg_permanents[MAX_GENTITIES];
@@ -248,6 +250,7 @@ vmCvar_t	cg_bobup;
 vmCvar_t	cg_bobpitch;
 vmCvar_t	cg_bobroll;
 vmCvar_t	cg_shadows;
+vmCvar_t	cg_remoteClientCvar;
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_forceBlurRenderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
@@ -539,6 +542,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_smoothPlayerPos, "cg_smoothPlayerPos", "0.5", 0},
 	{ &cg_smoothPlayerPlat, "cg_smoothPlayerPlat", "0.75", 0},
 	{ &cg_smoothPlayerPlatAccel, "cg_smoothPlayerPlatAccel", "3.25", 0},
+	{ &cg_remoteClientCvar, "cg_remoteClient", "0", CVAR_ROM },
 	{ &cg_g2Marks, "cg_g2Marks", "1", CVAR_ARCHIVE },
 	{ &fx_expensivePhysics, "fx_expensivePhysics", "1", CVAR_ARCHIVE },
 	{ &cg_debugHealthBars,	"cg_debugHealthBars",	"0", CVAR_CHEAT },
@@ -785,16 +789,17 @@ static inline void CG_AS_Register(void)
 {
 	CG_LoadingString( "ambient sound sets" );
 
-	assert(as_preCacheMap);
-
 	//Load the ambient sets
 
 	cgi_AS_AddPrecacheEntry( "#clear" );	// ;-)
-	//FIXME: Don't ask... I had to get around a really nasty MS error in the templates with this...
-	namePrecache_m::iterator	pi;
-	STL_ITERATE( pi, (*as_preCacheMap) )
+	// A serverless co-op guest does not spawn local entities, so this cache may be null.
+	if ( as_preCacheMap )
 	{
-		cgi_AS_AddPrecacheEntry( ((*pi).first).c_str() );
+		namePrecache_m::iterator	pi;
+		STL_ITERATE( pi, (*as_preCacheMap) )
+		{
+			cgi_AS_AddPrecacheEntry( ((*pi).first).c_str() );
+		}
 	}
 
 	cgi_AS_ParseSets();
@@ -1855,7 +1860,7 @@ Ghoul2 Insert End
 
 	extern	cvar_t	*com_buildScript;
 
-	if (com_buildScript->integer) {
+	if (com_buildScript && com_buildScript->integer) {
 		cgi_R_RegisterShader( "gfx/misc/nav_cpoint" );
 		cgi_R_RegisterShader( "gfx/misc/nav_line" );
 		cgi_R_RegisterShader( "gfx/misc/nav_arrow" );
@@ -2262,6 +2267,7 @@ void CG_PreInit() {
 	iCGResetCount = 0;
 
 	CG_RegisterCvars();
+	cg_remoteClient = (qboolean)( cg_remoteClientCvar.integer != 0 );
 
 //moved from CG_GameStateReceived because it's loaded sooner now
 	CG_InitLocalEntities();

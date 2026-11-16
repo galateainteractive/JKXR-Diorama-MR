@@ -169,6 +169,19 @@ typedef struct {
 
 extern	clientConnection_t clc;
 
+// Co-op hosts discovered on the local network by the `localservers` command.
+// The initial Quest proof-of-concept uses direct IP, but keeping this table in
+// the engine gives the later headset UI a discovery path without changing the
+// wire protocol again.
+#define MAX_LOCAL_SERVERS 16
+typedef struct {
+	netadr_t	adr;
+	char		hostname[MAX_INFO_STRING];
+	char		mapname[MAX_INFO_STRING];
+	int			clients;
+	int			maxClients;
+} localServer_t;
+
 /*
 ==================================================================
 
@@ -206,6 +219,11 @@ typedef struct {
 	qhandle_t	charSetShader;
 	qhandle_t	whiteShader;
 	qhandle_t	consoleShader;
+
+	// LAN-discovered co-op hosts, filled from infoResponse packets.
+	int				numLocalServers;
+	localServer_t	localServers[MAX_LOCAL_SERVERS];
+	int				localServerChallenge;
 } clientStatic_t;
 
 #define	CON_TEXTSIZE	0x30000 //was 32768

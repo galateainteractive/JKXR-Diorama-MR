@@ -66,6 +66,7 @@ JK3_SRC = \
 		${JK3_CODE_PATH}/qcommon/md4.cpp \
 		${JK3_CODE_PATH}/qcommon/msg.cpp \
 		${JK3_CODE_PATH}/qcommon/net_chan.cpp \
+		${JK3_CODE_PATH}/qcommon/net_ip.cpp \
 		${JK3_CODE_PATH}/qcommon/q_shared.cpp \
 		${JK3_CODE_PATH}/qcommon/stringed_ingame.cpp \
 		${JK3_CODE_PATH}/qcommon/stringed_interface.cpp \

@@ -54,6 +54,7 @@ JK3_SRC = \
 	code/game/g_breakable.cpp \
 	code/game/g_camera.cpp \
 	code/game/g_client.cpp \
+	code/game/g_coop.cpp \
 	code/game/g_cmds.cpp \
 	code/game/g_combat.cpp \
 	code/game/g_emplaced.cpp \
@@ -138,6 +139,7 @@ JK3_SRC = \
 	code/cgame/cg_camera.cpp \
 	code/cgame/cg_consolecmds.cpp \
 	code/cgame/cg_credits.cpp \
+	code/cgame/cg_coop.cpp \
 	code/cgame/cg_draw.cpp \
 	code/cgame/cg_drawtools.cpp \
 	code/cgame/cg_effects.cpp \

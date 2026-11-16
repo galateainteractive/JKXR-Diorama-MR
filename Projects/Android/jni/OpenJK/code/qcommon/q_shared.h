@@ -615,7 +615,7 @@ typedef struct {
 //
 // per-level limits
 //
-#define	MAX_CLIENTS			1 // 128		// absolute limit
+#define	MAX_CLIENTS			2 // Diorama co-op POC: one host and one guest
 #define MAX_TERRAINS		1 //32
 
 #define	GENTITYNUM_BITS		10		// don't need to send any more
@@ -660,7 +660,7 @@ Ghoul2 Insert End
 #ifdef JK2_MODE
 #define MAX_CONFIGSTRINGS (1024)
 #else
-#define	MAX_CONFIGSTRINGS	1300//1024 //rww - I had to up this for terrains
+#define	MAX_CONFIGSTRINGS	1500//1300 //coop - room for CS_COOP_MODELSPECS //1024 //rww - I had to up this for terrains
 #endif // JK2_MODE
 
 // these are the only configstrings that the system reserves, all the
@@ -721,7 +721,16 @@ Ghoul2 Insert End
 */
 #define CS_DYNAMIC_MUSIC_STATE	(CS_CHARSKINS + MAX_CHARSKINS)
 #define CS_WORLD_FX				(CS_DYNAMIC_MUSIC_STATE + 1)
+#ifndef JK2_MODE
+// coop: per-appearance model specs ("model|skin|surfOff|surfOn|saber1|saber2|colors")
+// registered by the host and used by the serverless JA guest to rebuild ghoul2.
+#define MAX_COOP_MODELSPECS		128
+#define CS_COOP_MODELSPECS		(CS_WORLD_FX + MAX_WORLD_FX)
+#define CS_MAX					(CS_COOP_MODELSPECS + MAX_COOP_MODELSPECS)
+#else
+// Jedi Outcast shares this header but does not build the JA co-op game module.
 #define CS_MAX					(CS_WORLD_FX + MAX_WORLD_FX)
+#endif
 
 #if (CS_MAX) > MAX_CONFIGSTRINGS
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS
