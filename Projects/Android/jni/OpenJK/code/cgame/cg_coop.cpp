@@ -26,7 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // character from what the network carries:
 //
 //   - s.modelindex3      -> CS_COOP_MODELSPECS spec string, built by g_coop.cpp:
-//                           model;skin;surfOff;surfOn;saber1;colors1;saber2;colors2;class
+//                           model;skin;surfOff;surfOn;saber1;colors1;saber2;colors2;class;r,g,b,a
 //   - s.weapon           -> attached weapon / saber hilt models
 //   - s.legsAnim/torsoAnim (+timers) -> ghoul2 bone animations, through the
 //                           same PM_SetAnimFinal the host uses
@@ -196,6 +196,15 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	gent->inuse = qtrue;
 	gent->client->ps.clientNum = entNum;
 	gent->client->NPC_class = (class_t)atoi( f[8] );
+	int rgba[4] = { 255, 255, 255, 255 };
+	if ( f[9][0] )
+	{
+		sscanf( f[9], "%i,%i,%i,%i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] );
+	}
+	for ( int i = 0; i < 4; i++ )
+	{
+		gent->client->renderInfo.customRGBA[i] = (byte)Com_Clampi( 0, 255, rgba[i] );
+	}
 	gent->playerModel = -1;
 	gent->weaponModel[0] = gent->weaponModel[1] = -1;
 

@@ -5334,7 +5334,9 @@ extern cvar_t	*g_skippingcin;
 		}
 	}
 
-	if (!USENEWNAVSYSTEM || ent->s.number==0)
+	// The new nav system owns NPC movement speeds, but every reserved client
+	// slot is a human co-op player and still needs the normal player speed.
+	if (!USENEWNAVSYSTEM || ent->s.number < MAX_CLIENTS)
 	{
 		ClientAlterSpeed(ent, ucmd, controlledByPlayer, 0);
 	}

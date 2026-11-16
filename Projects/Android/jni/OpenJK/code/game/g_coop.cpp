@@ -26,7 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // wire. A serverless remote client has none of that, so the host packs each
 // character's appearance into a "model spec" configstring
 //
-//     model;skin;surfOff;surfOn;saber1;colors1;saber2;colors2;class
+//     model;skin;surfOff;surfOn;saber1;colors1;saber2;colors2;class;r,g,b,a
 //
 // (';' because JA's three-part skins already use '|') registered in
 // CS_COOP_MODELSPECS and referenced from s.modelindex3, which the entity delta
@@ -119,7 +119,12 @@ void G_CoopUpdateAppearance( gentity_t *ent )
 	Com_sprintf( spec, sizeof( spec ), "%s;%s;%s;%s", a->modelName, a->customSkin, a->surfOff, a->surfOn );
 	G_CoopAppendSaber( spec, sizeof( spec ), &ent->client->ps.saber[0] );
 	G_CoopAppendSaber( spec, sizeof( spec ), ent->client->ps.dualSabers ? &ent->client->ps.saber[1] : NULL );
-	Q_strcat( spec, sizeof( spec ), va( ";%i", (int)ent->client->NPC_class ) );
+	Q_strcat( spec, sizeof( spec ), va( ";%i;%i,%i,%i,%i",
+		(int)ent->client->NPC_class,
+		(int)ent->client->renderInfo.customRGBA[0],
+		(int)ent->client->renderInfo.customRGBA[1],
+		(int)ent->client->renderInfo.customRGBA[2],
+		(int)ent->client->renderInfo.customRGBA[3] ) );
 
 	if ( !strcmp( spec, a->lastSpec ) )
 	{
