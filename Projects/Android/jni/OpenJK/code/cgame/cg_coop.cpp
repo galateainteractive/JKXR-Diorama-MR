@@ -176,6 +176,23 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	const char *f[10];
 	CG_CoopSplitSpec( spec, f, 10 );
 	const char *modelName = f[0], *skin = f[1], *surfOff = f[2], *surfOn = f[3];
+	const class_t npcClass = (class_t)atoi( f[8] );
+
+	// Vehicle characters require a live Vehicle_t and vehicleInfo_t, which are
+	// server-only state and are not part of the current co-op snapshot. Trying
+	// to rebuild them through G_SetG2PlayerModel dereferences that missing state.
+	// Keep their authoritative simulation on the host, but omit their model on
+	// a remote client until the vehicle state has a dedicated network format.
+	if ( npcClass == CLASS_VEHICLE )
+	{
+		if ( st->specIndex && gent->playerModel >= 0 )
+		{
+			CG_CoopTearDown( cent );
+		}
+		st->specIndex = specIndex;
+		gent->playerModel = -1;
+		return;
+	}
 
 	if ( st->specIndex )
 	{
@@ -195,7 +212,7 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	gent->s.number = entNum;
 	gent->inuse = qtrue;
 	gent->client->ps.clientNum = entNum;
-	gent->client->NPC_class = (class_t)atoi( f[8] );
+	gent->client->NPC_class = npcClass;
 	int rgba[4] = { 255, 255, 255, 255 };
 	if ( f[9][0] )
 	{
