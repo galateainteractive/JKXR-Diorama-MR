@@ -2070,7 +2070,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	// let the client system know what our weapon and zoom settings are
 	//FIXME: should really send forcePowersActive over network onto cg.snap->ps...
 	const centity_t *localCent = &cg_entities[cg.snap->ps.clientNum];
-	const int fpActive = CG_LocalPS( localCent )->forcePowersActive;
+	const playerState_t *localPS = CG_LocalPS( localCent );
+	const int fpActive = localPS->forcePowersActive;
 	const int localEFlags = ( !cg_remoteClient && localCent->gent ) ? localCent->gent->s.eFlags : cg.snap->ps.eFlags;
 	const bool matrixMode = !!(fpActive & ((1 << FP_SPEED) | (1 << FP_RAGE)));
 	float speed = cg.refdef.fov_y / 75.0 * (matrixMode ? 1.0f : cg_timescale.value);
@@ -2137,7 +2138,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	);
 
 	vr->third_person = cg.renderingThirdPerson;
-	vr->dualsabers = player->client->ps.dualSabers && cg.snap->ps.weapon == WP_SABER;
+	vr->dualsabers = localPS->dualSabers && localPS->weapon == WP_SABER;
 
 	if ( cg.zoomMode && !cg_tabletop.integer )
 	{
