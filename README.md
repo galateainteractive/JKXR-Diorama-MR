@@ -57,6 +57,7 @@ Quest application.
 
 - [Installation](docs/INSTALLATION.md)
 - [Diorama MR controls](docs/CONTROLS.md)
+- [Two-player LAN co-op POC](docs/COOP.md)
 - [Configuration and console variables](docs/CONFIGURATION.md)
 - [Differences from immersive VR](docs/VR_MODE.md)
 - [Known limitations](docs/KNOWN_ISSUES.md)

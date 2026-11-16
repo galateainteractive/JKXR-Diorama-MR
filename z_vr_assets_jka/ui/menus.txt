@@ -19,4 +19,5 @@
 	loadMenu { "ui/help_popup.menu" }
 	loadMenu { "ui/mpmap.menu" }
 	loadMenu { "ui/ngsaber.menu" }
+	loadMenu { "ui/coop.menu" }
 }

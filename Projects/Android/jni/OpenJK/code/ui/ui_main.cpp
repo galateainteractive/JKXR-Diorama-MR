@@ -107,6 +107,53 @@ extern qboolean    CL_GetCoopServerAddress( int index, char *out, int outSize );
 static int ui_coopServerSelection = 0;
 static float UI_GetCoopServerSelection( void ) { return (float)ui_coopServerSelection; }
 
+typedef struct coopMapEntry_s
+{
+	const char *label;
+	const char *map;
+} coopMapEntry_t;
+
+// Campaign entry points exposed by the controller-only co-op menu. Keeping the
+// map command in code (rather than a text cvar) also prevents command injection
+// through menu data and makes every selectable row a known campaign BSP.
+static const coopMapEntry_t ui_coopMaps[] =
+{
+	{ "Academia - Inicio",                 "academy1" },
+	{ "Academia - Treinamento",            "academy2" },
+	{ "Tier 1 - Fontes de poder",          "t1_sour" },
+	{ "Tier 1 - Surpresa",                 "t1_surprise" },
+	{ "Tier 1 - Missao fatal",             "t1_fatal" },
+	{ "Tier 1 - Perigo",                   "t1_danger" },
+	{ "Tier 1 - Trem",                     "t1_rail" },
+	{ "Hoth - Parte 1",                    "hoth2" },
+	{ "Hoth - Parte 2",                    "hoth3" },
+	{ "Tier 2 - Rancor",                   "t2_rancor" },
+	{ "Tier 2 - Viagem",                   "t2_trip" },
+	{ "Tier 2 - Resgate",                  "t2_wedge" },
+	{ "Tier 2 - Jedi renegado",            "t2_rogue" },
+	{ "Tier 2 - Predador",                 "t2_dpred" },
+	{ "Vjun - Parte 1",                    "vjun1" },
+	{ "Vjun - Parte 2",                    "vjun2" },
+	{ "Vjun - Parte 3",                    "vjun3" },
+	{ "Tier 3 - Fenda",                    "t3_rift" },
+	{ "Tier 3 - Debandada",                "t3_stamp" },
+	{ "Tier 3 - Culto",                    "t3_hevil" },
+	{ "Tier 3 - Byss",                     "t3_byss" },
+	{ "Tier 3 - Cacador de recompensas",   "t3_bounty" },
+	{ "Taspir - Parte 1",                  "taspir1" },
+	{ "Taspir - Parte 2",                  "taspir2" },
+	{ "Yavin - Parte 1",                   "yavin1" },
+	{ "Yavin - Parte 2",                   "yavin2" },
+	{ "Korriban - Parte 1",                "kor1" },
+	{ "Korriban - Parte 2",                "kor2" }
+};
+
+static int ui_coopMapSelection = 0;
+static int UI_CoopMapCount( void )
+{
+	return (int)( sizeof( ui_coopMaps ) / sizeof( ui_coopMaps[0] ) );
+}
+
 qboolean		Asset_Parse(char **buffer);
 menuDef_t		*Menus_FindByName(const char *p);
 void			Menus_HideItems(const char *menuName);
@@ -693,6 +740,14 @@ const char *UI_FeederItemText(float feederID, int index, int column, qhandle_t *
 	if (feederID == FEEDER_COOP_SERVERS)	// D3
 	{
 		return CL_GetCoopServerText( index );
+	}
+	else if (feederID == FEEDER_COOP_MAPS)
+	{
+		if ( index >= 0 && index < UI_CoopMapCount() )
+		{
+			return ui_coopMaps[index].label;
+		}
+		return "";
 	}
 	else if (feederID == FEEDER_SAVEGAMES)
 	{
@@ -1597,6 +1652,16 @@ static qboolean UI_RunMenuScript ( const char **args )
 			const int mp = (int)trap_Cvar_VariableValue( "ui_coopMaxPlayers" );
 			ui.Cmd_ExecuteText( EXEC_APPEND, va( "coop_host %i\n", mp > 0 ? mp : 2 ) );
 		}
+		else if ( Q_stricmp( name, "coopStart" ) == 0 )
+		{
+			// Start the selected campaign map with LAN networking already active.
+			int sel = ui_coopMapSelection;
+			if ( sel < 0 || sel >= UI_CoopMapCount() )
+			{
+				sel = 0;
+			}
+			ui.Cmd_ExecuteText( EXEC_APPEND, va( "coop_start %s\n", ui_coopMaps[sel].map ) );
+		}
 		else if ( Q_stricmp( name, "coopRefresh" ) == 0 )
 		{
 			// Rescan the LAN for co-op hosts (D2). The feeder reads cls.localServers.
@@ -1609,6 +1674,7 @@ static qboolean UI_RunMenuScript ( const char **args )
 			char addr[64];
 			if ( CL_GetCoopServerAddress( sel, addr, sizeof( addr ) ) )
 			{
+				Menus_CloseAll();
 				ui.Cmd_ExecuteText( EXEC_APPEND, va( "connect %s\n", addr ) );
 			}
 		}
@@ -1861,6 +1927,10 @@ static int UI_FeederCount(float feederID)
 	{
 		return CL_GetCoopServerCount();
 	}
+	else if (feederID == FEEDER_COOP_MAPS)
+	{
+		return UI_CoopMapCount();
+	}
 	else if (feederID == FEEDER_SAVEGAMES )
 	{
 		if (s_savegame.saveFileCnt == -1)
@@ -1934,6 +2004,13 @@ static void UI_FeederSelection(float feederID, int index, itemDef_t *item)
 	if (feederID == FEEDER_COOP_SERVERS)	// D3
 	{
 		ui_coopServerSelection = index;
+	}
+	else if (feederID == FEEDER_COOP_MAPS)
+	{
+		if ( index >= 0 && index < UI_CoopMapCount() )
+		{
+			ui_coopMapSelection = index;
+		}
 	}
 	else if (feederID == FEEDER_SAVEGAMES)
 	{

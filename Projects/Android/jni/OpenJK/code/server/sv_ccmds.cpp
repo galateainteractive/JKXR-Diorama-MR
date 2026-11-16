@@ -493,6 +493,23 @@ client cap); this build clamps it to MAX_CLIENTS (two players).
 */
 static int sv_coopMaxPlayers = 0;	// requested client cap, clamped to MAX_CLIENTS
 
+static qboolean SV_EnableCoopNetwork( int requestedPlayers ) {
+	int want = requestedPlayers;
+	if ( want < 1 ) want = 1;
+	if ( want > MAX_CLIENTS ) want = MAX_CLIENTS;
+
+	Cvar_Set( "sv_maxclients", va( "%i", want ) );
+	sv_maxclients = Cvar_Get( "sv_maxclients", "2", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE );
+	Cvar_Set( "net_enabled", "1" );
+	NET_Restart();
+
+	if ( !NET_IsSocketOpen() ) {
+		Com_Printf( "Co-op: failed to open a network socket.\n" );
+		return qfalse;
+	}
+	return qtrue;
+}
+
 static void SV_CoopHost_f( void ) {
 	if ( !com_sv_running->integer ) {
 		Com_Printf( "coop_host: no game is running — load a map first.\n" );
@@ -503,24 +520,7 @@ static void SV_CoopHost_f( void ) {
 		sv_coopMaxPlayers = atoi( Cmd_Argv( 1 ) );
 	}
 
-	// E1: raise the player limit to the requested count (clamped to MAX_CLIENTS).
-	// sv_maxclients is CVAR_LATCH; re-Cvar_Get after Cvar_Set applies the latched
-	// value so it takes effect for this running server without a map restart.
-	if ( sv_coopMaxPlayers > 0 ) {
-		int want = sv_coopMaxPlayers;
-		if ( want < 1 ) want = 1;
-		if ( want > MAX_CLIENTS ) want = MAX_CLIENTS;
-		Cvar_Set( "sv_maxclients", va( "%i", want ) );
-		sv_maxclients = Cvar_Get( "sv_maxclients", "2", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE );
-	}
-
-	// Enable networking and (re)bind the socket for the current cvars. net_enabled
-	// is CVAR_LATCH; NET_Restart re-reads it so this takes effect immediately.
-	Cvar_Set( "net_enabled", "1" );
-	NET_Restart();
-
-	if ( !NET_IsSocketOpen() ) {
-		Com_Printf( "coop_host: failed to open a network socket.\n" );
+	if ( !SV_EnableCoopNetwork( sv_coopMaxPlayers > 0 ? sv_coopMaxPlayers : 2 ) ) {
 		return;
 	}
 
@@ -533,6 +533,39 @@ static void SV_CoopHost_f( void ) {
 	}
 }
 
+/*
+==================
+SV_CoopStart_f
+
+coop_start <map> — controller-menu entry point. It opens the LAN socket before
+starting the selected campaign map, so no console or post-load command is
+needed on Quest.
+==================
+*/
+static void SV_CoopStart_f( void ) {
+	if ( Cmd_Argc() != 2 ) {
+		Com_Printf( "usage: coop_start <map>\n" );
+		return;
+	}
+
+	const char *map = Cmd_Argv( 1 );
+	for ( const char *p = map; *p; ++p ) {
+		const char c = *p;
+		if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
+				( c >= '0' && c <= '9' ) || c == '_' || c == '-' || c == '/' ) ) {
+			Com_Printf( "coop_start: invalid map name.\n" );
+			return;
+		}
+	}
+
+	if ( !map[0] || !SV_EnableCoopNetwork( 2 ) ) {
+		return;
+	}
+
+	Com_Printf( "^2Starting two-player co-op on %s.\n", map );
+	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", map ) );
+}
+
 void SV_AddOperatorCommands( void ) {
 	static qboolean	initialized;
 
@@ -542,6 +575,7 @@ void SV_AddOperatorCommands( void ) {
 	initialized = qtrue;
 
 	Cmd_AddCommand ("coop_host", SV_CoopHost_f);
+	Cmd_AddCommand ("coop_start", SV_CoopStart_f);
 	Cmd_AddCommand ("status", SV_Status_f);
 	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f);
 	Cmd_AddCommand ("systeminfo", SV_Systeminfo_f);

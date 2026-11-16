@@ -434,6 +434,42 @@
 //	OTHER MAIN MENU BUTTONS
 //----------------------------------------------------------------------------------------------
 
+		// Controller-only LAN co-op entry point.
+		itemDef
+		{
+			name				coopbutton
+			group				othermain
+			text				"COOPERATIVO"
+			descText			"Hospede uma fase ou entre em uma partida na rede local"
+			type				ITEM_TYPE_BUTTON
+			style				WINDOW_STYLE_EMPTY
+			rect				255 392 130 24
+			font				3
+			textscale			0.9
+			textalign			ITEM_ALIGN_CENTER
+			textstyle			3
+			textalignx			65
+			textaligny			-1
+			forecolor			1 .682 0 1
+			visible				1
+
+			mouseEnter
+			{
+				show			button_glow
+				setitemrect		button_glow 215 388 210 32
+			}
+			mouseExit
+			{
+				hide			button_glow
+			}
+			action
+			{
+				play			"sound/interface/button1.wav"
+				close			all
+				open			coopMenu
+			}
+		}
+
 		// EXIT button in lower left corner
 		itemDef 
 		{

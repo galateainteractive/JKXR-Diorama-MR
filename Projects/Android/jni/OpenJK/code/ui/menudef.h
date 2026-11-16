@@ -98,6 +98,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define FEEDER_MOVES_TITLES					0x16			// move titles for the data pad moves screen
 #define FEEDER_LANGUAGES					0x17			// the list of languages
 #define FEEDER_COOP_SERVERS					0x18			// D3: LAN co-op hosts (cls.localServers)
+#define FEEDER_COOP_MAPS					0x19			// Diorama co-op campaign map picker
 
 
 #define UI_VERSION				200
