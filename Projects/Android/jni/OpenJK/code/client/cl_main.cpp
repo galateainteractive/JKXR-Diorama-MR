@@ -1284,6 +1284,43 @@ static CMiniHeap *GetG2VertSpaceServer( void ) {
 #endif
 #endif
 
+/*
+============
+CL_RendererPointContents
+
+The renderer normally asks the integrated single-player server about dynamic
+brush contents. A remote co-op client has no local server world, so querying
+SV_PointContents there walks an uninitialized world-sector tree. The BSP
+collision map is still loaded and is the safe client-side fallback.
+============
+*/
+static int CL_RendererPointContents( const vec3_t p, clipHandle_t model )
+{
+	if ( com_sv_running && com_sv_running->integer )
+	{
+		return SV_PointContents( p, model );
+	}
+	return CM_PointContents( p, 0 );
+}
+
+static void CL_RendererTrace( trace_t *results, const vec3_t start,
+	const vec3_t mins, const vec3_t maxs, const vec3_t end,
+	const int passEntityNum, const int contentmask,
+	const EG2_Collision eG2TraceType, const int useLod )
+{
+	if ( com_sv_running && com_sv_running->integer )
+	{
+		SV_Trace( results, start, mins, maxs, end, passEntityNum,
+			contentmask, eG2TraceType, useLod );
+		return;
+	}
+
+	const float *traceMins = mins ? mins : vec3_origin;
+	const float *traceMaxs = maxs ? maxs : vec3_origin;
+	CM_BoxTrace( results, start, end, traceMins, traceMaxs, 0, contentmask );
+	results->entityNum = results->fraction != 1.0f ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
+}
+
 void CL_InitRef( void ) {
 	refexport_t	*ret;
 	static refimport_t rit;
@@ -1353,7 +1390,7 @@ void CL_InitRef( void ) {
 	RIT(Hunk_ClearToMark);
 	RIT(SND_RegisterAudio_LevelLoadEnd);
 	//RIT(SV_PointContents);
-	RIT(SV_Trace);
+	rit.SV_Trace = CL_RendererTrace;
 	RIT(S_RestartMusic);
 	RIT(Z_Free);
 	rit.Malloc=CL_Malloc;
@@ -1380,7 +1417,7 @@ void CL_InitRef( void ) {
 	rit.Printf = CL_RefPrintf;
 	rit.SE_GetString = String_GetStringValue;
 
-	rit.SV_Trace = SV_Trace;
+	rit.SV_Trace = CL_RendererTrace;
 
 	rit.gpvCachedMapDiskImage = get_gpvCachedMapDiskImage;
 	rit.gsCachedMapDiskImage = get_gsCachedMapDiskImage;
@@ -1388,7 +1425,7 @@ void CL_InitRef( void ) {
 	rit.gbAlreadyDoingLoad = get_gbAlreadyDoingLoad;
 	rit.com_frameTime = get_com_frameTime;
 
-	rit.SV_PointContents = SV_PointContents;
+	rit.SV_PointContents = CL_RendererPointContents;
 
 	rit.saved_game = &ojk::SavedGame::get_instance();
 
