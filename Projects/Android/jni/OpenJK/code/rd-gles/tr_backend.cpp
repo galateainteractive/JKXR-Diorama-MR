@@ -26,6 +26,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 #include "tr_common.h"
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 backEndData_t	*backEndData;
 backEndState_t	backEnd;
 
@@ -1326,6 +1330,13 @@ RB_DrawSurfs
 */
 const void	*RB_DrawSurfs( const void *data ) {
 	const drawSurfsCommand_t	*cmd;
+#if defined(__ANDROID__)
+	const int surfacesBefore = backEnd.pc.c_surfaces;
+	const int shadersBefore = backEnd.pc.c_shaders;
+	const int vertexesBefore = backEnd.pc.c_vertexes;
+	const int indexesBefore = backEnd.pc.c_indexes;
+	const int totalIndexesBefore = backEnd.pc.c_totalIndexes;
+#endif
 
 	// finish any 2D drawing if needed
 	if ( tess.numIndexes ) {
@@ -1338,6 +1349,60 @@ const void	*RB_DrawSurfs( const void *data ) {
 	backEnd.viewParms = cmd->viewParms;
 
 	RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs );
+
+#if defined(__ANDROID__)
+	if (ri.Cvar_VariableIntegerValue("cg_remoteClient"))
+	{
+		static int nextRemoteBackendLog = 0;
+		const int now = ri.Milliseconds();
+		if (now >= nextRemoteBackendLog)
+		{
+			nextRemoteBackendLog = now + 1000;
+			GLint framebuffer = 0;
+			GLint viewport[4] = { 0, 0, 0, 0 };
+			GLubyte pixels[5][4] = {};
+			// GL_FRAMEBUFFER_BINDING (0x8CA6) is part of GLES 2+, but the
+			// renderer's legacy compatibility header does not name it.
+			qglGetIntegerv(0x8CA6, &framebuffer);
+			qglGetIntegerv(GL_VIEWPORT, viewport);
+			const int sampleX[5] = {
+				viewport[0] + viewport[2] / 2,
+				viewport[0] + viewport[2] / 4,
+				viewport[0] + viewport[2] * 3 / 4,
+				viewport[0] + viewport[2] / 4,
+				viewport[0] + viewport[2] * 3 / 4
+			};
+			const int sampleY[5] = {
+				viewport[1] + viewport[3] / 2,
+				viewport[1] + viewport[3] / 4,
+				viewport[1] + viewport[3] / 4,
+				viewport[1] + viewport[3] * 3 / 4,
+				viewport[1] + viewport[3] * 3 / 4
+			};
+			for (int sample = 0; sample < 5; ++sample)
+			{
+				qglReadPixels(sampleX[sample], sampleY[sample], 1, 1,
+					GL_RGBA, GL_UNSIGNED_BYTE, pixels[sample]);
+			}
+			const GLenum glError = qglGetError();
+			__android_log_print(ANDROID_LOG_INFO, "JKXR-BACKEND",
+				"draw: eye=%d cmd=%d surfaces=%d shaders=%d verts=%d indexes=%d total=%d fbo=%d viewport=%d,%d,%d,%d gl=0x%x pixels=%u,%u,%u,%u|%u,%u,%u,%u|%u,%u,%u,%u|%u,%u,%u,%u|%u,%u,%u,%u",
+				(int)backEnd.refdef.stereoFrame, cmd->numDrawSurfs,
+				backEnd.pc.c_surfaces - surfacesBefore,
+				backEnd.pc.c_shaders - shadersBefore,
+				backEnd.pc.c_vertexes - vertexesBefore,
+				backEnd.pc.c_indexes - indexesBefore,
+				backEnd.pc.c_totalIndexes - totalIndexesBefore,
+				(int)framebuffer, viewport[0], viewport[1], viewport[2], viewport[3],
+				(unsigned int)glError,
+				pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3],
+				pixels[1][0], pixels[1][1], pixels[1][2], pixels[1][3],
+				pixels[2][0], pixels[2][1], pixels[2][2], pixels[2][3],
+				pixels[3][0], pixels[3][1], pixels[3][2], pixels[3][3],
+				pixels[4][0], pixels[4][1], pixels[4][2], pixels[4][3]);
+		}
+	}
+#endif
 
 	// Dynamic Glow/Flares:
 	/*

@@ -30,6 +30,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "client_ui.h"
 #include <VrCommon.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 extern console_t con;
 
 qboolean	scr_initialized;		// ready to draw
@@ -535,7 +539,24 @@ void SCR_UpdateScreen( void ) {
 		}
 		else
 		{
-			qboolean useStereoReplay = qtrue;
+			// The remote co-op client rebuilds Ghoul2 characters from snapshots in
+			// cgame.  Replaying the captured centre-eye command stream reuses those
+			// transient surfaces after the cgame frame has returned, which leaves the
+			// guest with a partially composed scene.  Render both eyes normally on
+			// that client; the host keeps the faster replay path.
+			const qboolean remoteCoopClient =
+				Cvar_VariableIntegerValue("cg_remoteClient") != 0 ? qtrue : qfalse;
+			qboolean useStereoReplay = remoteCoopClient ? qfalse : qtrue;
+
+#if defined(__ANDROID__)
+			static qboolean loggedRemoteStereoFallback = qfalse;
+			if (remoteCoopClient && !loggedRemoteStereoFallback)
+			{
+				loggedRemoteStereoFallback = qtrue;
+				__android_log_print(ANDROID_LOG_INFO, "JKXR-RENDER",
+					"remote co-op: using full per-eye rendering");
+			}
+#endif
 			qboolean replayed = qfalse;
 
 			if (useStereoReplay &&

@@ -430,7 +430,16 @@ void CG_CoopSyncCharacter( centity_t *cent )
 		{
 			continue;
 		}
-		const qboolean on = (qboolean)( s->weapon == WP_SABER && s->saberActive && !( saberNum == 0 && s->saberInFlight ) );
+		// The local guest's playerState does not network the full JKA saberInfo
+		// array, and its mirrored entityState can therefore report saberActive=0
+		// even while the authoritative host is accepting saber attacks.  The
+		// tabletop avatar should show its equipped blade; damage remains entirely
+		// authoritative on the host.
+		const qboolean localGuestSaber = (qboolean)(
+			CG_IsLocalPlayer( cent ) && s->weapon == WP_SABER );
+		const qboolean on = (qboolean)(
+			s->weapon == WP_SABER && ( s->saberActive || localGuestSaber ) &&
+			!( saberNum == 0 && s->saberInFlight ) );
 		for ( int b = 0; b < saber->numBlades; b++ )
 		{
 			bladeInfo_t *blade = &saber->blade[b];
