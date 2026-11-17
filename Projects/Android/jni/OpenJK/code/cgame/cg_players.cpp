@@ -35,6 +35,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <VrClientInfo.h>
 #include <VrTBDC.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #define	LOOK_SWING_SCALE	0.5f
 #define	CG_SWINGSPEED		0.3f
 
@@ -6833,6 +6837,24 @@ Ghoul2 Insert End
 	}
 	// Pass in the renderfx flags attached to the saber weapon model...this is done so that saber glows
 	//	will get rendered properly in a mirror...not sure if this is necessary??
+	if ( cg_remoteClient )
+	{
+		renderfx |= RF_COOP_SABER_DIAG;
+#if defined(__ANDROID__)
+		static int nextCoopSaberLog[MAX_GENTITIES] = { 0 };
+		const int saberOwner = cent->currentState.number;
+		if ( saberOwner >= 0 && saberOwner < MAX_GENTITIES && cg.time >= nextCoopSaberLog[saberOwner] )
+		{
+			nextCoopSaberLog[saberOwner] = cg.time + 1000;
+			__android_log_print( ANDROID_LOG_INFO, "JKXR-RENDER",
+				"saber submitted: ent=%d client=%d local=%d blade=%d active=%d length=%.2f max=%.2f org=%.1f,%.1f,%.1f",
+				saberOwner, cent->currentState.clientNum, (int)CG_IsLocalPlayer( cent ), bladeNum,
+				(int)client->ps.saber[saberNum].blade[bladeNum].active, length,
+				client->ps.saber[saberNum].blade[bladeNum].lengthMax,
+				org_[0], org_[1], org_[2] );
+		}
+#endif
+	}
 	CG_DoSaber(
 		org_, axis_[0], length,
 		client->ps.saber[saberNum].blade[bladeNum].lengthMax,
@@ -7452,6 +7474,25 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 			{//draw a health bar over them
 				CG_AddHealthBarEnt( cent->currentState.clientNum );
 			}
+		}
+		if ( cg_remoteClient )
+		{
+			ent.renderfx |= RF_COOP_PLAYER_DIAG;
+#if defined(__ANDROID__)
+			static int nextCoopPlayerLog[MAX_GENTITIES] = { 0 };
+			const int playerEnt = cent->currentState.number;
+			if ( playerEnt >= 0 && playerEnt < MAX_GENTITIES && cg.time >= nextCoopPlayerLog[playerEnt] )
+			{
+				nextCoopPlayerLog[playerEnt] = cg.time + 1000;
+				__android_log_print( ANDROID_LOG_INFO, "JKXR-RENDER",
+					"player submitted: ent=%d client=%d local=%d org=%.1f,%.1f,%.1f radius=%.1f scale=%.2f,%.2f,%.2f renderfx=0x%x g2=%d anim=%d/%d",
+					playerEnt, cent->currentState.clientNum, (int)CG_IsLocalPlayer( cent ),
+					ent.origin[0], ent.origin[1], ent.origin[2], ent.radius,
+					ent.modelScale[0], ent.modelScale[1], ent.modelScale[2], ent.renderfx,
+					ent.ghoul2 ? (int)ent.ghoul2->size() : 0,
+					cent->currentState.legsAnim, cent->currentState.torsoAnim );
+			}
+#endif
 		}
 		CG_AddRefEntityWithPowerups( &ent, cent->currentState.powerups, cent );
 		VectorCopy( tempAngles, cent->renderAngles );

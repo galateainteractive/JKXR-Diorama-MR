@@ -29,6 +29,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 #include <VrClientInfo.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #if !defined(G2_H_INC)
 	#include "../ghoul2/G2.h"
 #endif
@@ -1273,6 +1277,10 @@ void R_AddDrawSurf( const surfaceType_t *surface, const jk_shader_t *shader, int
 	{
 		fogIndex = tr.world->numfogs;
 	}
+	else if ( tr.refdef.rdflags & RDF_NOFOG )
+	{
+		fogIndex = 0;
+	}
 
 	if ( (shader->surfaceFlags & SURF_FORCESIGHT) && !(tr.refdef.rdflags & RDF_ForceSightOn) )
 	{	//if shader is only seen with ForceSight and we don't have ForceSight on, then don't draw
@@ -1409,6 +1417,7 @@ void R_AddEntitySurfaces (void) {
 		case RT_LINE:
 		case RT_ELECTRICITY:
 		case RT_SABER_GLOW:
+		{
 			// self blood sprites, talk balloons, etc should not be drawn in the primary
 			// view.  We can't just do this check for all entities, because md3
 			// entities may still want to cast shadows from them
@@ -1416,8 +1425,26 @@ void R_AddEntitySurfaces (void) {
 				continue;
 			}
 			shader = R_GetShaderByHandle( ent->e.customShader );
-			R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), 0 );
+			const int fogNum = tr.refdef.tabletopFocusValid
+				? 0 : R_SpriteFogNum( ent );
+			R_AddDrawSurf( &entitySurface, shader, fogNum, 0 );
+#if defined(__ANDROID__)
+			if ( ent->e.renderfx & RF_COOP_SABER_DIAG )
+			{
+				static int nextSaberLogTime = 0;
+				if ( tr.refdef.time >= nextSaberLogTime )
+				{
+					nextSaberLogTime = tr.refdef.time + 1000;
+					__android_log_print( ANDROID_LOG_INFO, "JKXR-RENDER",
+						"saber accepted: eye=%d type=%d fog=%d org=%.1f,%.1f,%.1f old=%.1f,%.1f,%.1f radius=%.2f",
+						(int)tr.currentStereoFrame, (int)ent->e.reType, fogNum,
+						ent->e.origin[0], ent->e.origin[1], ent->e.origin[2],
+						ent->e.oldorigin[0], ent->e.oldorigin[1], ent->e.oldorigin[2], ent->e.radius );
+				}
+			}
+#endif
 			break;
+		}
 
 		case RT_MODEL:
 			// we must set up parts of tr.or for model culling
@@ -1482,9 +1509,12 @@ R_GenerateDrawSurfs
 ====================
 */
 void R_GenerateDrawSurfs( void ) {
+	const int firstDrawSurf = tr.refdef.numDrawSurfs;
 	R_AddWorldSurfaces ();
+	const int afterWorld = tr.refdef.numDrawSurfs;
 
 	R_AddPolygonSurfaces();
+	const int afterPolygons = tr.refdef.numDrawSurfs;
 
 	// set the projection matrix with the minimum zfar
 	// now that we have the world bounded
@@ -1494,6 +1524,25 @@ void R_GenerateDrawSurfs( void ) {
 	R_SetupProjection ();
 
 	R_AddEntitySurfaces ();
+
+#if defined(__ANDROID__)
+	if ( tr.refdef.tabletopFocusValid )
+	{
+		static int nextSceneLogTime = 0;
+		if ( tr.refdef.time >= nextSceneLogTime )
+		{
+			nextSceneLogTime = tr.refdef.time + 1000;
+			__android_log_print( ANDROID_LOG_INFO, "JKXR-RENDER",
+				"scene: eye=%d rdflags=0x%x view=%.1f,%.1f,%.1f focus=%.1f,%.1f,%.1f world=%d polys=%d entities=%d total=%d refs=%d",
+				(int)tr.currentStereoFrame, tr.refdef.rdflags,
+				tr.viewParms.ori.origin[0], tr.viewParms.ori.origin[1], tr.viewParms.ori.origin[2],
+				tr.refdef.tabletopFocus[0], tr.refdef.tabletopFocus[1], tr.refdef.tabletopFocus[2],
+				afterWorld - firstDrawSurf, afterPolygons - afterWorld,
+				tr.refdef.numDrawSurfs - afterPolygons,
+				tr.refdef.numDrawSurfs - firstDrawSurf, tr.refdef.num_entities );
+		}
+	}
+#endif
 }
 
 /*

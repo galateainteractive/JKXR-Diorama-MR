@@ -5259,10 +5259,15 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 	if (!tabletopActive)
 	{
 		cg.refdef.rdflags |= RDF_DRAWSKYBOX;
+		cg.refdef.rdflags &= ~RDF_NOFOG;
 	}
 	else
 	{
 		cg.refdef.rdflags &= ~RDF_DRAWSKYBOX;
+		// Fog distances are authored for the player's first-person camera.  The
+		// tabletop observer can sit far outside those distances, which otherwise
+		// turns the entire miniature into an opaque fog-coloured block.
+		cg.refdef.rdflags |= RDF_NOFOG;
 	}
 
 	// draw 3D view

@@ -26,7 +26,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../client/vmachine.h"
 
 #if !defined(TR_LOCAL_H)
-	#include "tr_local.h"
+#include "tr_local.h"
+
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
 #endif
 
 #include "tr_common.h"
@@ -2567,10 +2571,32 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 	skin_t			*skin;
 	int				modelCount;
 	mdxaBone_t		rootMatrix;
+	qboolean		coopDiagLog = qfalse;
+
+#if defined(__ANDROID__)
+	if ( ent->e.renderfx & RF_COOP_PLAYER_DIAG )
+	{
+		static int nextCoopGhoulLog[MAX_REFENTITIES] = { 0 };
+		const int refEntityNum = tr.currentEntityNum;
+		if ( refEntityNum >= 0 && refEntityNum < MAX_REFENTITIES &&
+			tr.refdef.time >= nextCoopGhoulLog[refEntityNum] )
+		{
+			nextCoopGhoulLog[refEntityNum] = tr.refdef.time + 1000;
+			coopDiagLog = qtrue;
+		}
+	}
+#endif
 
 	// if we don't want ghoul2 models, then return
 	if (r_noGhoul2->integer)
 	{
+#if defined(__ANDROID__)
+		if ( coopDiagLog )
+		{
+			__android_log_print( ANDROID_LOG_WARN, "JKXR-RENDER",
+				"player rejected: ref=%d reason=r_noGhoul2", tr.currentEntityNum );
+		}
+#endif
 		return;
 	}
 
@@ -2579,6 +2605,14 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 
 	if (!G2_SetupModelPointers(ghoul2))
 	{
+#if defined(__ANDROID__)
+		if ( coopDiagLog )
+		{
+			__android_log_print( ANDROID_LOG_WARN, "JKXR-RENDER",
+				"player rejected: ref=%d reason=model-pointers g2=%d",
+				tr.currentEntityNum, (int)ghoul2.size() );
+		}
+#endif
 		return;
 	}
 
@@ -2590,6 +2624,16 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 	cull = R_GCullModel (ent );
 	if ( cull == CULL_OUT )
 	{
+#if defined(__ANDROID__)
+		if ( coopDiagLog )
+		{
+			__android_log_print( ANDROID_LOG_WARN, "JKXR-RENDER",
+				"player rejected: ref=%d reason=frustum eye=%d org=%.1f,%.1f,%.1f radius=%.1f scale=%.2f,%.2f,%.2f",
+				tr.currentEntityNum, (int)tr.currentStereoFrame,
+				ent->e.origin[0], ent->e.origin[1], ent->e.origin[2], ent->e.radius,
+				ent->e.modelScale[0], ent->e.modelScale[1], ent->e.modelScale[2] );
+		}
+#endif
 		return;
 	}
 	HackadelicOnClient=true;
@@ -2614,6 +2658,17 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 	// sort the ghoul 2 models so bolt ons get bolted to the right model
 	G2_Sort_Models(ghoul2, modelList, &modelCount);
 	assert(modelList[31]==548);
+
+#if defined(__ANDROID__)
+	if ( coopDiagLog )
+	{
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-RENDER",
+			"player accepted: ref=%d eye=%d cull=%d fog=%d personal=%d models=%d org=%.1f,%.1f,%.1f radius=%.1f",
+			tr.currentEntityNum, (int)tr.currentStereoFrame, cull, fogNum,
+			(int)personalModel, modelCount,
+			ent->e.origin[0], ent->e.origin[1], ent->e.origin[2], ent->e.radius );
+	}
+#endif
 
 #ifdef _G2_GORE
 	if (goreShader == -1)

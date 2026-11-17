@@ -108,7 +108,8 @@ void R_AddPolygonSurfaces( void ) {
 
 	for ( i = 0, poly = tr.refdef.polys; i < tr.refdef.numPolys ; i++, poly++ ) {
 		sh = R_GetShaderByHandle( poly->hShader );
-		R_AddDrawSurf( ( surfaceType_t * )poly, sh, poly->fogIndex, qfalse );
+		const int fogIndex = tr.refdef.tabletopFocusValid ? 0 : poly->fogIndex;
+		R_AddDrawSurf( ( surfaceType_t * )poly, sh, fogIndex, qfalse );
 	}
 }
 

@@ -385,7 +385,11 @@ static void RB_SurfaceLine( void )
 	VectorSubtract( start, backEnd.viewParms.ori.origin, v1 );
 	VectorSubtract( end, backEnd.viewParms.ori.origin, v2 );
 	CrossProduct( v1, v2, right );
-	VectorNormalize( right );
+	if ( VectorNormalize( right ) < 0.0001f )
+	{
+		// Keep an end-on saber core from collapsing to zero-area triangles.
+		VectorCopy( backEnd.viewParms.ori.axis[1], right );
+	}
 
 	DoLine( start, end, right, e->radius);
 }

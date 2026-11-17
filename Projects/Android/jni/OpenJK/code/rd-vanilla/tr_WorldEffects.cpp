@@ -1016,6 +1016,7 @@ public:
 	int			mParticleCount;
 
 	bool		mWaterParticles;
+	bool		mTabletopFog;
 
 
 
@@ -1089,6 +1090,7 @@ public:
 		//========================================================
 		mOrientWithVelocity = false;
 		mWaterParticles		= false;
+		mTabletopFog			= false;
 
 		mSpawnPlaneDistance	= 500;
 		mSpawnPlaneSize		= 500;
@@ -1650,6 +1652,10 @@ void RB_RenderWorldEffects(void)
 		mParticlesRendered = 0;
 		for (int i=0; i<mParticleClouds.size(); i++)
 		{
+			if ((backEnd.refdef.rdflags & RDF_NOFOG) && mParticleClouds[i].mTabletopFog)
+			{
+				continue;
+			}
 			mParticleClouds[i].Update();
 			mParticleClouds[i].Render();
 		}
@@ -2052,6 +2058,7 @@ void R_WorldEffectCommand(const char *command)
 		}
 		CParticleCloud& nCloud = mParticleClouds.push_back();
 		nCloud.Initialize(60, "gfx/effects/alpha_smoke2b.tga");
+		nCloud.mTabletopFog = true;
 		nCloud.mBlendMode	= 1;
 		nCloud.mGravity		= 0;
  		nCloud.mWidth		= 70;
@@ -2077,6 +2084,7 @@ void R_WorldEffectCommand(const char *command)
 		}
 		CParticleCloud& nCloud = mParticleClouds.push_back();
  		nCloud.Initialize(70, "gfx/effects/alpha_smoke2b.tga");
+		nCloud.mTabletopFog = true;
 		nCloud.mBlendMode	= 1;
 		nCloud.mGravity		= 0;
  		nCloud.mWidth		= 100;
@@ -2105,6 +2113,7 @@ void R_WorldEffectCommand(const char *command)
 		}
 		CParticleCloud& nCloud = mParticleClouds.push_back();
 		nCloud.Initialize(40, "gfx/effects/alpha_smoke2b.tga");
+		nCloud.mTabletopFog = true;
 		nCloud.mBlendMode	= 1;
 		nCloud.mGravity		= 0;
  		nCloud.mWidth		= 100;

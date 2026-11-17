@@ -78,6 +78,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #define RF_VRVIEWMODEL     0x1000000 // specifically drawing a VR hand/weapon model
 
+// Diagnostic-only markers used to follow co-op player and saber submissions
+// through the renderer.  They do not alter rendering behavior.
+#define RF_COOP_PLAYER_DIAG 0x2000000
+#define RF_COOP_SABER_DIAG  0x4000000
+
 // refdef flags
 #define RDF_NOWORLDMODEL	1		// used for player configuration screen
 #define RDF_HYPERSPACE		4		// teleportation effect
@@ -88,6 +93,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define RDF_doLAGoggles		32		// Light Amp goggles
 #define RDF_doFullbright	64		// Light Amp goggles
 #define RDF_ForceSightOn	128		// using force sight
+#define RDF_NOFOG			256		// suppress map/weather fog for this scene
 
 
 extern int	skyboxportal;
