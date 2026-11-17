@@ -95,6 +95,7 @@ void CG_SetInitialSnapshot( snapshot_t *snap ) {
 	//CG_BuildSolidList();
 
 	CG_ExecuteNewServerCommands( snap->serverCommandSequence );
+	CG_CoopStartMusic();	// remote client: turn the level music preload into playback
 
 	// set our local weapon selection pointer to
 	// what the server has indicated the current weapon is

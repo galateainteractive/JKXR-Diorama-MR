@@ -497,6 +497,49 @@ static int			coopDownMax;		// downed overlay: the bleed-out total, taken from th
 static char			coopSoundSetName[MAX_COOP_SOUNDSETS][64];	// CS_COOP_SOUNDSETS, as gentity soundSet pointers
 static qboolean		coopAllDownShown;	// the everyone-down screen is up: no overlay under it
 
+/*
+================
+CG_CoopStartMusic
+
+CG_Init preloads music with bCalledByCGameStart=true, which deliberately stops
+it again to avoid loading stutter.  The host receives a later local start, but a
+network guest already had CS_MUSIC in its initial gamestate and never saw a
+configstring change to trigger that second call.  Start it once the first valid
+snapshot and all pending server commands are available.
+================
+*/
+void CG_CoopStartMusic( void )
+{
+	if ( !cg_remoteClient )
+	{
+		return;
+	}
+	const char *music = CG_ConfigString( CS_MUSIC );
+	const char *state = CG_ConfigString( CS_DYNAMIC_MUSIC_STATE );
+#if defined(__ANDROID__)
+	__android_log_print( music && music[0] ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+		"JKXR-MUSIC", "initial snapshot: track='%s' state='%s' volume=%.3f",
+		music ? music : "", state ? state : "", atof( cgi_Cvar_Get( "s_musicvolume" ) ) );
+#endif
+	if ( music && music[0] )
+	{
+		CG_StartMusic( qtrue );	// real playback, not the preload-and-stop init call
+	}
+}
+
+void CG_CoopMusicStateChanged( const char *state )
+{
+#if defined(__ANDROID__)
+	if ( cg_remoteClient )
+	{
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-MUSIC",
+			"dynamic state='%s'", state ? state : "" );
+	}
+#else
+	(void)state;
+#endif
+}
+
 void CG_CoopReset( void )
 {
 	// CG_PreInit: whatever the pack list is right now is what CG_RegisterGraphics

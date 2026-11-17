@@ -607,6 +607,8 @@ void CG_CoopMenu_f( void );
 void CG_CoopAllDown_f( void );
 void CG_CoopDrawDowned( void );
 void CG_CoopReset( void );
+void CG_CoopStartMusic( void );
+void CG_CoopMusicStateChanged( const char *state );
 void CG_CoopModelSpecChanged( int specIndex );	// coop: CS_COOP_MODELSPECS slot rewritten
 void CG_CoopEnts_f( void );
 // entity slot of the local player: 0 on the host (vanilla), the assigned slot on a remote client

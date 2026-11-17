@@ -136,8 +136,36 @@ static void CL_CG_Stub_trace( trace_t *results, const vec3_t start, const vec3_t
 }
 static int CL_CG_Stub_pointcontents( const vec3_t point, int passEntityNum ) { CL_CG_STUB_WARN(pointcontents); return 0; }
 static void CL_CG_Stub_SetBrushModel( gentity_t *ent, const char *name ) { CL_CG_STUB_WARN(SetBrushModel); }
-static qboolean CL_CG_Stub_inPVS( const vec3_t p1, const vec3_t p2 ) { CL_CG_STUB_WARN(inPVS); return qtrue; }
-static qboolean CL_CG_Stub_inPVSIgnorePortals( const vec3_t p1, const vec3_t p2 ) { CL_CG_STUB_WARN(inPVSIgnorePortals); return qtrue; }
+
+// The remote cgame owns the same client collision map and renderer used by the
+// normal VM syscalls, so PVS queries do not need server state.  Returning true
+// here made every misc_model_static parsed by JACoop visible from the tabletop
+// camera, even when the player was in a different room.  Use the renderer PVS
+// and the current snapshot's area mask, matching the world renderer's culling.
+static qboolean CL_CG_inPVSIgnorePortals( const vec3_t p1, const vec3_t p2 )
+{
+	vec3_t from, to;
+	VectorCopy( p1, from );
+	VectorCopy( p2, to );
+	return re.R_inPVS( from, to );
+}
+
+static qboolean CL_CG_inPVS( const vec3_t p1, const vec3_t p2 )
+{
+	if ( !CL_CG_inPVSIgnorePortals( p1, p2 ) )
+	{
+		return qfalse;
+	}
+
+	const int leaf = CM_PointLeafnum( p2 );
+	const int area = CM_LeafArea( leaf );
+	if ( area >= 0 && area < MAX_MAP_AREA_BYTES * 8
+		&& ( cl.frame.areamask[area >> 3] & ( 1 << ( area & 7 ) ) ) )
+	{
+		return qfalse;	// an area portal (normally a closed door) blocks it
+	}
+	return qtrue;
+}
 static void CL_CG_Stub_AdjustAreaPortalState( gentity_t *ent, qboolean open ) { CL_CG_STUB_WARN(AdjustAreaPortalState); }
 static void CL_CG_Stub_GetUserinfo( int num, char *buffer, int bufferSize ) {
 	CL_CG_STUB_WARN(GetUserinfo);
@@ -184,8 +212,8 @@ static void CL_BuildCGameImport( game_import_t &import ) {
 	import.totalMapContents = CM_TotalMapContents;	// collision model (client-loaded)
 	import.SetBrushModel = CL_CG_Stub_SetBrushModel;
 
-	import.inPVS = CL_CG_Stub_inPVS;
-	import.inPVSIgnorePortals = CL_CG_Stub_inPVSIgnorePortals;
+	import.inPVS = CL_CG_inPVS;
+	import.inPVSIgnorePortals = CL_CG_inPVSIgnorePortals;
 
 	// bucket 2: gamestate-backed
 	import.SetConfigstring = CL_CG_SetConfigstring;

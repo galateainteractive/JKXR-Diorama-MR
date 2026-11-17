@@ -138,6 +138,8 @@ static void CG_ConfigStringModified( void ) {
 	}
 	else if ( num == CS_MUSIC ) {
 		CG_StartMusic( qtrue );
+	} else if ( num == CS_DYNAMIC_MUSIC_STATE ) {
+		CG_CoopMusicStateChanged( str );
 	} else if ( num == CS_SERVERINFO ) {
 		CG_ParseServerinfo();
 	} else if ( num >= CS_MODELS && num < CS_MODELS+MAX_MODELS ) {
