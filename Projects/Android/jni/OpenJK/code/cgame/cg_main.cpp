@@ -32,6 +32,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include <VrClientInfo.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 //NOTENOTE: Be sure to change the mirrored code in g_shared.h
 typedef	std::map< sstring_t, unsigned char  >	namePrecache_m;
 extern namePrecache_m	*as_preCacheMap;
@@ -2267,7 +2271,15 @@ void CG_PreInit() {
 	iCGResetCount = 0;
 
 	CG_RegisterCvars();
-	cg_remoteClient = (qboolean)( cg_remoteClientCvar.integer != 0 );
+	// GetCGameAPI sets cg_remoteClient before dllEntry calls us. Preserve that
+	// authoritative signal; the cvar remains useful for diagnostics/fallback.
+	cg_remoteClient = (qboolean)( cg_remoteClient || cg_remoteClientCvar.integer != 0 );
+
+#if defined(__ANDROID__)
+	__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
+		"cgame preinit: remote=%d cvar=%d", (int)cg_remoteClient,
+		cg_remoteClientCvar.integer );
+#endif
 
 //moved from CG_GameStateReceived because it's loaded sooner now
 	CG_InitLocalEntities();

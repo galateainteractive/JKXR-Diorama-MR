@@ -39,6 +39,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/ojk_saved_game_helper.h"
 #include "qcommon/q_version.h"
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 extern void WP_SaberLoadParms( void );
 extern qboolean G_PlayerSpawned( void );
 
@@ -959,6 +963,13 @@ extern "C" Q_EXPORT void QDECL GetCGameAPI( game_import_t *import ) {
 
 	gi = *import;
 
+	// GetCGameAPI is an unambiguous signal: it is only used by the
+	// serverless co-op guest.  Do not make the rendering path depend solely on
+	// a cvar surviving the two-stage DLL bootstrap (GetCGameAPI, then dllEntry).
+	// CG_PreInit preserves this forced value when it registers the cvars.
+	cg_remoteClient = qtrue;
+	gi.cvar_set( "cg_remoteClient", "1" );
+
 	gameinfo_import.FS_FOpenFile = gi.FS_FOpenFile;
 	gameinfo_import.FS_Read = gi.FS_Read;
 	gameinfo_import.FS_FCloseFile = gi.FS_FCloseFile;
@@ -980,27 +991,33 @@ extern "C" Q_EXPORT void QDECL GetCGameAPI( game_import_t *import ) {
 	// out of g_entities[]/level.clients, which InitGame allocates on the host. A
 	// serverless remote client never runs InitGame, so allocate and wire the
 	// client array here (zeroed; filled per entity from the network by
-	// cg_coop.cpp). cg_remoteClient is set by CL_InitCGame's dual-load branch
-	// and stays 0 on the host, where this block is a no-op.
-	if ( gi.cvar( "cg_remoteClient", "0", 0 )->integer )
+	// cg_coop.cpp). GetCGameAPI itself is never called on the host, so this
+	// setup is unconditional and cannot silently disappear because a cvar was
+	// registered/reset during bootstrap.
+	memset( g_entities, 0, MAX_GENTITIES * sizeof(g_entities[0]) );
+	globals.gentities = g_entities;
+	level.maxclients = MAX_CLIENTS;
+	level.clients = (gclient_t *) G_Alloc( level.maxclients * sizeof(level.clients[0]) );
+	memset( level.clients, 0, level.maxclients * sizeof(level.clients[0]) );
+	for ( int i = 0; i < level.maxclients; i++ )
 	{
-		memset( g_entities, 0, MAX_GENTITIES * sizeof(g_entities[0]) );
-		globals.gentities = g_entities;
-		level.maxclients = MAX_CLIENTS;
-		level.clients = (gclient_t *) G_Alloc( level.maxclients * sizeof(level.clients[0]) );
-		memset( level.clients, 0, level.maxclients * sizeof(level.clients[0]) );
-		for ( int i = 0; i < level.maxclients; i++ )
-		{
-			g_entities[i].client = level.clients + i;
-		}
-
-		// The remote copy of the gamecode runs shared code paths that read the
-		// game cvars (PM_SetAnimFinal -> g_timescale, trajectories -> g_gravity,
-		// ...) and parse sabers.cfg (character rebuild). Both are client-safe:
-		// cvar registration and file reads only.
-		G_InitCvars();
-		WP_SaberLoadParms();
+		g_entities[i].client = level.clients + i;
 	}
+
+	// The remote copy of the gamecode runs shared code paths that read the
+	// game cvars (PM_SetAnimFinal -> g_timescale, trajectories -> g_gravity,
+	// ...) and parse sabers.cfg (character rebuild). Both are client-safe:
+	// cvar registration and file reads only.
+	G_InitCvars();
+	WP_SaberLoadParms();
+
+#if defined(__ANDROID__)
+	__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
+		"guest game bootstrap active: remote=%d cvar=%d clients=%d",
+		(int)cg_remoteClient,
+		gi.cvar( "cg_remoteClient", "0", 0 )->integer,
+		level.maxclients );
+#endif
 }
 
 void QDECL G_Error( const char *fmt, ... ) {

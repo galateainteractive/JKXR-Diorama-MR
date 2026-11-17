@@ -39,6 +39,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../game/anims.h"
 #include "../game/wp_saber.h"
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 extern qboolean ValidAnimFileIndex( int index );
 extern void G_SetG2PlayerModel( gentity_t * const ent, const char *modelName, const char *customSkin, const char *surfOff, const char *surfOn );
 // (WP_SaberAddG2SaberModels is declared in wp_saber.h)
@@ -54,6 +58,8 @@ typedef struct coopCharState_s {
 } coopCharState_t;
 
 static coopCharState_t	coopChar[MAX_GENTITIES];
+static qboolean	coopLoggedEntity[MAX_GENTITIES];
+static qboolean	coopLoggedMissingSpec[MAX_GENTITIES];
 
 /*
 ================
@@ -160,8 +166,18 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	const int specIndex = cent->currentState.modelindex3;
 	if ( specIndex <= 0 || specIndex >= MAX_COOP_MODELSPECS )
 	{
+#if defined(__ANDROID__)
+		if ( !coopLoggedMissingSpec[entNum] )
+		{
+			coopLoggedMissingSpec[entNum] = qtrue;
+			__android_log_print( ANDROID_LOG_WARN, "JKXR-COOP",
+				"player %d has no valid appearance spec (index=%d client=%d)",
+				entNum, specIndex, cent->currentState.clientNum );
+		}
+#endif
 		return;
 	}
+	coopLoggedMissingSpec[entNum] = qfalse;
 	if ( specIndex == st->specIndex && gent->playerModel >= 0 )
 	{
 		return;
@@ -171,6 +187,11 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	Q_strncpyz( spec, CG_ConfigString( CS_COOP_MODELSPECS + specIndex ), sizeof( spec ) );
 	if ( !spec[0] )
 	{
+#if defined(__ANDROID__)
+		__android_log_print( ANDROID_LOG_WARN, "JKXR-COOP",
+			"player %d appearance configstring %d is empty",
+			entNum, CS_COOP_MODELSPECS + specIndex );
+#endif
 		return;
 	}
 	const char *f[10];
@@ -230,6 +251,11 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	G_SetG2PlayerModel( gent, modelName, skin[0] ? skin : NULL, surfOff[0] ? surfOff : NULL, surfOn[0] ? surfOn : NULL );
 	if ( gent->playerModel < 0 )
 	{
+#if defined(__ANDROID__)
+		__android_log_print( ANDROID_LOG_ERROR, "JKXR-COOP",
+			"player %d failed to build model '%s' spec=%d",
+			entNum, modelName, specIndex );
+#endif
 		return;
 	}
 
@@ -242,6 +268,12 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	st->weapon = -1;		// force the weapon models to be (re)attached
 	st->legsTimer = st->torsoTimer = 0;
 	gent->client->ps.legsAnim = gent->client->ps.torsoAnim = -1;
+
+#if defined(__ANDROID__)
+	__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
+		"player %d rebuilt model='%s' spec=%d saber='%s'",
+		entNum, modelName, specIndex, f[4] );
+#endif
 }
 
 /*
@@ -406,5 +438,19 @@ void CG_CoopSyncEntity( centity_t *cent )
 	{
 		return;
 	}
+
+#if defined(__ANDROID__)
+	const int entNum = cent->currentState.number;
+	if ( entNum >= 0 && entNum < MAX_GENTITIES &&
+		cent->currentState.eType == ET_PLAYER && !coopLoggedEntity[entNum] )
+	{
+		coopLoggedEntity[entNum] = qtrue;
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
+			"first player snapshot: ent=%d client=%d spec=%d weapon=%d anim=%d/%d",
+			entNum, cent->currentState.clientNum,
+			cent->currentState.modelindex3, cent->currentState.weapon,
+			cent->currentState.legsAnim, cent->currentState.torsoAnim );
+	}
+#endif
 	CG_CoopEnsureCharacter( cent );
 }
