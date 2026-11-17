@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../ui/ui_shared.h"
 
 #include "client.h"
+#include "snd_music.h"
 #include "vmachine.h"
 #include "qcommon/stringed_ingame.h"
 #include "sys/sys_loadlib.h"
@@ -1755,6 +1756,15 @@ void CL_InitCGame( void ) {
 	// because SV_InitGameProgs already populated cgvm.entryPoint.
 	if ( !cgvm.entryPoint ) {
 		Com_Printf( "^5dual-load: initialising cgame on remote client\n" );	// A3 probe (temporary)
+
+		// A normal SP host does this from SV_SpawnServer.  A serverless co-op
+		// guest never enters that path, but dynamic music with an empty CS_MUSIC
+		// relies on the current level name to find its dms.dat entry.
+		Music_SetLevelName( mapname );
+#if defined(__ANDROID__)
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-MUSIC",
+			"remote level music data: map='%s'", mapname );
+#endif
 
 		// tell the dual-loaded cgame it is a serverless remote client (read in
 		// GetCGameAPI and CG_Init). The host never enters this branch.

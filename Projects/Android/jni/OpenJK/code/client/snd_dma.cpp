@@ -36,6 +36,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "snd_music.h"
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
 #if defined(_WIN32)
 #include <windows.h>
 #endif
@@ -4533,6 +4536,10 @@ void S_StartBackgroundTrack( const char *intro, const char *loop, qboolean bCall
 
 	if (!s_soundStarted)
 	{	//we have no sound, so don't even bother trying
+#if defined(__ANDROID__)
+		__android_log_print( ANDROID_LOG_WARN, "JKXR-MUSIC",
+			"engine start skipped: sound system is not running" );
+#endif
 		return;
 	}
 
@@ -4542,6 +4549,13 @@ void S_StartBackgroundTrack( const char *intro, const char *loop, qboolean bCall
 	if ( !loop || !loop[0] ) {
 		loop = intro;
 	}
+
+#if defined(__ANDROID__)
+	__android_log_print( ANDROID_LOG_INFO, "JKXR-MUSIC",
+		"engine start: intro='%s' loop='%s' preload=%d dynamicAllowed=%d volume=%.3f",
+		intro, loop, (int)bCalledByCGameStart, s_allowDynamicMusic->integer,
+		s_musicVolume->value );
+#endif
 
 	if ( intro != gsIntroMusic ) {
 		Q_strncpyz( gsIntroMusic, intro, sizeof(gsIntroMusic) );
@@ -4649,6 +4663,16 @@ void S_StartBackgroundTrack( const char *intro, const char *loop, qboolean bCall
 			}
 		}
 	}
+
+#if defined(__ANDROID__)
+	__android_log_print( bMusic_IsDynamic || tMusic_Info[eBGRNDTRACK_NONDYNAMIC].s_backgroundFile
+		? ANDROID_LOG_INFO : ANDROID_LOG_WARN, "JKXR-MUSIC",
+		"engine result: dynamic=%d explore=%d action=%d stream=%d preload=%d",
+		(int)bMusic_IsDynamic, (int)tMusic_Info[eBGRNDTRACK_EXPLORE].bExists,
+		(int)tMusic_Info[eBGRNDTRACK_ACTION].bExists,
+		tMusic_Info[eBGRNDTRACK_NONDYNAMIC].s_backgroundFile != 0,
+		(int)bCalledByCGameStart );
+#endif
 
 	if (bCalledByCGameStart)
 	{

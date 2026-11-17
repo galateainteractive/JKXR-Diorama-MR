@@ -521,10 +521,9 @@ void CG_CoopStartMusic( void )
 		"JKXR-MUSIC", "initial snapshot: track='%s' state='%s' volume=%.3f",
 		music ? music : "", state ? state : "", atof( cgi_Cvar_Get( "s_musicvolume" ) ) );
 #endif
-	if ( music && music[0] )
-	{
-		CG_StartMusic( qtrue );	// real playback, not the preload-and-stop init call
-	}
+	// An empty CS_MUSIC is valid for JK dynamic-music levels: the sound system
+	// resolves the explore/action tracks from the map name set by the client.
+	CG_StartMusic( qtrue );	// real playback, not the preload-and-stop init call
 }
 
 void CG_CoopMusicStateChanged( const char *state )
@@ -1768,6 +1767,15 @@ void CG_CoopSound_f( void )
 	const int	index = atoi( CG_Argv( 3 ) );
 	const int	customSet = atoi( CG_Argv( 4 ) );
 	const char	*path = CG_Argv( 5 );
+
+#if defined(__ANDROID__)
+	if ( channel == CHAN_VOICE || channel == CHAN_VOICE_ATTEN || channel == CHAN_VOICE_GLOBAL )
+	{
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-VOICE",
+			"received: ent=%d channel=%d index=%d custom=%d path='%s'",
+			entNum, channel, index, customSet, path ? path : "" );
+	}
+#endif
 
 	if ( entNum < 0 || entNum >= MAX_GENTITIES )
 	{
