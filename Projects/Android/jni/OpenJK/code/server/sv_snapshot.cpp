@@ -351,7 +351,8 @@ SV_AddEntitiesVisibleFromPoint
 ===============
 */
 static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *frame,
-									snapshotEntityNumbers_t *eNums, qboolean portal ) {
+									snapshotEntityNumbers_t *eNums, qboolean portal,
+									qboolean includePermanent ) {
 	int		e, i;
 	gentity_t	*ent;
 	svEntity_t	*svEnt;
@@ -397,14 +398,35 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			continue;
 		}
 
-		if (ent->s.eFlags & EF_PERMANENT)
-		{	// he's permanent, so don't send him down!
-			continue;
-		}
-
 		if (ent->s.number != e) {
 			Com_DPrintf ("FIXING ENT->S.NUMBER!!!\n");
 			ent->s.number = e;
+		}
+
+		svEnt = SV_SvEntityForGentity( ent );
+
+		// Don't double add an entity through portals.
+		if ( svEnt->snapshotCounter == sv.snapshotCounter ) {
+			continue;
+		}
+
+		// Co-op players must reach every remote snapshot even while a player is
+		// temporarily unlinked (spawn/teleport) or has server-only visibility
+		// flags.  Previously these filters ran before the e < MAX_CLIENTS force
+		// send below, so the guest received neither player entity even though the
+		// host could render both directly from its in-process server state.
+		if ( e < MAX_CLIENTS && ent->client ) {
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
+			continue;
+		}
+
+		// The host cgame obtains permanent states directly from svEntities.  A
+		// network-only guest has no such shared server memory, so visible
+		// permanent map entities must travel in its ordinary snapshots.  Keeping
+		// the old exclusion for client 0 avoids rendering them twice on the host.
+		if ( ( ent->s.eFlags & EF_PERMANENT ) && !includePermanent )
+		{
+			continue;
 		}
 
 		// never send entities that aren't linked in
@@ -417,20 +439,8 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			continue;
 		}
 
-		svEnt = SV_SvEntityForGentity( ent );
-
-		// don't double add an entity through portals
-		if ( svEnt->snapshotCounter == sv.snapshotCounter ) {
-			continue;
-		}
-
-		// broadcast entities are always sent, and so is the main player so we don't see noclip weirdness
-		// co-op: force-send every connected player (entity < MAX_CLIENTS), not
-		// just the viewer's own (!e), so co-op partners stay visible to each
-		// other across PVS boundaries (adjacent rooms) instead of popping out.
-		// Unused client slots are already filtered by the !ent->inuse check
-		// above. Mirrors MP's per-viewer client send (SVF_BROADCASTCLIENTS).
-		if ( ent->svFlags & SVF_BROADCAST || e < MAX_CLIENTS ) {
+		// broadcast entities are always sent
+		if ( ent->svFlags & SVF_BROADCAST ) {
 			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
@@ -501,7 +511,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 		// if its a portal entity, add everything visible from its camera position
 		if ( ent->svFlags & SVF_PORTAL ) {
-			SV_AddEntitiesVisibleFromPoint( ent->s.origin2, frame, eNums, qtrue );
+			SV_AddEntitiesVisibleFromPoint( ent->s.origin2, frame, eNums, qtrue, includePermanent );
 		}
 	}
 }
@@ -596,7 +606,8 @@ static clientSnapshot_t *SV_BuildClientSnapshot( client_t *client ) {
 
 	// add all the entities directly visible to the eye, which
 	// may include portal entities that merge other viewpoints
-	SV_AddEntitiesVisibleFromPoint( org, frame, &entityNumbers, qfalse );
+	SV_AddEntitiesVisibleFromPoint( org, frame, &entityNumbers, qfalse,
+		clientNum != 0 ? qtrue : qfalse );
 	/*
 	//was in here for debugging- print list of all entities in snapshot when you go over the limit
 	if ( entityNumbers.numSnapshotEntities >= 256 )

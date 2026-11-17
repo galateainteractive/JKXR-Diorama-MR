@@ -60,6 +60,8 @@ typedef struct coopCharState_s {
 static coopCharState_t	coopChar[MAX_GENTITIES];
 static qboolean	coopLoggedEntity[MAX_GENTITIES];
 static qboolean	coopLoggedMissingSpec[MAX_GENTITIES];
+static qboolean	coopLoggedAnimFailure[MAX_GENTITIES];
+static qboolean	coopLoggedAnimActive[MAX_GENTITIES];
 
 /*
 ================
@@ -84,6 +86,8 @@ static void CG_CoopTearDown( centity_t *cent )
 		gent->client->clientInfo.infoValid = qfalse;
 	}
 	memset( &coopChar[cent->currentState.number], 0, sizeof( coopChar[0] ) );
+	coopLoggedAnimFailure[cent->currentState.number] = qfalse;
+	coopLoggedAnimActive[cent->currentState.number] = qfalse;
 }
 
 /*
@@ -290,14 +294,26 @@ up as its timer jumping back up, which we turn into SETANIM_FLAG_RESTART.
 static void CG_CoopDriveAnim( centity_t *cent )
 {
 	gentity_t		*gent = cent->gent;
-	coopCharState_t	*st = &coopChar[cent->currentState.number];
+	const int		entNum = cent->currentState.number;
+	coopCharState_t	*st = &coopChar[entNum];
 	playerState_t	*ps = &gent->client->ps;
 	const entityState_t *s = &cent->currentState;
 
 	if ( !ValidAnimFileIndex( gent->client->clientInfo.animFileIndex ) || !gi.G2API_HaveWeGhoul2Models( gent->ghoul2 ) )
 	{
+#if defined(__ANDROID__)
+		if ( !coopLoggedAnimFailure[entNum] )
+		{
+			coopLoggedAnimFailure[entNum] = qtrue;
+			__android_log_print( ANDROID_LOG_WARN, "JKXR-COOP",
+				"entity %d cannot drive animation: animFile=%d ghoul2=%d",
+				entNum, gent->client->clientInfo.animFileIndex,
+				gi.G2API_HaveWeGhoul2Models( gent->ghoul2 ) );
+		}
+#endif
 		return;
 	}
+	coopLoggedAnimFailure[entNum] = qfalse;
 
 	// PM_SetAnimFinal scales walk/run anims by the entity's actual speed
 	gent->resultspeed = sqrtf( s->pos.trDelta[0]*s->pos.trDelta[0] + s->pos.trDelta[1]*s->pos.trDelta[1] );
@@ -319,6 +335,16 @@ static void CG_CoopDriveAnim( centity_t *cent )
 	// code reads them through the gentity on the host path)
 	ps->legsAnimTimer = s->legsAnimTimer;
 	ps->torsoAnimTimer = s->torsoAnimTimer;
+
+#if defined(__ANDROID__)
+	if ( !coopLoggedAnimActive[entNum] )
+	{
+		coopLoggedAnimActive[entNum] = qtrue;
+		__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
+			"entity %d animation active: legs=%d torso=%d speed=%.1f",
+			entNum, s->legsAnim, s->torsoAnim, gent->resultspeed );
+	}
+#endif
 }
 
 /*
