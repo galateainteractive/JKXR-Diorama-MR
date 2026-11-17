@@ -1825,6 +1825,14 @@ void CL_CGameRendering( stereoFrame_t stereo ) {
 		if (timei > 60) {
 			timei -= 0;
 		}
+		// Ghoul2 silently falls back to its server clock when the client clock is
+		// more than 200 ms ahead.  A network-only co-op guest has no local server,
+		// so that server clock otherwise stays at zero and every skeleton is
+		// evaluated forever at frame zero.  Keep the renderer's fallback clock in
+		// step with the authoritative server time carried by the connection.
+		if ( !com_sv_running->integer ) {
+			re.G2API_SetTime(cl.serverTime, G2T_SV_TIME);
+		}
 		re.G2API_SetTime(cl.serverTime, G2T_CG_TIME);
 	}
 

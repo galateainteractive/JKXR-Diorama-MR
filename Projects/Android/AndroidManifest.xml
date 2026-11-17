@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-		android:versionCode="103"
-		android:versionName="0.1.0-alpha.2-coop.12-per-eye" android:installLocation="auto" >
+		android:versionCode="104"
+		android:versionName="0.1.0-alpha.2-coop.13-clock-pvs" android:installLocation="auto" >
 
 	<!-- Tell the system this app requires OpenGL ES 3.1. -->
 	<uses-feature android:glEsVersion="0x00030002" android:required="true"/>
