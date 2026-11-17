@@ -44,6 +44,15 @@ extern qboolean WP_SaberBladeUseSecondBladeStyle( saberInfo_t *saber, int bladeN
 extern void WP_SaberSwingSound( gentity_t *ent, int saberNum, swingType_t swingType );
 
 extern vmCvar_t	cg_debugHealthBars;
+
+static qhandle_t CG_SoundHandleForConfigIndex( int soundIndex )
+{
+	if ( soundIndex <= 0 || soundIndex >= MAX_SOUNDS )
+	{
+		return 0;
+	}
+	return cgs.sound_precache[soundIndex];
+}
 /*
 
 player entities generate a great deal of information from implicit ques
@@ -367,7 +376,7 @@ static void CG_RegisterCustomSounds(clientInfo_t *ci, int iSoundEntryBase,
 
 //SB: Never render any player model if 1st person and using the saber
 bool CG_getPlayer1stPersonSaber(const centity_t *cent) {
-	return (!cent->gent->NPC && !cg.renderingThirdPerson &&
+	return (cent && cent->gent && cent->gent->client && !cent->gent->NPC && !cg.renderingThirdPerson &&
 			CG_IsLocalPlayer( cent ) &&
 			cent->gent->client->ps.weapon == WP_SABER);
 }
@@ -1014,9 +1023,9 @@ static void CG_PlayerAnimEventDo( centity_t *cent, animevent_t *animEvent )
 			{
 				int spinSound = 0;
 				if ( saber->spinSound
-					&& cgs.sound_precache[saber->spinSound] )
+					&& CG_SoundHandleForConfigIndex( saber->spinSound ) )
 				{//use override
-					spinSound = cgs.sound_precache[saber->spinSound];
+					spinSound = CG_SoundHandleForConfigIndex( saber->spinSound );
 				}
 				else
 				{
@@ -5503,10 +5512,14 @@ static void CG_StopWeaponSounds( centity_t *cent )
 			}
 		}
 
-		cgi_S_AddLoopingSound( cent->currentState.number,
-			cent->lerpOrigin,
-			vec3_origin,
-			cgs.sound_precache[g_entities[cent->currentState.clientNum].client->ps.saber[0].soundLoop] );
+		const qhandle_t saberLoopSound = CG_SoundHandleForConfigIndex( cent->gent->client->ps.saber[0].soundLoop );
+		if ( saberLoopSound )
+		{
+			cgi_S_AddLoopingSound( cent->currentState.number,
+				cent->lerpOrigin,
+				vec3_origin,
+				saberLoopSound );
+		}
 		return;
 	}
 
@@ -6035,7 +6048,7 @@ static void CG_AddSaberBladeGo( centity_t *cent, centity_t *scent, refEntity_t *
 		return;
 	}
 
-	if (vr->item_selector && cent->gent->client->ps.clientNum == 0 && !cg.renderingThirdPerson)
+	if (vr->item_selector && CG_IsLocalPlayer( cent ) && !cg.renderingThirdPerson)
 	{
 		return;
 	}
@@ -7564,7 +7577,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 						{
 							if ( !cent->gent->client->ps.saber[saberNum].blade[bladeNum].length )
 							{
-								qhandle_t saberOnSound = cgs.sound_precache[g_entities[cent->currentState.clientNum].client->ps.saber[saberNum].soundOn];
+								qhandle_t saberOnSound = CG_SoundHandleForConfigIndex( cent->gent->client->ps.saber[saberNum].soundOn );
 								if ( !cent->gent->client->ps.weaponTime
 									&& !saberNum//first saber only
 									&& !bladeNum )//first blade only
@@ -7574,7 +7587,9 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 								}
 								if ( cent->gent->client->ps.saberInFlight && saberNum == 0 )
 								{//play it on the saber
-									if ( cg_saberOnSoundTime[cent->currentState.number] < cg.time )
+									if ( saberOnSound && cg_saberOnSoundTime[cent->currentState.number] < cg.time
+										&& cent->gent->client->ps.saberEntityNum >= 0
+										&& cent->gent->client->ps.saberEntityNum < MAX_GENTITIES )
 									{
 										cgi_S_UpdateEntityPosition( cent->gent->client->ps.saberEntityNum, g_entities[cent->gent->client->ps.saberEntityNum].currentOrigin );
 										cgi_S_StartSound (NULL, cent->gent->client->ps.saberEntityNum, CHAN_AUTO, saberOnSound );
@@ -7583,7 +7598,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 								}
 								else
 								{
-									if ( cg_saberOnSoundTime[cent->currentState.number] < cg.time )
+									if ( saberOnSound && cg_saberOnSoundTime[cent->currentState.number] < cg.time )
 									{
 										cgi_S_StartSound (NULL, cent->currentState.number, CHAN_AUTO, saberOnSound );
 										cg_saberOnSoundTime[cent->currentState.number] = cg.time;//so we don't play multiple on sounds at one time

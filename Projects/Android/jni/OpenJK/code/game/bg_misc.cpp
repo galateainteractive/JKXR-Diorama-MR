@@ -634,6 +634,10 @@ void PlayerStateToEntityState( playerState_t *ps, entityState_t *s )
 
 	s->pos.trType = TR_INTERPOLATE;
 	VectorCopy( ps->origin, s->pos.trBase );
+	// Co-op clients use the networked velocity to drive walk/run animation
+	// speed and body lean.  SP never needed it in entityState because cgame
+	// could read the live gentity, but a remote client has no server gentity.
+	VectorCopy( ps->velocity, s->pos.trDelta );
 	//SnapVector( s->pos.trBase );
 
 	s->apos.trType = TR_INTERPOLATE;

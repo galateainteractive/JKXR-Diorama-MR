@@ -563,8 +563,12 @@ static clientSnapshot_t *SV_BuildClientSnapshot( client_t *client ) {
 */
 	// find the client's viewpoint
 
-	//if in camera mode use camera position instead
-	if ( VM_Call( CG_CAMERA_POS, org))
+	// The in-process cgame belongs to the host.  Asking it for a camera while
+	// building a remote co-op client's snapshot returns the host's tabletop
+	// avatar position, which culls doors, NPCs and movers from the guest.  Only
+	// client 0 may use that local camera; every network client uses its own eyes.
+	const int clientNum = client - svs.clients;
+	if ( clientNum == 0 && VM_Call( CG_CAMERA_POS, org))
 	{
 		//org[2] += clent->client->viewheight;
 	}

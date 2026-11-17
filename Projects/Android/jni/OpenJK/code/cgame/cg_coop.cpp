@@ -212,6 +212,8 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	gent->s.number = entNum;
 	gent->inuse = qtrue;
 	gent->client->ps.clientNum = entNum;
+	gent->client->ps.saberLockEnemy = ENTITYNUM_NONE;
+	gent->client->ps.saberEntityNum = ENTITYNUM_NONE;
 	gent->client->NPC_class = npcClass;
 	int rgba[4] = { 255, 255, 255, 255 };
 	if ( f[9][0] )
@@ -323,6 +325,26 @@ void CG_CoopSyncCharacter( centity_t *cent )
 		( s->otherEntityNum2 >= 0 && s->otherEntityNum2 < MAX_GENTITIES )
 		? s->otherEntityNum2 : ENTITYNUM_NONE;
 	gent->client->ps.stats[STAT_HEALTH] = 1;
+	gent->health = 1;
+	gent->max_health = 1;
+
+	// The local guest also receives a complete playerState.  Keep the fields
+	// used by first-person VR rendering on the reconstructed gentity without
+	// overwriting the parsed saber definitions and their model pointers.
+	if ( CG_IsLocalPlayer( cent ) && cg.snap )
+	{
+		const playerState_t *local = &cg.snap->ps;
+		gent->client->ps.saberLockEnemy = local->saberLockEnemy;
+		gent->client->ps.saberEntityNum = local->saberEntityNum;
+		gent->client->ps.weaponstate = local->weaponstate;
+		gent->client->ps.weaponTime = local->weaponTime;
+		gent->client->ps.forcePowersActive = local->forcePowersActive;
+		memcpy( gent->client->ps.forcePowerDuration, local->forcePowerDuration, sizeof( local->forcePowerDuration ) );
+		memcpy( gent->client->ps.forcePowerLevel, local->forcePowerLevel, sizeof( local->forcePowerLevel ) );
+		gent->client->ps.stats[STAT_HEALTH] = local->stats[STAT_HEALTH];
+		gent->health = local->stats[STAT_HEALTH];
+		gent->max_health = Q_max( gent->max_health, gent->health );
+	}
 	VectorCopy( cent->lerpAngles, gent->client->ps.viewangles );
 	VectorCopy( cent->lerpOrigin, gent->currentOrigin );
 	VectorCopy( cent->lerpAngles, gent->currentAngles );

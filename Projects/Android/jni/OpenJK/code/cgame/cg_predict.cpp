@@ -237,6 +237,7 @@ int		CG_PointContents( const vec3_t point, int passEntityNum ) {
 
 void CG_SetClientViewAngles( vec3_t angles, qboolean overrideViewEnt )
 {
+	gentity_t *localEnt = &g_entities[cg.snap->ps.clientNum];
 	if ( cg.snap->ps.viewEntity <= 0 || cg.snap->ps.viewEntity >= ENTITYNUM_WORLD || overrideViewEnt )
 	{//don't clamp angles when looking through a viewEntity
 		for( int i = 0; i < 3; i++ )
@@ -245,7 +246,10 @@ void CG_SetClientViewAngles( vec3_t angles, qboolean overrideViewEnt )
 			cg.predicted_player_state.delta_angles[i] = 0;
 			cg.snap->ps.viewangles[i] = angles[i];
 			cg.snap->ps.delta_angles[i] = 0;
-			g_entities[0].client->pers.cmd_angles[i] = ANGLE2SHORT(angles[i]);
+			if ( localEnt->client )
+			{
+				localEnt->client->pers.cmd_angles[i] = ANGLE2SHORT(angles[i]);
+			}
 		}
 		cgi_SetUserCmdAngles( angles[PITCH], angles[YAW], angles[ROLL] );
 	}
@@ -258,6 +262,7 @@ extern Vehicle_t *G_IsRidingVehicle( gentity_t *ent );
 qboolean CG_CheckModifyUCmd( usercmd_t *cmd, vec3_t viewangles )
 {
 	qboolean overridAngles = qfalse;
+	gentity_t *localEnt = &g_entities[cg.snap->ps.clientNum];
 	if ( cg.snap->ps.viewEntity > 0 && cg.snap->ps.viewEntity < ENTITYNUM_WORLD )
 	{//controlling something else
 		memset( cmd, 0, sizeof( usercmd_t ) );
@@ -267,11 +272,11 @@ qboolean CG_CheckModifyUCmd( usercmd_t *cmd, vec3_t viewangles )
 		cmd->angles[YAW] = ANGLE2SHORT( cg.snap->ps.viewangles[YAW] ) - cg.snap->ps.delta_angles[YAW];
 		cmd->angles[ROLL] = 0;
 		*/
-		VectorCopy( g_entities[0].pos4, viewangles );
+		VectorCopy( localEnt->pos4, viewangles );
 		overridAngles = qtrue;
 		//CG_SetClientViewAngles( g_entities[cg.snap->ps.viewEntity].client->ps.viewangles, qtrue );
 	}
-	else if ( G_IsRidingVehicle( &g_entities[0] ) )
+	else if ( G_IsRidingVehicle( localEnt ) )
 	{
 		overridAngles = qtrue;
 		/*
@@ -291,35 +296,35 @@ qboolean CG_CheckModifyUCmd( usercmd_t *cmd, vec3_t viewangles )
 		*/
 	}
 
-	if ( &g_entities[0] && g_entities[0].client )
+	if ( localEnt->client )
 	{
-		if ( !PM_AdjustAnglesToGripper( &g_entities[0], cmd ) )
+		if ( !PM_AdjustAnglesToGripper( localEnt, cmd ) )
 		{
-			if ( PM_AdjustAnglesForSpinningFlip( &g_entities[0], cmd, qtrue ) )
+			if ( PM_AdjustAnglesForSpinningFlip( localEnt, cmd, qtrue ) )
 			{
-				CG_SetClientViewAngles( g_entities[0].client->ps.viewangles, qfalse );
+				CG_SetClientViewAngles( localEnt->client->ps.viewangles, qfalse );
 				if ( viewangles )
 				{
-					VectorCopy( g_entities[0].client->ps.viewangles, viewangles );
+					VectorCopy( localEnt->client->ps.viewangles, viewangles );
 					overridAngles = qtrue;
 				}
 			}
 		}
 		else
 		{
-			CG_SetClientViewAngles( g_entities[0].client->ps.viewangles, qfalse );
+			CG_SetClientViewAngles( localEnt->client->ps.viewangles, qfalse );
 			if ( viewangles )
 			{
-				VectorCopy( g_entities[0].client->ps.viewangles, viewangles );
+				VectorCopy( localEnt->client->ps.viewangles, viewangles );
 				overridAngles = qtrue;
 			}
 		}
-		if ( G_CheckClampUcmd( &g_entities[0], cmd ) )
+		if ( G_CheckClampUcmd( localEnt, cmd ) )
 		{
-			CG_SetClientViewAngles( g_entities[0].client->ps.viewangles, qfalse );
+			CG_SetClientViewAngles( localEnt->client->ps.viewangles, qfalse );
 			if ( viewangles )
 			{
-				VectorCopy( g_entities[0].client->ps.viewangles, viewangles );
+				VectorCopy( localEnt->client->ps.viewangles, viewangles );
 				overridAngles = qtrue;
 			}
 		}

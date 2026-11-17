@@ -817,7 +817,12 @@ static void CG_OffsetThirdPersonView( void )
 	{// First person saber
 		// FIXME: use something network-friendly
 		vec3_t	org, viewDir;
-		VectorCopy( cg_entities[0].gent->client->renderInfo.eyePoint, org );
+		const int localNum = cg.snap->ps.clientNum;
+		if ( !cg_entities[localNum].gent || !cg_entities[localNum].gent->client )
+		{
+			return;
+		}
+		VectorCopy( cg_entities[localNum].gent->client->renderInfo.eyePoint, org );
 		float blend = 1.0f - fabs(cg.refdefViewAngles[PITCH])/90.0f;
 		AngleVectors( cg.refdefViewAngles, viewDir, NULL, NULL );
 		VectorMA( org, -8, viewDir, org );
@@ -1331,11 +1336,11 @@ float CG_ForceSpeedFOV( float infov )
 		return infov;
 	}
 
-	gentity_t	*player = &g_entities[0];
+	const playerState_t *ps = &cg.predicted_player_state;
 	float fov;
-	float timeLeft = player->client->ps.forcePowerDuration[FP_SPEED] - cg.time;
-	float length = FORCE_SPEED_DURATION*forceSpeedValue[player->client->ps.forcePowerLevel[FP_SPEED]];
-	float amt = forceSpeedFOVMod[player->client->ps.forcePowerLevel[FP_SPEED]];
+	float timeLeft = ps->forcePowerDuration[FP_SPEED] - cg.time;
+	float length = FORCE_SPEED_DURATION*forceSpeedValue[ps->forcePowerLevel[FP_SPEED]];
+	float amt = forceSpeedFOVMod[ps->forcePowerLevel[FP_SPEED]];
 	if ( timeLeft < 200 )
 	{//start going back
 		fov = infov + sinf(DEG2RAD((timeLeft/400)*180))*amt;
@@ -1715,7 +1720,7 @@ static qboolean CG_CalcViewValues( void ) {
 	{
 		// offset for local bobbing and kicks
 		CG_OffsetFirstPersonView( qfalse );
-		centity_t	*playerCent = &cg_entities[0];
+		centity_t	*playerCent = &cg_entities[cg.snap->ps.clientNum];
 		if ( playerCent && playerCent->gent && playerCent->gent->client )
 		{
 			VectorCopy( cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint );
@@ -2180,19 +2185,20 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 
 	//Calculate all angles upfront
 	{
-		vr->in_vehicle = (g_entities[0].client &&
-			(g_entities[0].client->NPC_class == CLASS_VEHICLE || g_entities[0].client->NPC_class == CLASS_ATST ||
-			g_entities[0].s.m_iVehicleNum != 0 ));
+		gentity_t *localEnt = &g_entities[cg.snap->ps.clientNum];
+		vr->in_vehicle = (localEnt->client &&
+			(localEnt->client->NPC_class == CLASS_VEHICLE || localEnt->client->NPC_class == CLASS_ATST ||
+			localEnt->s.m_iVehicleNum != 0 ));
 		vr->vehicle_type = VH_NONE;
 		if (vr->in_vehicle)
 		{
-			if (g_entities[0].client->NPC_class == CLASS_ATST)
+			if (localEnt->client->NPC_class == CLASS_ATST)
 			{
 				vr->vehicle_type = VH_WALKER;
 			}
-			else if (g_entities[0].s.m_iVehicleNum != 0 && g_entities[g_entities[0].s.m_iVehicleNum].m_pVehicle)
+			else if (localEnt->s.m_iVehicleNum != 0 && g_entities[localEnt->s.m_iVehicleNum].m_pVehicle)
 			{
-				vr->vehicle_type = (int) g_entities[g_entities[0].s.m_iVehicleNum].m_pVehicle->m_pVehicleInfo->type;
+				vr->vehicle_type = (int) g_entities[localEnt->s.m_iVehicleNum].m_pVehicle->m_pVehicleInfo->type;
 			}
 		}
 
@@ -2380,8 +2386,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		}
 
 		//Render hand models when appropriate
-		if (cg.snap->ps.clientNum == 0
-			&& !in_camera
+		if (!in_camera
 			&& !cg.renderingThirdPerson
 			&& cg.predicted_player_state.stats[STAT_HEALTH] > 0
 			&& cg.snap->ps.viewEntity < ENTITYNUM_WORLD
@@ -2394,7 +2399,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		{
 			vec3_t end, forward;
 			refEntity_t handEnt;
-			centity_t *cent = &cg_entities[0];
+			centity_t *cent = &cg_entities[cg.snap->ps.clientNum];
 			memset( &handEnt, 0, sizeof(refEntity_t) );
 			BG_CalculateVRDefaultPosition(1, handEnt.origin, handEnt.angles);
 

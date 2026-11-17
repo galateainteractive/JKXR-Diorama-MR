@@ -1066,10 +1066,9 @@ void CG_AddViewWeapon( playerState_t *ps )
 
 	cent = &cg_entities[ps->clientNum];
 
-	// coop: the first-person view weapon is built from the local player's server gentity
-	// (renderInfo, ghoul2, bolts). A serverless remote client has none of that yet;
-	// skip the viewmodel rather than fault. Snapshot-backed viewmodel is later work.
-	if ( cg_remoteClient || !cent->gent || !cent->gent->client )
+	// Co-op guests rebuild their local gentity from the snapshot, so the same
+	// first-person weapon path is now valid for host and guest.
+	if ( !cent->gent || !cent->gent->client )
 	{
 		return;
 	}
@@ -1148,7 +1147,7 @@ void CG_AddViewWeapon( playerState_t *ps )
 
 	// drop gun lower at higher fov
 	float actualFOV;
-	if ( (cg.snap->ps.forcePowersActive&(1<<FP_SPEED)) && player->client->ps.forcePowerDuration[FP_SPEED] )//cg.renderingThirdPerson &&
+	if ( (ps->forcePowersActive&(1<<FP_SPEED)) && ps->forcePowerDuration[FP_SPEED] )//cg.renderingThirdPerson &&
 	{
 		actualFOV = CG_ForceSpeedFOV(cg_fov.value);
 	}
