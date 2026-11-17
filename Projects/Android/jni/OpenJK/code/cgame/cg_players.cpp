@@ -3054,7 +3054,7 @@ static void CG_PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t torso[3], v
 	int			i;
 	qboolean	looking = qfalse, talking = qfalse;
 
-	if ( cg.renderingThirdPerson && cent->gent && cent->gent->s.number == 0 )
+	if ( cg.renderingThirdPerson && cent->gent && CG_IsLocalPlayer( cent ) )
 	{
 		// If we are rendering third person, we should just force the player body to always fully face
 		//	whatever way they are looking, otherwise, you can end up with gun shots coming off of the
@@ -3105,7 +3105,7 @@ static void CG_PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t torso[3], v
 		return;
 	}
 
-	if ( cent->currentState.clientNum != 0 )
+	if ( cent->currentState.clientNum >= MAX_CLIENTS )
 	{
 		headYawClampMin = -cent->gent->client->renderInfo.headYawRangeLeft;
 		headYawClampMax = cent->gent->client->renderInfo.headYawRangeRight;
