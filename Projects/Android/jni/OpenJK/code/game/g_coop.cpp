@@ -133,3 +133,95 @@ void G_CoopUpdateAppearance( gentity_t *ent )
 	Q_strncpyz( a->lastSpec, spec, sizeof( a->lastSpec ) );
 	ent->s.modelindex3 = G_FindConfigstringIndex( spec, CS_COOP_MODELSPECS, MAX_COOP_MODELSPECS, qtrue );
 }
+
+/*
+==============================================================================
+Player queries for the AI and triggers
+
+Stock SP hardcodes "the player" as g_entities[0]. With several clients the AI
+must consider all of them; these helpers replace those sites.
+==============================================================================
+*/
+
+// true for any human player's entity (slots [0, MAX_CLIENTS) are reserved for clients)
+qboolean G_CoopIsPlayer( const gentity_t *ent )
+{
+	return (qboolean)( ent && ent->s.number < MAX_CLIENTS && ent->client && ent->inuse );
+}
+
+// number of connected players
+int G_CoopNumPlayers( void )
+{
+	int n = 0;
+	for ( int i = 0; i < MAX_CLIENTS; i++ )
+	{
+		if ( g_entities[i].inuse && g_entities[i].client && g_entities[i].client->pers.connected == CON_CONNECTED )
+		{
+			n++;
+		}
+	}
+	return n;
+}
+
+/*
+================
+G_CoopNearestPlayer
+
+The closest connected player to org. With aliveOnly, dead players are
+skipped. Never returns NULL: falls back to the host player (slot 0) so
+callers written for the single-player global keep working.
+================
+*/
+gentity_t *G_CoopNearestPlayer( const vec3_t org, qboolean aliveOnly )
+{
+	gentity_t	*best = &g_entities[0];
+	float		bestDist = -1;
+
+	for ( int i = 0; i < MAX_CLIENTS; i++ )
+	{
+		gentity_t *ent = &g_entities[i];
+		if ( !ent->inuse || !ent->client || ent->client->pers.connected != CON_CONNECTED )
+		{
+			continue;
+		}
+		if ( aliveOnly && ent->health <= 0 )
+		{
+			continue;
+		}
+		const float dist = DistanceSquared( org, ent->currentOrigin );
+		if ( bestDist < 0 || dist < bestDist )
+		{
+			bestDist = dist;
+			best = ent;
+		}
+	}
+	return best;
+}
+
+// true if at least one connected player is alive
+qboolean G_CoopAnyPlayerAlive( void )
+{
+	for ( int i = 0; i < MAX_CLIENTS; i++ )
+	{
+		const gentity_t *ent = &g_entities[i];
+		if ( ent->inuse && ent->client && ent->client->pers.connected == CON_CONNECTED && ent->health > 0 )
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// true if org is in the PVS of any connected player (NPC removal / spawn checks)
+qboolean G_CoopInAnyPlayerPVS( const vec3_t org )
+{
+	for ( int i = 0; i < MAX_CLIENTS; i++ )
+	{
+		const gentity_t *ent = &g_entities[i];
+		if ( ent->inuse && ent->client && ent->client->pers.connected == CON_CONNECTED && gi.inPVS( org, ent->currentOrigin ) )
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}

@@ -1011,6 +1011,14 @@ extern "C" Q_EXPORT void QDECL GetCGameAPI( game_import_t *import ) {
 	G_InitCvars();
 	WP_SaberLoadParms();
 
+	// Character animation parsing needs the map-specific cinematic set on the
+	// serverless guest as well.
+	{
+		char serverinfo[MAX_INFO_STRING];
+		gi.GetServerinfo( serverinfo, sizeof( serverinfo ) );
+		Q_strncpyz( level.mapname, Info_ValueForKey( serverinfo, "mapname" ), sizeof( level.mapname ) );
+	}
+
 #if defined(__ANDROID__)
 	__android_log_print( ANDROID_LOG_INFO, "JKXR-COOP",
 		"guest game bootstrap active: remote=%d cvar=%d clients=%d",

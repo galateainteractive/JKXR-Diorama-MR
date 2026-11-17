@@ -2581,7 +2581,7 @@ static void CG_G2PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t angles )
 		&& (cent->gent->client->NPC_class != CLASS_PROBE )
 		&& (cent->gent->client->NPC_class != CLASS_R2D2 )
 		&& (cent->gent->client->NPC_class != CLASS_R5D2)
-		&& (cent->gent->client->NPC_class != CLASS_ATST||!cent->gent->s.number) )
+		&& (cent->gent->client->NPC_class != CLASS_ATST||cent->gent->s.number==cg_localEntNum) )
 	{// If we are rendering third person, we should just force the player body to always fully face
 		//	whatever way they are looking, otherwise, you can end up with gun shots coming off of the
 		//	gun at angles that just look really wrong.
@@ -3118,7 +3118,7 @@ static void CG_PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t torso[3], v
 		return;
 	}
 
-	if ( cent->currentState.clientNum >= MAX_CLIENTS )
+	if ( cent->currentState.clientNum != cg_localEntNum )
 	{
 		headYawClampMin = -cent->gent->client->renderInfo.headYawRangeLeft;
 		headYawClampMax = cent->gent->client->renderInfo.headYawRangeRight;
@@ -4468,7 +4468,7 @@ qboolean CG_PlayerCanSeeCent( centity_t *cent )
 		return qtrue;
 	}
 
-	if ( g_entities[0].client->ps.forcePowerLevel[FP_SEE] < FORCE_LEVEL_2
+	if ( g_entities[cg_localEntNum].client->ps.forcePowerLevel[FP_SEE] < FORCE_LEVEL_2
 		&& cent->currentState.eType != ET_PLAYER )
 	{//TEST: level 1 only sees force hints and enemies
 		return qfalse;
@@ -4477,7 +4477,7 @@ qboolean CG_PlayerCanSeeCent( centity_t *cent )
 	float dot = 0.25f;//1.0f;
 	float range = 512.0f;
 
-	switch ( g_entities[0].client->ps.forcePowerLevel[FP_SEE] )
+	switch ( g_entities[cg_localEntNum].client->ps.forcePowerLevel[FP_SEE] )
 	{
 	case FORCE_LEVEL_1:
 		//dot = 0.95f;
@@ -4552,7 +4552,7 @@ void CG_AddForceSightShell( refEntity_t *ent, centity_t *cent )
 	ent->shaderRGBA[1] = 255;
 	ent->shaderRGBA[2] = 0;
 
-	//if ( g_entities[0].client->ps.forcePowerLevel[FP_SEE] > FORCE_LEVEL_2 )
+	//if ( g_entities[cg_localEntNum].client->ps.forcePowerLevel[FP_SEE] > FORCE_LEVEL_2 )
 	//{TEST: level 3 identifies friend or foe with color
 		team_t team = TEAM_NEUTRAL;
 		if ( cent->gent && cent->gent->client )
@@ -4600,7 +4600,7 @@ void CG_AddForceSightShell( refEntity_t *ent, centity_t *cent )
 			break;
 		}
 
-	if ( g_entities[0].client->ps.forcePowerLevel[FP_SEE] > FORCE_LEVEL_2 )
+	if ( g_entities[cg_localEntNum].client->ps.forcePowerLevel[FP_SEE] > FORCE_LEVEL_2 )
 	{//TEST: level 3 also displays health
 		if ( cent->gent && cent->gent->health > 0 && cent->gent->max_health > 0 )
 		{//draw a health bar over them
@@ -4609,7 +4609,7 @@ void CG_AddForceSightShell( refEntity_t *ent, centity_t *cent )
 	}
 
 	/*
-	if ( g_entities[0].client->ps.forcePowerLevel[FP_SEE] < FORCE_LEVEL_2 )
+	if ( g_entities[cg_localEntNum].client->ps.forcePowerLevel[FP_SEE] < FORCE_LEVEL_2 )
 	{ //only level 2+ can see players through walls
 		ent->renderfx &= ~RF_NODEPTH;
 	}
@@ -7743,7 +7743,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 			}
 		}
 
-		if ( cent->currentState.number != 0
+		if ( cent->currentState.number != cg_localEntNum
 			|| cg.renderingThirdPerson
 			|| cg.snap->ps.stats[STAT_HEALTH] <= 0
 			|| ( !cg.renderingThirdPerson && (cg.snap->ps.weapon == WP_SABER||cg.snap->ps.weapon == WP_MELEE) )//First person saber
@@ -8702,7 +8702,7 @@ Ghoul2 Insert End
 	}
 
 	//FIXME: for debug, allow to draw a cone of the NPC's FOV...
-	if ( cent->currentState.number == 0 && cg.renderingThirdPerson )
+	if ( cent->currentState.number == cg_localEntNum && cg.renderingThirdPerson )
 	{
 		playerState_t *ps = &cg.predicted_player_state;
 

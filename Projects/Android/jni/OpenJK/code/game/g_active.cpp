@@ -252,7 +252,7 @@ void G_SetViewEntity( gentity_t *self, gentity_t *viewEntity )
 		return;
 	}
 
-	if ( self->s.number == 0 && cg.zoomMode )
+	if ( G_CoopIsPlayer( self ) && cg.zoomMode )
 	{
 		// yeah, it should really toggle them so it plays the end sound....
 		cg.zoomMode = 0;
@@ -282,7 +282,7 @@ void G_SetViewEntity( gentity_t *self, gentity_t *viewEntity )
 		}
 		*/
 	}
-	if ( !self->s.number )
+	if ( G_CoopIsPlayer( self ) )
 	{
 		if (viewEntity->client && viewEntity->client->NPC_class == CLASS_MOUSE) {
 			CG_CenterPrint( "@VR_INGAME_EXIT_DROID_VIEW", SCREEN_HEIGHT * 0.95 );
@@ -2597,7 +2597,7 @@ qboolean G_CheckClampUcmd( gentity_t *ent, usercmd_t *ucmd )
 		ucmd->rightmove = ucmd->forwardmove = ucmd->upmove = 0;
 	}
 
-	if ( (!ent->s.number&&ent->aimDebounceTime>level.time)
+	if ( (G_CoopIsPlayer( ent )&&ent->aimDebounceTime>level.time)
 		|| (ent->client->ps.pm_time && (ent->client->ps.pm_flags&PMF_TIME_KNOCKBACK))
 		|| ent->forcePushTime > level.time )
 	{//being knocked back, can't do anything!
@@ -2680,7 +2680,7 @@ qboolean G_CheckClampUcmd( gentity_t *ent, usercmd_t *ucmd )
 
 	if ( ent->client->ps.saberMove == LS_A_JUMP_T__B_ )
 	{//can't move during leap
-		if ( ent->client->ps.groundEntityNum != ENTITYNUM_NONE || (!ent->s.number && player_locked) )
+		if ( ent->client->ps.groundEntityNum != ENTITYNUM_NONE || (G_CoopIsPlayer( ent ) && player_locked) )
 		{//hit the ground
 			ucmd->forwardmove = 0;
 		}
@@ -3894,7 +3894,7 @@ qboolean G_CheckClampUcmd( gentity_t *ent, usercmd_t *ucmd )
 			VectorClear( ent->client->ps.moveDir );
 			ent->client->ps.forceJumpCharge = 0;
 		}
-		if ( !ent->s.number )
+		if ( G_CoopIsPlayer( ent ) )
 		{
 			float animLength = PM_AnimLength( ent->client->clientInfo.animFileIndex, (animNumber_t)ent->client->ps.torsoAnim );
 			float elapsedTime = (float)(animLength-ent->client->ps.torsoAnimTimer);
@@ -4047,7 +4047,7 @@ qboolean G_CheckClampUcmd( gentity_t *ent, usercmd_t *ucmd )
 		}
 		overridAngles = (PM_LockAngles( ent, ucmd )?qtrue:overridAngles);
 	}
-	else if ( !ent->s.number )
+	else if ( G_CoopIsPlayer( ent ) )
 	{
 		if ( ent->client->NPC_class != CLASS_ATST )
 		{
@@ -4389,7 +4389,7 @@ void G_CheckClientIdle( gentity_t *ent, usercmd_t *ucmd )
 	{
 		return;
 	}
-	if ( !ent->s.number && ( !cg.renderingThirdPerson || cg.zoomMode ) )
+	if ( G_CoopIsPlayer( ent ) && ( !cg.renderingThirdPerson || cg.zoomMode ) )
 	{
 		if ( ent->client->idleTime < level.time )
 		{
@@ -4654,7 +4654,7 @@ void	ClientAlterSpeed(gentity_t *ent, usercmd_t *ucmd, qboolean	controlledByPlay
 	{//Client sets ucmds and such for speed alterations
 		{
 			client->ps.speed = g_speed->value;//default is 320
-			/*if ( !ent->s.number && ent->painDebounceTime>level.time )
+			/*if ( G_CoopIsPlayer( ent ) && ent->painDebounceTime>level.time )
 			{
 				client->ps.speed *= 0.25f;
 			}
@@ -4884,7 +4884,7 @@ void ClientThink_real( gentity_t *ent, usercmd_t *ucmd )
 		G_HeldByMonster( ent, &ucmd );
 	}
 
-	if ( ent->s.number == 0 )
+	if ( G_CoopIsPlayer( ent ) )
 	{
 extern cvar_t	*g_skippingcin;
 
@@ -5214,7 +5214,7 @@ extern cvar_t	*g_skippingcin;
 									ucmd->rightmove = -127;
 								}
 							}
-							if ( ent->s.number < MAX_CLIENTS && ucmd->upmove < 0 )
+							if ( G_CoopIsPlayer( ent ) && ucmd->upmove < 0 )
 							{//player who should roll- force it
 								int	rollAnim = BOTH_ROLL_F;
 								if ( ucmd->forwardmove >= 0 )
@@ -5256,7 +5256,7 @@ extern cvar_t	*g_skippingcin;
 					else if ( forceKnockdown //forced
 						|| ent->client->NPC_class == CLASS_DESANN //desann always knocks people down
 						|| ( ( (groundEnt->s.number&&(groundEnt->s.weapon!=WP_SABER||!groundEnt->NPC||groundEnt->NPC->rank<Q_irand(RANK_CIVILIAN,RANK_CAPTAIN+1)))  //an NPC who is either not a saber user or passed the rank-based probability test
-								|| ((!ent->s.number||G_ControlledByPlayer(groundEnt)) && !Q_irand( 0, 3 )&&cg.renderingThirdPerson&&!cg.zoomMode) )//or a player in third person, 25% of the time
+								|| ((G_CoopIsPlayer( ent )||G_ControlledByPlayer(groundEnt)) && !Q_irand( 0, 3 )&&cg.renderingThirdPerson&&!cg.zoomMode) )//or a player in third person, 25% of the time
 							&& groundEnt->client->playerTeam != ent->client->playerTeam//and not on the same team
 							&& ent->client->ps.legsAnim != BOTH_JUMPATTACK6 ) )//not in the sideways-spinning jump attack
 					{
@@ -5336,7 +5336,7 @@ extern cvar_t	*g_skippingcin;
 
 	// The new nav system owns NPC movement speeds, but every reserved client
 	// slot is a human co-op player and still needs the normal player speed.
-	if (!USENEWNAVSYSTEM || ent->s.number < MAX_CLIENTS)
+	if (!USENEWNAVSYSTEM || G_CoopIsPlayer( ent ))
 	{
 		ClientAlterSpeed(ent, ucmd, controlledByPlayer, 0);
 	}
@@ -5371,7 +5371,7 @@ extern cvar_t	*g_skippingcin;
 	}
 
 	//NEED to do this every frame, since these overrides do not go into the save/load data
-	if ( ent->client && ent->s.m_iVehicleNum != 0 && !ent->s.number && !MatrixMode)
+	if ( ent->client && ent->s.m_iVehicleNum != 0 && G_CoopIsPlayer( ent ) && !MatrixMode)
 	{//FIXME: extern and read from g_vehicleInfo?
 		Vehicle_t *pPlayerVeh = ent->owner->m_pVehicle;
 		if ( pPlayerVeh && pPlayerVeh->m_pVehicleInfo->cameraOverride )
@@ -5634,7 +5634,7 @@ extern cvar_t	*g_skippingcin;
 			}
 		}
 		if ( ent
-			&& !ent->s.number
+			&& G_CoopIsPlayer( ent )
 			&& ent->enemy
 			&& ent->enemy != ent
 			&& ent->enemy->s.number < ENTITYNUM_WORLD

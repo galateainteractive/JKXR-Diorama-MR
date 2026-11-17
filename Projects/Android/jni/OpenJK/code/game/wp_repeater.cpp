@@ -56,7 +56,7 @@ static void WP_RepeaterMainFire( gentity_t *ent, vec3_t dir )
 	missile->s.weapon = WP_REPEATER;
 
 	// Do the damages
-	if ( ent->s.number != 0 )
+	if ( !G_CoopIsPlayer( ent ) )
 	{
 		if ( g_spskill->integer == 0 )
 		{
@@ -129,7 +129,7 @@ static void WP_RepeaterAltFire( gentity_t *ent )
 	missile->mass = 10;
 
 	// Do the damages
-	if ( ent->s.number != 0 )
+	if ( !G_CoopIsPlayer( ent ) )
 	{
 		if ( g_spskill->integer == 0 )
 		{

@@ -68,7 +68,7 @@ static void WP_FlechetteMainFire( gentity_t *ent )
 	{
 		vec3_t	angs;
 		VectorCopy(a, angs);
-		if ( i == 0 && ent->s.number == 0 )
+		if ( i == 0 && G_CoopIsPlayer( ent ) )
 		{
 			// do nothing on the first shot for the player, this one will hit the crosshairs
 		}

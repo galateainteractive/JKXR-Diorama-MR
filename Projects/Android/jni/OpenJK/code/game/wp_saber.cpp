@@ -1422,7 +1422,7 @@ qboolean WP_SaberApplyDamage( gentity_t *ent, float baseDamage, int baseDFlags,
 						}
 						else
 						{//clamp the dmg between 5 and 100
-							if ( !victim->s.number && totalDmg[i] > 50 )
+							if ( G_CoopIsPlayer( victim ) && totalDmg[i] > 50 )
 							{//never do more than half full health damage to player
 								//prevents one-hit kills
 								totalDmg[i] = 50;
@@ -1494,7 +1494,7 @@ qboolean WP_SaberApplyDamage( gentity_t *ent, float baseDamage, int baseDFlags,
 							}
 							if ( baseDamage <= 1.0f )
 							{//very mild damage
-								if ( victim->s.number < MAX_CLIENTS || victim->client->ps.weapon == WP_SABER || victim->client->NPC_class == CLASS_GALAKMECH )
+								if ( G_CoopIsPlayer( victim ) || victim->client->ps.weapon == WP_SABER || victim->client->NPC_class == CLASS_GALAKMECH )
 								{//if it's the player or a saber-user, don't kill them with this blow
 									dFlags |= DAMAGE_NO_KILL;
 								}
@@ -1573,7 +1573,7 @@ qboolean WP_SaberApplyDamage( gentity_t *ent, float baseDamage, int baseDFlags,
 							dFlags &= ~DAMAGE_DEATH_KNOCKBACK;
 							dFlags &= ~DAMAGE_NO_KILL;
 						}
-						if ( ent->client && !ent->s.number )
+						if ( ent->client && G_CoopIsPlayer( ent ) )
 						{
 							switch( hitLoc[i] )
 							{
@@ -1695,7 +1695,7 @@ qboolean WP_SaberApplyDamage( gentity_t *ent, float baseDamage, int baseDFlags,
 						//vec3_t splashBackDir;
 						//VectorScale( dmgNormal[i], -1, splashBackDir );
 						//G_PlayEffect( G_EffectIndex( "blood_sparks" ), dmgSpot[i], splashBackDir );
-						if ( ent->s.number == 0 )
+						if ( G_CoopIsPlayer( ent ) )
 						{
 							AddSoundEvent( victim->owner, dmgSpot[i], 256, AEL_DISCOVERED );
 							AddSightEvent( victim->owner, dmgSpot[i], 512, AEL_DISCOVERED, 50 );
@@ -2503,7 +2503,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 		}
 		if ( !useRadiusForDamage )
 		{//do normal check for larger-size saber traces
-			if ( !attacker->s.number
+			if ( G_CoopIsPlayer( attacker )
 				|| (attacker->client
 					&& (attacker->client->playerTeam==TEAM_PLAYER
 						|| attacker->client->NPC_class==CLASS_SHADOWTROOPER
@@ -2523,7 +2523,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 			gi.trace( &tr, start, traceMins, traceMaxs, end2, ignore, mask, G2_COLLIDE, 10 );//G2_SUPERSIZEDBBOX
 		}
 		/*
-		else if ( !attacker->s.number )
+		else if ( G_CoopIsPlayer( attacker ) )
 		{
 			vec3_t	traceMins = {-1,-1,-1}, traceMaxs = {1,1,1};
 			gi.trace( &tr, start, traceMins, traceMaxs, end2, ignore, mask, G2_COLLIDE, 10 );//G2_SUPERSIZEDBBOX
@@ -2597,7 +2597,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 			qboolean sabersIntersect = WP_SabersIntersect( attacker, saberNum, bladeNum, owner, qfalse );//qtrue );
 			float sabersDist;
 			if ( attacker && attacker->client && attacker->client->ps.saberInFlight
-				&& owner && owner->s.number < MAX_CLIENTS && (g_saberAutoBlocking->integer||attacker->client->ps.saberBlockingTime>level.time) )//NPC flying saber hit player's saber bounding box
+				&& owner && G_CoopIsPlayer( owner ) && (g_saberAutoBlocking->integer||attacker->client->ps.saberBlockingTime>level.time) )//NPC flying saber hit player's saber bounding box
 			{//players have g_saberAutoBlocking, do the more generous check against flying sabers
 				//FIXME: instead of hitting the player's saber bounding box
 				//and picking an anim afterwards, have him use AI similar
@@ -2684,7 +2684,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 #ifndef FINAL_BUILD
 				if ( d_saberCombat->integer > 1 )
 				{
-					if ( !attacker->s.number )
+					if ( G_CoopIsPlayer( attacker ) )
 					{
 						gi.Printf( S_COLOR_MAGENTA"%d saber hit owner through saber %4.2f, dist = %4.2f\n", level.time, saberHitFraction, sabersDist );
 					}
@@ -2721,7 +2721,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 #ifndef FINAL_BUILD
 						if ( d_saberCombat->integer > 1 )
 						{
-							if ( !attacker->s.number )
+							if ( G_CoopIsPlayer( attacker ) )
 							{
 								gi.Printf( S_COLOR_GREEN"%d saber hit saber dist %4.2f allsolid %4.2f\n", level.time, sabersDist, saberHitFraction );
 							}
@@ -2733,7 +2733,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 #ifndef FINAL_BUILD
 						if ( d_saberCombat->integer > 1 )
 						{
-							if ( !attacker->s.number )
+							if ( G_CoopIsPlayer( attacker ) )
 							{
 								gi.Printf( S_COLOR_BLUE"%d saber hit saber dist %4.2f, frac %4.2f\n", level.time, sabersDist, saberHitFraction );
 							}
@@ -2790,7 +2790,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 #ifndef FINAL_BUILD
 			if ( d_saberCombat->integer > 1 )
 			{
-				if ( !attacker->s.number )
+				if ( G_CoopIsPlayer( attacker ) )
 				{
 					gi.Printf( S_COLOR_RED"%d saber hit owner directly %4.2f\n", level.time, saberHitFraction );
 				}
@@ -3483,7 +3483,7 @@ qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *defender, sabersLo
 		}
 		else
 		{//if a player is involved, clamp player's pitch and match NPC's to player
-			if ( !attacker->s.number )
+			if ( G_CoopIsPlayer( attacker ) )
 			{
 				//clamp to defPitch
 				if ( attacker->client->ps.viewangles[PITCH] > -defPitchAdd + 10 )
@@ -3506,7 +3506,7 @@ qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *defender, sabersLo
 				defender->client->ps.viewangles[PITCH] = attacker->client->ps.viewangles[PITCH]*-1;
 				defPitchAdd = defender->client->ps.viewangles[PITCH];
 			}
-			else if ( !defender->s.number )
+			else if ( G_CoopIsPlayer( defender ) )
 			{
 				//clamp to defPitch
 				if ( defender->client->ps.viewangles[PITCH] > defPitchAdd + 10 )
@@ -4550,7 +4550,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 		return;
 	}
 
-	if ( ent->s.number < MAX_CLIENTS )
+	if ( G_CoopIsPlayer( ent ) )
 	{//player never uses these
 		ent->client->ps.saberEventFlags &= ~SEF_EVENTS;
 	}
@@ -4598,7 +4598,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 	{
 		entPowerLevel = SaberDroid_PowerLevelForSaberAnim( ent );
 	}
-	else if ( ent->s.number < MAX_CLIENTS && (ent->client->ps.forcePowersActive&(1<<FP_SPEED)) )
+	else if ( G_CoopIsPlayer( ent ) && (ent->client->ps.forcePowersActive&(1<<FP_SPEED)) )
 	{
 		entPowerLevel = FORCE_LEVEL_3;
 	}
@@ -4637,7 +4637,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 		}
 		else
 		{
-			if ( ent->s.number < MAX_CLIENTS )
+			if ( G_CoopIsPlayer( ent ) )
 			{//cheat for player
 				baseDamage = 10.0f;
 			}
@@ -4814,7 +4814,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 						baseDamage = 2.5f * (float)entPowerLevel;
 					}
 				}
-				else// if ( !ent->s.number )
+				else// if ( G_CoopIsPlayer( ent ) )
 				{//I have to do *some* damage in transitions or else you feel like a total gimp
 					baseDamage = 0.1f;
 				}
@@ -4918,7 +4918,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 			baseDamage = 25.0f;
 		}
 	}
-	else if ( (((ent->s.number < MAX_CLIENTS)&&ent->client->ps.forcePowersActive&(1<<FP_SPEED))||ent->client->ps.forcePowersActive&(1<<FP_RAGE))
+	else if ( ((G_CoopIsPlayer( ent )&&ent->client->ps.forcePowersActive&(1<<FP_SPEED))||ent->client->ps.forcePowersActive&(1<<FP_RAGE))
 		&& g_timescale->value < 1.0f )
 	{
 		baseDamage *= (1.0f-g_timescale->value);
@@ -5800,7 +5800,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 	{
 		//just so Jedi knows that he hit a wall
 		ent->client->ps.saberEventFlags |= SEF_HITWALL;
-		if ( ent->s.number == 0 )
+		if ( G_CoopIsPlayer( ent ) )
 		{
 			AddSoundEvent( ent, ent->currentOrigin, 128, AEL_DISCOVERED, qfalse, qtrue );//FIXME: is this impact on ground or not?
 			AddSightEvent( ent, ent->currentOrigin, 256, AEL_DISCOVERED, 50 );
@@ -5928,7 +5928,7 @@ void WP_SaberImpact( gentity_t *owner, gentity_t *saber, trace_t *trace )
 			{
 				G_PlayEffect( "saber/saber_cut", trace->endpos, dir );
 			}
-			if ( owner->s.number == 0 )
+			if ( G_CoopIsPlayer( owner ) )
 			{
 				AddSoundEvent( owner, trace->endpos, 256, AEL_DISCOVERED );
 				AddSightEvent( owner, trace->endpos, 512, AEL_DISCOVERED, 50 );
@@ -5965,7 +5965,7 @@ void WP_SaberImpact( gentity_t *owner, gentity_t *saber, trace_t *trace )
 		}
 	}
 
-	if ( owner && owner->s.number == 0 && owner->client )
+	if ( owner && G_CoopIsPlayer( owner ) && owner->client )
 	{
 		//Add the event
 		if ( owner->client->ps.SaberLength() > 0 )
@@ -6264,7 +6264,7 @@ void WP_SaberInFlightReflectCheck( gentity_t *self, usercmd_t *ucmd  )
 				else
 				{//bounce it
 					vec3_t	reflectAngle, forward;
-					if ( self->client && !self->s.number )
+					if ( self->client && G_CoopIsPlayer( self ) )
 					{
 						self->client->sess.missionStats.saberBlocksCnt++;
 					}
@@ -6727,7 +6727,7 @@ qboolean WP_SaberLaunch( gentity_t *self, gentity_t *saber, qboolean thrown, qbo
 				}
 			}
 		}
-		if ( !self->s.number && (cg.zoomMode || in_camera) )
+		if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 		{//can't saber throw when zoomed in or in cinematic
 			return qfalse;
 		}
@@ -7163,7 +7163,7 @@ void WP_SaberThrow( gentity_t *self, usercmd_t *ucmd )
 		{//still holding it, not still holding attack from a previous throw, so throw it.
 			if ( !(self->client->ps.saberEventFlags&SEF_INWATER) && WP_SaberLaunch( self, saberent, qtrue ) )
 			{
-				if ( self->client && !self->s.number )
+				if ( self->client && G_CoopIsPlayer( self ) )
 				{
 					self->client->sess.missionStats.saberThrownCnt++;
 				}
@@ -7231,7 +7231,7 @@ void WP_SaberThrow( gentity_t *self, usercmd_t *ucmd )
 				self->client->ps.saberEntityNum = ENTITYNUM_NONE;
 				return;
 			}
-			if ( (!self->s.number && level.time - saberent->aimDebounceTime > 15000)
+			if ( (G_CoopIsPlayer( self ) && level.time - saberent->aimDebounceTime > 15000)
 				|| (self->s.number && level.time - saberent->aimDebounceTime > 5000) )
 			{//(only for player) been missing for 15 seconds, automagicially return
 				WP_SaberCatch( self, saberent, qfalse );
@@ -7409,7 +7409,7 @@ void WP_SaberBlockNonRandom( gentity_t *self, vec3_t hitloc, qboolean missileBlo
 		return;
 	}
 	//NPCs don't auto-block
-	if ( !missileBlock && self->s.number >= MAX_CLIENTS && self->client->ps.saberBlocked != BLOCKED_NONE )
+	if ( !missileBlock && !G_CoopIsPlayer( self ) && self->client->ps.saberBlocked != BLOCKED_NONE )
 	{
 		return;
 	}
@@ -7475,7 +7475,7 @@ void WP_SaberBlockNonRandom( gentity_t *self, vec3_t hitloc, qboolean missileBlo
 #ifndef FINAL_BUILD
 	if ( d_saberCombat->integer )
 	{
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{
 			gi.Printf( "EyeZ: %4.2f  HitZ: %4.2f  zdiff: %4.2f  rdot: %4.2f\n", self->client->renderInfo.eyePoint[2], hitloc[2], zdiff, rightdot );
 			switch ( self->client->ps.saberBlocked )
@@ -7639,7 +7639,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 			}
 		}
 
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{//don't do this if already attacking!
 			if ( ucmd->buttons & BUTTON_ATTACK
 				|| PM_SaberInAttack( self->client->ps.saberMove )
@@ -7750,7 +7750,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 		}
 		else
 		{
-			if ( ent->s.pos.trType == TR_STATIONARY && !self->s.number )
+			if ( ent->s.pos.trType == TR_STATIONARY && G_CoopIsPlayer( self ) )
 			{//nothing you can do with a stationary missile if you're the player
 				continue;
 			}
@@ -7794,7 +7794,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 			//FIXME: handle tripmines and detpacks somehow...
 			//			maybe do a force-gesture that makes them explode?
 			//			But what if we're within it's splashradius?
-			if ( !self->s.number )
+			if ( G_CoopIsPlayer( self ) )
 			{//players don't auto-handle these at all
 				continue;
 			}
@@ -7873,7 +7873,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 			if ( (dot1 = DotProduct( dir, forward )) < SABER_REFLECT_MISSILE_CONE )
 				continue;
 		}
-		else if ( !self->s.number )
+		else if ( G_CoopIsPlayer( self ) )
 		{//player never auto-blocks thrown sabers
 			continue;
 		}//NPCs always try to block sabers coming from behind!
@@ -7900,7 +7900,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 					continue;
 				}
 			}
-			if ( self->s.number >= MAX_CLIENTS )
+			if ( !G_CoopIsPlayer( self ) )
 			{//An NPC
 				if ( self->NPC && !self->enemy && ent->owner )
 				{
@@ -7996,7 +7996,7 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 	//float	swap;
 	float	minsize = 16;
 
-	if(0)//	if ( self->s.number != 0 )
+	if(0)//	if ( !G_CoopIsPlayer( self ) )
 	{//for now only the player can do this		// not anymore
 		return;
 	}
@@ -8124,8 +8124,8 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 								(!cg_thirdPerson.integer && g_saberAutoDeflect1stPerson->integer);
 			vec3_t	saberOrg;
 			if ( !forceBlock
-				&& ( ((self->s.number >= MAX_CLIENTS)&&!Jedi_SaberBusy(self)&&!g_saberRealisticCombat->integer) ||
-					(self->s.number < MAX_CLIENTS && self->client->ps.saberBlocking == BLK_WIDE && (autoBlocking||self->client->ps.saberBlockingTime>level.time)) )
+				&& ( (!G_CoopIsPlayer( self )&&!Jedi_SaberBusy(self)&&!g_saberRealisticCombat->integer) ||
+					(G_CoopIsPlayer( self ) && self->client->ps.saberBlocking == BLK_WIDE && (autoBlocking||self->client->ps.saberBlockingTime>level.time)) )
 				&& self->client->ps.weaponTime <= 0
 				&& !G_InCinematicSaberAnim( self ) )
 			{//full-size blocking for non-attacking player with g_saberAutoBlocking on
@@ -8408,7 +8408,7 @@ void WP_DropWeapon( gentity_t *dropper, vec3_t velocity )
 	}
 	//FIXME: does this work on the player?
 	dropper->client->ps.stats[STAT_WEAPONS] |= ( 1 << replaceWeap );
-	if ( !dropper->s.number )
+	if ( G_CoopIsPlayer( dropper ) )
 	{
 		if ( oldWeap == WP_THERMAL )
 		{
@@ -8571,7 +8571,7 @@ void WP_ResistForcePush( gentity_t *self, gentity_t *pusher, qboolean noPenalty 
 		return;
 	}
 
-	if ( (!self->s.number
+	if ( (G_CoopIsPlayer( self )
 			||( self->NPC && (self->NPC->aiFlags&NPCAI_BOSS_CHARACTER) )
 			||( self->client && self->client->NPC_class == CLASS_SHADOWTROOPER )
 			/*
@@ -8678,7 +8678,7 @@ void WP_ForceKnockdown( gentity_t *self, gentity_t *pusher, qboolean pull, qbool
 
 	if ( self->health > 0 )
 	{
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{
 			NPC_SetPainEvent( self );
 		}
@@ -8719,7 +8719,7 @@ void WP_ForceKnockdown( gentity_t *self, gentity_t *pusher, qboolean pull, qbool
 			{//desann always knocks down, unless you're Luke
 				strongKnockdown = qtrue;
 			}
-			if ( !self->s.number
+			if ( G_CoopIsPlayer( self )
 				&& !strongKnockdown
 				&& ( (!pull&&(self->client->ps.forcePowerLevel[FP_PUSH]>FORCE_LEVEL_1||!g_spskill->integer)) || (pull&&(self->client->ps.forcePowerLevel[FP_PULL]>FORCE_LEVEL_1||!g_spskill->integer)) )	)
 			{//player only knocked down if pushed *hard*
@@ -8878,7 +8878,7 @@ qboolean WP_ForceThrowable( gentity_t *ent, gentity_t *forwardEnt, gentity_t *se
 								{//not a limb
 									if ( ent->s.weapon == WP_TURRET && !Q_stricmp( "PAS", ent->classname ) && ent->s.apos.trType == TR_STATIONARY )
 									{//can knock over placed turrets
-										if ( !self->s.number || self->enemy != ent )
+										if ( G_CoopIsPlayer( self ) || self->enemy != ent )
 										{//only NPCs who are actively mad at this turret can push it over
 											return qfalse;
 										}
@@ -9192,7 +9192,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 	{//already pull-attacking
 		return;
 	}
-	if ( !self->s.number && (cg.zoomMode || in_camera) )
+	if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 	{//can't force throw/pull when zoomed in or in cinematic
 		return;
 	}
@@ -9595,7 +9595,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 				}
 
 				//okay, everyone else (or player who couldn't resist it)...
-				if ( ((self->s.number < MAX_CLIENTS && Q_irand( 0, 2 ) ) || Q_irand( 0, 2 ) ) && push_list[x]->client && push_list[x]->health > 0 //a living client
+				if ( ((G_CoopIsPlayer( self ) && Q_irand( 0, 2 ) ) || Q_irand( 0, 2 ) ) && push_list[x]->client && push_list[x]->health > 0 //a living client
 						&& push_list[x]->client->ps.weapon == WP_SABER //Jedi
 						&& push_list[x]->health > 0 //alive
 						&& push_list[x]->client->ps.forceRageRecoveryTime < level.time //not recobering from rage
@@ -9603,7 +9603,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 						&& push_list[x]->client->ps.groundEntityNum != ENTITYNUM_NONE //on the ground
 						&& InFront( center, push_list[x]->currentOrigin, push_list[x]->client->ps.viewangles, 0.3f ) //I'm in front of him
 						&& ( push_list[x]->client->ps.powerups[PW_FORCE_PUSH] > level.time ||//he's pushing too
-								(push_list[x]->s.number >= MAX_CLIENTS && push_list[x]->client->ps.weaponTime < level.time)//not the player and not attacking (NPC jedi auto-defend against pushes)
+								(!G_CoopIsPlayer( push_list[x] ) && push_list[x]->client->ps.weaponTime < level.time)//not the player and not attacking (NPC jedi auto-defend against pushes)
 						   )
 					)
 				{//Jedi don't get pushed, they resist as long as they aren't already attacking and are on the ground
@@ -9820,7 +9820,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 					else */if ( push_list[x]->owner && push_list[x]->owner->client && push_list[x]->owner->client->ps.SaberActive() && push_list[x]->s.pos.trType == TR_LINEAR && push_list[x]->owner->client->ps.saberEntityState != SES_RETURNING )
 					{//it's on and being controlled
 						//FIXME: prevent it from damaging me?
-						if ( self->s.number < MAX_CLIENTS || Q_irand( 0, 2 ) )
+						if ( G_CoopIsPlayer( self ) || Q_irand( 0, 2 ) )
 						{//certain chance of throwing it aside and turning it off?
 							//give it some velocity away from me
 							//FIXME: maybe actually push or pull it?
@@ -10513,7 +10513,7 @@ qboolean WP_CheckBreakControl( gentity_t *self )
 	{
 		return qfalse;
 	}
-	if ( !self->s.number )
+	if ( G_CoopIsPlayer( self ) )
 	{//player
 		if ( self->client && self->client->ps.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_3 )
 		{//control-level
@@ -10781,7 +10781,7 @@ void ForceGrip( gentity_t *self )
 	{
 		return;
 	}
-	if ( !self->s.number && (cg.zoomMode || in_camera) )
+	if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 	{//can't force grip when zoomed in or in cinematic
 		return;
 	}
@@ -11187,7 +11187,7 @@ void ForceLightning( gentity_t *self )
 	{
 		return;
 	}
-	if ( !self->s.number && (cg.zoomMode || in_camera) )
+	if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 	{//can't force lightning when zoomed in or in cinematic
 		return;
 	}
@@ -11341,7 +11341,7 @@ void ForceLightningDamage( gentity_t *self, gentity_t *traceEnt, vec3_t dir, flo
 					&& !PM_SuperBreakWinAnim( traceEnt->client->ps.torsoAnim )
 					&& !PM_SaberInSpecialAttack( traceEnt->client->ps.torsoAnim )
 					&& !PM_InSpecialJump( traceEnt->client->ps.torsoAnim )
-					&& (!traceEnt->s.number||(traceEnt->NPC&&traceEnt->NPC->rank>=RANK_LT_COMM)) )//the player or a tough jedi/reborn
+					&& (G_CoopIsPlayer( traceEnt )||(traceEnt->NPC&&traceEnt->NPC->rank>=RANK_LT_COMM)) )//the player or a tough jedi/reborn
 				{
 					if ( Q_irand( 0, traceEnt->client->ps.forcePowerLevel[FP_SABER_DEFENSE]*3 ) > 0 )//more of a chance of defending if saber defense is high
 					{
@@ -11441,7 +11441,7 @@ void ForceShootLightning( gentity_t *self )
 	{
 		return;
 	}
-	if ( !self->s.number && cg.zoomMode )
+	if ( G_CoopIsPlayer( self ) && cg.zoomMode )
 	{//can't force lightning when zoomed in
 		return;
 	}
@@ -11639,7 +11639,7 @@ qboolean ForceDrain2( gentity_t *self )
 		return qtrue;
 	}
 
-	if ( !self->s.number && (cg.zoomMode || in_camera) )
+	if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 	{//can't force grip when zoomed in or in cinematic
 		return qtrue;
 	}
@@ -12648,7 +12648,7 @@ void ForceJumpCharge( gentity_t *self, usercmd_t *ucmd )
 	{
 		return;
 	}
-	if ( !self->s.number && cg.zoomMode )
+	if ( G_CoopIsPlayer( self ) && cg.zoomMode )
 	{//can't force jump when zoomed in
 		return;
 	}
@@ -12767,7 +12767,7 @@ void ForceJump( gentity_t *self, usercmd_t *ucmd )
 	{
 		return;
 	}
-	if ( !self->s.number && (cg.zoomMode || in_camera) )
+	if ( G_CoopIsPlayer( self ) && (cg.zoomMode || in_camera) )
 	{//can't force jump when zoomed in or in cinematic
 		return;
 	}
@@ -13124,7 +13124,7 @@ void WP_ForcePowerStart( gentity_t *self, forcePowers_t forcePower, int override
 
 	WP_ForcePowerDrain( self, forcePower, overrideAmt );
 
-	if ( !self->s.number )
+	if ( G_CoopIsPlayer( self ) )
 	{
 		self->client->sess.missionStats.forceUsed[(int)forcePower]++;
 	}
@@ -13344,7 +13344,7 @@ void WP_ForcePowerStop( gentity_t *self, forcePowers_t forcePower )
 		self->client->ps.forcePowerDebounce[FP_LEVITATION] = 0;
 		break;
 	case FP_SPEED:
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{//player using force speed
 			if ( g_timescale->value != 1.0 )
 			{
@@ -13520,7 +13520,7 @@ void WP_ForcePowerStop( gentity_t *self, forcePowers_t forcePower )
 		{//still had time left, we cut it short
 			self->client->ps.forceRageRecoveryTime -= (self->client->ps.forcePowerDuration[FP_RAGE] - level.time);//minus however much time you had left when you cut it short
 		}
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{//player using force speed
 			if ( g_timescale->value != 1.0 )
 			{
@@ -13805,7 +13805,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 		break;
 	case FP_SPEED:
 		speed = forceSpeedValue[self->client->ps.forcePowerLevel[FP_SPEED]];
-		if ( !self->s.number )
+		if ( G_CoopIsPlayer( self ) )
 		{//player using force speed
 			if ( !(self->client->ps.forcePowersActive&(1<<FP_RAGE))
 				|| self->client->ps.forcePowerLevel[FP_SPEED] >= self->client->ps.forcePowerLevel[FP_RAGE] )
@@ -13831,7 +13831,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 		break;
 	case FP_GRIP:
 		if ( !WP_ForcePowerAvailable( self, FP_GRIP, 0 )
-			|| (self->client->ps.forcePowerLevel[FP_GRIP]>FORCE_LEVEL_1&&!self->s.number&&!(cmd->buttons&BUTTON_FORCEGRIP)) )
+			|| (self->client->ps.forcePowerLevel[FP_GRIP]>FORCE_LEVEL_1&&G_CoopIsPlayer( self )&&!(cmd->buttons&BUTTON_FORCEGRIP)) )
 		{
 			WP_ForcePowerStop( self, FP_GRIP );
 			return;
@@ -14073,7 +14073,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 							//FIXME: why does he turn back to his original angles once he dies or is let go?
 						}
 					}
-					else if ( !gripEnt->s.number )
+					else if ( G_CoopIsPlayer( gripEnt ) )
 					{
 						//vectoangles( dir, angles );
 						//gripEnt->client->ps.viewangles[0] = -angles[0];
@@ -14290,7 +14290,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 			self->client->ps.stats[STAT_HEALTH] = self->health;
 
 			speed = forceSpeedValue[self->client->ps.forcePowerLevel[FP_RAGE]-1];
-			if ( !self->s.number )
+			if ( G_CoopIsPlayer( self ) )
 			{//player using force rage
 				if ( !(self->client->ps.forcePowersActive&(1<<FP_SPEED))
 					|| self->client->ps.forcePowerLevel[FP_RAGE] > self->client->ps.forcePowerLevel[FP_SPEED]+1 )
@@ -14322,7 +14322,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 		{//holding someone
 			if ( !WP_ForcePowerAvailable( self, FP_DRAIN, 0 )
 				|| (self->client->ps.forcePowerLevel[FP_DRAIN]>FORCE_LEVEL_1
-					&& !self->s.number
+					&& G_CoopIsPlayer( self )
 					&& !(cmd->buttons&BUTTON_FORCE_DRAIN)
 					&& self->client->ps.forcePowerDuration[FP_DRAIN]<level.time) )
 			{
@@ -14453,7 +14453,7 @@ static void WP_ForcePowerRun( gentity_t *self, forcePowers_t forcePower, usercmd
 							RestoreNPCGlobals();
 							//FIXME: why does he turn back to his original angles once he dies or is let go?
 						}
-						else if ( !drainEnt->s.number )
+						else if ( G_CoopIsPlayer( drainEnt ) )
 						{
 							drainEnt->enemy = self;
 							NPC_SetLookTarget( drainEnt, self->s.number, level.time+1000 );
@@ -14652,7 +14652,7 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 
 	WP_CheckForcedPowers( self, ucmd );
 
-	if ( !self->s.number )
+	if ( G_CoopIsPlayer( self ) )
 	{//player uses different kind of force-jump
 	}
 	else
@@ -14685,7 +14685,7 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 		ForceGrip( self );
 	}
 
-	if ( !self->s.number
+	if ( G_CoopIsPlayer( self )
 		&& self->client->NPC_class == CLASS_BOBAFETT )
 	{//Boba Fett
 		if ( ucmd->buttons & BUTTON_FORCE_LIGHTNING )

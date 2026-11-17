@@ -280,7 +280,7 @@ qboolean CG_CheckModifyUCmd( usercmd_t *cmd, vec3_t viewangles )
 	{
 		overridAngles = qtrue;
 		/*
-		int vehIndex = g_entities[0].owner->client->ps.vehicleIndex;
+		int vehIndex = g_entities[cg_localEntNum].owner->client->ps.vehicleIndex;
 		if ( vehIndex != VEHICLE_NONE
 			&& (vehicleData[vehIndex].type == VH_FIGHTER || (vehicleData[vehIndex].type == VH_SPEEDER )) )
 		{//in vehicle flight mode
@@ -751,7 +751,7 @@ void CG_PredictPlayerState( void ) {
 			break;
 		}
 
-		gentity_t *ent = &g_entities[0];//cheating and dirty, I know, but this is a SP game so prediction can cheat
+		gentity_t *ent = &g_entities[cg_localEntNum];//cheating and dirty, I know, but this is a SP game so prediction can cheat
 		if ( player_locked ||
 			(ent && !ent->s.number&&ent->aimDebounceTime>level.time) ||
 			(ent && ent->client && ent->client->ps.pm_time && (ent->client->ps.pm_flags&PMF_TIME_KNOCKBACK)) ||

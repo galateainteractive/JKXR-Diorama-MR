@@ -1983,7 +1983,7 @@ static qboolean PM_CheckJump( void )
 									//G_Sound( traceEnt, G_SoundIndex( va("sound/weapons/melee/punch%d", Q_irand(1, 4)) ) );
 									if ( traceEnt->health > 0 )
 									{//didn't kill him
-										if ( (traceEnt->s.number==0&&!Q_irand(0,g_spskill->integer))
+										if ( (G_CoopIsPlayer( traceEnt )&&!Q_irand(0,g_spskill->integer))
 											|| (traceEnt->NPC!=NULL&&Q_irand(RANK_CIVILIAN,traceEnt->NPC->rank)+Q_irand(-2,2)<RANK_ENSIGN) )
 										{
 											NPC_SetAnim( traceEnt, SETANIM_BOTH, BOTH_KNOCKDOWN2, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
@@ -2258,7 +2258,7 @@ static qboolean PM_CheckJump( void )
 								{//close to him
 									if ( traceEnt->health > 0 )
 									{//didn't kill him
-										if ( (traceEnt->s.number==0&&!Q_irand(0,g_spskill->integer))
+										if ( (G_CoopIsPlayer( traceEnt )&&!Q_irand(0,g_spskill->integer))
 											|| (traceEnt->NPC!=NULL&&Q_irand(RANK_CIVILIAN,traceEnt->NPC->rank)+Q_irand(-2,2)<RANK_ENSIGN) )
 										{
 											NPC_SetAnim( traceEnt, SETANIM_BOTH, BOTH_KNOCKDOWN2, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
@@ -4262,7 +4262,7 @@ static void PM_CrashLand( void )
 		}
 		if ( pm->gent )
 		{
-			if ( pm->gent->s.number == 0 )
+			if ( G_CoopIsPlayer( pm->gent ) )
 			{
 				vec3_t	bottom;
 
@@ -4297,7 +4297,7 @@ static void PM_CrashLand( void )
 				{
 					PM_CrashLandDamage( delta );
 				}
-				if ( pm->gent->s.number == 0 )
+				if ( G_CoopIsPlayer( pm->gent ) )
 				{
 					vec3_t	bottom;
 
@@ -4322,7 +4322,7 @@ static void PM_CrashLand( void )
 		}
 		if ( pm->gent )
 		{
-			if ( pm->gent->s.number == 0 )
+			if ( G_CoopIsPlayer( pm->gent ) )
 			{
 				vec3_t	bottom;
 
@@ -8712,7 +8712,7 @@ DoFootSteps:
 					//PM_AddEvent( PM_FootstepForSurface() );	//still on ground
 				}
 			}
-			if ( pm->gent && pm->gent->s.number == 0 )
+			if ( pm->gent && G_CoopIsPlayer( pm->gent ) )
 			{
 //					if ( pm->gent->client && pm->gent->client->playerTeam != TEAM_DISGUISE )
 				{
@@ -8729,7 +8729,7 @@ DoFootSteps:
 				{
 					//PM_AddEvent( PM_FootstepForSurface() );
 				}
-				if ( pm->gent && pm->gent->s.number == 0 )
+				if ( pm->gent && G_CoopIsPlayer( pm->gent ) )
 				{
 					vec3_t	bottom;
 
@@ -8753,7 +8753,7 @@ DoFootSteps:
 			{
 				PM_AddEvent( EV_FOOTSPLASH );
 			}
-			if ( pm->gent && pm->gent->s.number == 0 )
+			if ( pm->gent && G_CoopIsPlayer( pm->gent ) )
 			{
 				vec3_t	bottom;
 
@@ -8779,7 +8779,7 @@ DoFootSteps:
 			{
 				PM_AddEvent( EV_FOOTWADE );
 			}
-			if ( pm->gent && pm->gent->s.number == 0 )
+			if ( pm->gent && G_CoopIsPlayer( pm->gent ) )
 			{
 //				if ( pm->gent->client && pm->gent->client->playerTeam != TEAM_DISGUISE )
 				{
@@ -10428,12 +10428,12 @@ void PM_SaberLockBreak( gentity_t *gent, gentity_t *genemy, saberLockResult_t re
 					}
 					if ( winAnim != BOTH_CCWCIRCLEBREAK )
 					{
-						if ( (!genemy->s.number&&genemy->health<=25)//player low on health
+						if ( (G_CoopIsPlayer( genemy )&&genemy->health<=25)//player low on health
 							||(genemy->s.number&&genemy->client->NPC_class!=CLASS_KYLE&&genemy->client->NPC_class!=CLASS_LUKE&&genemy->client->NPC_class!=CLASS_TAVION&&genemy->client->NPC_class!=CLASS_ALORA&&genemy->client->NPC_class!=CLASS_DESANN)//any NPC that's not a boss character
 							||(genemy->s.number&&genemy->health<=50) )//boss character with less than 50 health left
 						{//possibly knock saber out of hand OR cut hand off!
 							if ( Q_irand( 0, 25 ) < victoryStrength
-								&& ((!genemy->s.number&&genemy->health<=10)||genemy->s.number) )
+								&& ((G_CoopIsPlayer( genemy )&&genemy->health<=10)||genemy->s.number) )
 							{
 								NPC_SetAnim( genemy, SETANIM_BOTH, BOTH_RIGHTHANDCHOPPEDOFF, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );//force this
 								genemy->client->dismembered = false;
@@ -15168,7 +15168,7 @@ void Pmove( pmove_t *pmove )
 		pm->ps->pm_flags &= ~PMF_FORCE_FOCUS_HELD;
 	}
 
-	if ( pm->gent )//&& pm->gent->s.number == 0 )//player only?
+	if ( pm->gent )//&& G_CoopIsPlayer( pm->gent ) )//player only?
 	{
 		// Use
 		PM_Use();

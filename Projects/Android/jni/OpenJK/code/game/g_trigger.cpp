@@ -105,7 +105,7 @@ void multi_trigger_run( gentity_t *ent )
 		//ent->nextthink = level.time + FRAMETIME;
 		//ent->think = G_FreeEntity;
 	}
-	if( ent->activator && ent->activator->s.number == 0 )
+	if( ent->activator && G_CoopIsPlayer( ent->activator ) )
 	{	// mark the trigger as being touched by the player
 		ent->aimDebounceTime = level.time;
 	}
@@ -148,7 +148,7 @@ void multi_trigger( gentity_t *ent, gentity_t *activator )
 
 
 	// if the player has already activated this trigger this frame
-	if( activator && !activator->s.number && ent->aimDebounceTime == level.time )
+	if( activator && G_CoopIsPlayer( activator ) && ent->aimDebounceTime == level.time )
 	{
 		return;
 	}
@@ -210,7 +210,7 @@ void Touch_Multi( gentity_t *self, gentity_t *other, trace_t *trace )
 
 	if ( self->spawnflags & 1 )
 	{
-		if ( other->s.number != 0 )
+		if ( !G_CoopIsPlayer( other ) )	// coop: PLAYERONLY means any player
 		{
 			return;
 		}
@@ -312,7 +312,7 @@ void Touch_Multi( gentity_t *self, gentity_t *other, trace_t *trace )
 
 		//FIXME: do we care about the sniper rifle or not?
 
-		if( other->s.number == 0 && ( other->client->ps.weapon > MAX_PLAYER_WEAPONS || other->client->ps.weapon <= WP_NONE ) )
+		if( G_CoopIsPlayer( other ) && ( other->client->ps.weapon > MAX_PLAYER_WEAPONS || other->client->ps.weapon <= WP_NONE ) )
 		{//don't care about non-player weapons if this is the player
 			return;
 		}
@@ -687,7 +687,7 @@ void trigger_push_touch (gentity_t *self, gentity_t *other, trace_t *trace ) {
 	}
 
 	// if the player has already activated this trigger this frame
-	if( other && !other->s.number && self->aimDebounceTime == level.time )
+	if( other && G_CoopIsPlayer( other ) && self->aimDebounceTime == level.time )
 	{
 		return;
 	}
@@ -703,7 +703,7 @@ void trigger_push_touch (gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	if ( self->spawnflags & 1 )
 	{//PLAYERONLY
-		if ( other->s.number != 0 )
+		if ( !G_CoopIsPlayer( other ) )	// coop: PLAYERONLY means any player
 		{
 			return;
 		}
@@ -766,7 +766,7 @@ void trigger_push_touch (gentity_t *self, gentity_t *other, trace_t *trace ) {
 		self->painDebounceTime = level.time;
 
 	}
-	if( other && !other->s.number )
+	if( other && G_CoopIsPlayer( other ) )
 	{	// mark that the player has activated this trigger this frame
 		self->aimDebounceTime =level.time;
 	}
@@ -1187,7 +1187,7 @@ void hurt_touch( gentity_t *self, gentity_t *other, trace_t *trace )
 	}
 
 	// if the player has already activated this trigger this frame
-	if( other && !other->s.number && self->aimDebounceTime == level.time )
+	if( other && G_CoopIsPlayer( other ) && self->aimDebounceTime == level.time )
 	{
 		return;
 	}
@@ -1264,7 +1264,7 @@ void hurt_touch( gentity_t *self, gentity_t *other, trace_t *trace )
 			{
 				G_Damage (other, self, self, NULL, NULL, actualDmg, dflags|DAMAGE_NO_ARMOR, MOD_FALLING);
 				// G_Damage will free this ent, which makes it s.number 0, so we must check inuse...
-				if ( !other->s.number && other->health <= 0 )
+				if ( G_CoopIsPlayer( other ) && other->health <= 0 )
 				{
 					if ( self->count )
 					{
@@ -1289,7 +1289,7 @@ void hurt_touch( gentity_t *self, gentity_t *other, trace_t *trace )
 		{
 			G_Damage (other, self, self, NULL, NULL, actualDmg, dflags, MOD_TRIGGER_HURT);
 		}
-		if( other && !other->s.number )
+		if( other && G_CoopIsPlayer( other ) )
 		{
 			self->aimDebounceTime = level.time;
 		}
@@ -1574,7 +1574,7 @@ void trigger_entdist_use( gentity_t *self, gentity_t *other, gentity_t *activato
 
 	if (self->spawnflags & ENTDIST_PLAYER)	// Look for player???
 	{
-		found = &g_entities[0];
+		found = G_CoopNearestPlayer( owner->currentOrigin, qfalse );	// coop
 
 		if (found)
 		{
@@ -1647,7 +1647,7 @@ void trigger_visible_check_player_visibility( gentity_t *self )
 
 	vec3_t	dir;
 	float	dist;
-	gentity_t	*player = &g_entities[0];
+	gentity_t	*player = G_CoopNearestPlayer( self->currentOrigin, qtrue );	// coop: shadow the global with the nearest player
 
 	if (!player || !player->client )
 	{

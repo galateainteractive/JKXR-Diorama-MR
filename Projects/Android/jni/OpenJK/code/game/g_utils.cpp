@@ -1130,7 +1130,7 @@ void G_AddEvent( gentity_t *ent, int event, int eventParm ) {
 #endif
 
 	// clients need to add the event in playerState_t instead of entityState_t
-	if ( !ent->s.number ) //only one client
+	if ( G_CoopIsPlayer( ent ) ) //only one client
 	{
 #if 0
 		bits = ent->client->ps.externalEvent & EV_EVENT_BITS;
@@ -1918,6 +1918,17 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 	trace_t		trace;
 	vec3_t		dest;
 
+	if (G_CoopIsPlayer( ent ) && g_npcdebug->integer == 1)
+	{
+		DebugTraceForNPC(ent);
+	}
+
+	if ( G_CoopIsPlayer( ent ) && ent->client->NPC_class == CLASS_ATST && ent->activator )
+	{//a player trying to get out of his ATST
+		GEntity_UseFunc( ent->activator, ent, ent );
+		return;
+	}
+
 	// Drivable AT-ST can be used if player stands on it
 	if (ent->client->ps.groundEntityNum < ENTITYNUM_WORLD) {
 		target = &g_entities[ent->client->ps.groundEntityNum];
@@ -1965,7 +1976,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 		}
 		//TODO: Play a failure sound
 		/*
-		if ( ent->s.number == 0 )
+		if ( G_CoopIsPlayer( ent ) )
 		{//if nothing else, try the force telepathy power
 			ForceTelepathy( ent );
 		}
@@ -2022,7 +2033,7 @@ void TryUse_Internal( bool offHand, gentity_t *ent, vec3_t src, vec3_t vf )
 		return;
 	}
 	/*
-	if ( ent->s.number == 0 )
+	if ( G_CoopIsPlayer( ent ) )
 	{//if nothing else, try the force telepathy power
 		ForceTelepathy( ent );
 	}
