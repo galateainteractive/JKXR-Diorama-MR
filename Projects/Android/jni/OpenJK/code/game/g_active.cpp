@@ -5214,7 +5214,7 @@ extern cvar_t	*g_skippingcin;
 									ucmd->rightmove = -127;
 								}
 							}
-							if ( !ent->s.number && ucmd->upmove < 0 )
+							if ( ent->s.number < MAX_CLIENTS && ucmd->upmove < 0 )
 							{//player who should roll- force it
 								int	rollAnim = BOTH_ROLL_F;
 								if ( ucmd->forwardmove >= 0 )

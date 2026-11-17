@@ -368,7 +368,7 @@ static void CG_RegisterCustomSounds(clientInfo_t *ci, int iSoundEntryBase,
 //SB: Never render any player model if 1st person and using the saber
 bool CG_getPlayer1stPersonSaber(const centity_t *cent) {
 	return (!cent->gent->NPC && !cg.renderingThirdPerson &&
-			cent->gent->client->ps.clientNum == 0 &&
+			CG_IsLocalPlayer( cent ) &&
 			cent->gent->client->ps.weapon == WP_SABER);
 }
 
@@ -6983,7 +6983,7 @@ void CG_Player( centity_t *cent ) {
 	// coop: remote client feeds the placeholder gentity from the network
 	CG_CoopSyncCharacter( cent );
 
-	if( cent->gent->s.number == 0 && cg.weaponSelect == WP_NONE && cg.zoomMode == 1 )
+	if( CG_IsLocalPlayer( cent ) && cg.weaponSelect == WP_NONE && cg.zoomMode == 1 )
 	{
 		// HACK
 		return;
@@ -6994,12 +6994,12 @@ void CG_Player( centity_t *cent ) {
 	//Get the player's light level for stealth calculations
 	CG_GetPlayerLightLevel( cent );
 
-	if ((in_camera) && cent->currentState.clientNum == 0 )	// If player in camera then no need for shadow
+	if ((in_camera) && CG_IsLocalPlayer( cent ) )	// If player in camera then no need for shadow
 	{
 		return;
 	}
 
-	if(cent->currentState.number == 0 && !cg.renderingThirdPerson )//!cg_thirdPerson.integer )
+	if(CG_IsLocalPlayer( cent ) && !cg.renderingThirdPerson )//!cg_thirdPerson.integer )
 	{
 		calcedMp = qtrue;
 	}
@@ -7011,7 +7011,7 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 	
-	if (cent->gent->client->ps.clientNum == 0) {
+	if (CG_IsLocalPlayer( cent )) {
 		vr->velocitytriggered = (!cg.renderingThirdPerson &&
 								 (cg.snap->ps.weapon == WP_SABER || cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_STUN_BATON));
 		cvar_t *vr_motion_enable_saber = gi.cvar("vr_motion_enable_saber", "0", CVAR_ARCHIVE);
@@ -7020,15 +7020,21 @@ void CG_Player( centity_t *cent ) {
 		{
 			case WP_SABER:
 			{
-				gentity_t *saberent = &g_entities[cent->gent->client->ps.saberEntityNum];
+				gentity_t *saberent = NULL;
+				if ( !cg_remoteClient
+					&& cent->gent->client->ps.saberEntityNum >= 0
+					&& cent->gent->client->ps.saberEntityNum < MAX_GENTITIES )
+				{
+					saberent = &g_entities[cent->gent->client->ps.saberEntityNum];
+				}
 
-				if (g_entities[0].client->ps.SaberActive() || vr_motion_enable_saber->integer)
+				if (cent->currentState.saberActive || vr_motion_enable_saber->integer)
 				{
 					vr->velocitytriggeractive = true;
 				}
 					//Should we allow player to pull saber back with motion?
 				else if (cent->gent->client->ps.saberInFlight &&
-						 saberent->s.pos.trType != TR_LINEAR)
+						 saberent && saberent->s.pos.trType != TR_LINEAR)
 				{
 					vr->velocitytriggeractive = true;
 				}
@@ -7408,7 +7414,7 @@ Ghoul2 Insert Start
 
 extern vmCvar_t	cg_thirdPersonAlpha;
 
-		if ( (cent->gent->s.number == 0 || G_ControlledByPlayer( cent->gent )) )
+		if ( (CG_IsLocalPlayer( cent ) || G_ControlledByPlayer( cent->gent )) )
 		{
 			float alpha = 1.0f;
 			if ( (cg.overrides.active&CG_OVERRIDE_3RD_PERSON_APH) )
@@ -7446,7 +7452,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 		VectorCopy( ent.origin, cent->gent->client->renderInfo.torsoPoint );
 		VectorCopy( cent->lerpAngles, cent->gent->client->renderInfo.torsoAngles );
 		VectorCopy( ent.origin, cent->gent->client->renderInfo.crotchPoint );
-		if ( cent->currentState.number != 0
+		if ( !CG_IsLocalPlayer( cent )
 			|| cg.renderingThirdPerson
 			|| cg.snap->ps.stats[STAT_HEALTH] <= 0
 			|| ( !cg.renderingThirdPerson && (cg.snap->ps.weapon == WP_SABER||cg.snap->ps.weapon == WP_MELEE) )//First person saber
@@ -7460,7 +7466,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 				VectorCopy( ent.origin, cent->gent->client->renderInfo.muzzlePoint );
 				VectorCopy( ent.axis[0], cent->gent->client->renderInfo.muzzleDir );
 
-				if ( !cg.renderingThirdPerson && cent->gent->client->ps.clientNum == 0 && (cg.snap->ps.weapon == WP_SABER||cg.snap->ps.weapon == WP_MELEE))
+				if ( !cg.renderingThirdPerson && CG_IsLocalPlayer( cent ) && (cg.snap->ps.weapon == WP_SABER||cg.snap->ps.weapon == WP_MELEE))
 				{
 					vec3_t angles;
 					BG_CalculateVRSaberPosition(0, cent->gent->client->renderInfo.muzzlePoint, angles);
@@ -7480,7 +7486,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 							&boltMatrix, G2Angles, ent.origin, cg.time,
 							cgs.model_draw, cent->currentState.modelScale );
 			gi.G2API_GiveMeVectorFromMatrix( boltMatrix, ORIGIN, cent->gent->client->renderInfo.handRPoint );
-			if (!cg.renderingThirdPerson && !cent->gent->client->ps.saberInFlight && cent->gent->client->ps.clientNum == 0)
+			if (!cg.renderingThirdPerson && !cent->gent->client->ps.saberInFlight && CG_IsLocalPlayer( cent ))
 			{
 				vec3_t angles;
 				BG_CalculateVRSaberPosition(0, cent->gent->client->renderInfo.handRPoint, angles);
@@ -7493,7 +7499,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 							&boltMatrix, G2Angles, ent.origin, cg.time,
 							cgs.model_draw, cent->currentState.modelScale );
 			gi.G2API_GiveMeVectorFromMatrix( boltMatrix, ORIGIN, cent->gent->client->renderInfo.handLPoint );
-			if (!cg.renderingThirdPerson && !cent->gent->client->ps.saberInFlight && cent->gent->client->ps.clientNum == 0)
+			if (!cg.renderingThirdPerson && !cent->gent->client->ps.saberInFlight && CG_IsLocalPlayer( cent ))
 			{
 				vec3_t angles;
 				BG_CalculateVRSaberPosition(1, cent->gent->client->renderInfo.handLPoint, angles);
@@ -8395,7 +8401,7 @@ Ghoul2 Insert End
 			//FIXME: allow it to be put anywhere and move this out of if(torso.hModel)
 			//Will have to call CG_PositionRotatedEntityOnTag
 
-			if (cent->gent->client->ps.clientNum == 0)
+			if (CG_IsLocalPlayer( cent ))
 			{
 				vec3_t angs;
 				BG_CalculateVRWeaponPosition(gun.origin, angs);

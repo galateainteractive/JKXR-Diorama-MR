@@ -1487,7 +1487,7 @@ static qboolean PM_CheckJump( void )
 		//&& !PM_InKnockDown( pm->ps )//not in a knockdown
 		&& pm->ps->forceRageRecoveryTime < pm->cmd.serverTime	//not in a force Rage recovery period
 		&& pm->gent && WP_ForcePowerAvailable( pm->gent, FP_LEVITATION, 0 ) //have enough force power to jump
-		&& ((pm->ps->clientNum&&!PM_ControlledByPlayer())||((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode	&& !(pm->gent->flags&FL_LOCK_PLAYER_WEAPONS) )) )// yes this locked weapons check also includes force powers, if we need a separate check later I'll make one
+		&& ((pm->ps->clientNum >= MAX_CLIENTS&&!PM_ControlledByPlayer())||((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode	&& !(pm->gent->flags&FL_LOCK_PLAYER_WEAPONS) )) )// yes this locked weapons check also includes force powers, if we need a separate check later I'll make one
 	{
 		if ( pm->gent->NPC && pm->gent->NPC->rank != RANK_CREWMAN && pm->gent->NPC->rank <= RANK_LT_JG )
 		{//reborn who are not acrobats can't do any of these acrobatics
@@ -2364,7 +2364,7 @@ static qboolean PM_CheckJump( void )
 		&& pm->ps->forceRageRecoveryTime < pm->cmd.serverTime	//not in a force Rage recovery period
 		&& pm->ps->weapon == WP_SABER
 		&& (pm->ps->weaponTime > 0||(pm->cmd.buttons&BUTTON_ATTACK))
-		&& ((pm->ps->clientNum&&!PM_ControlledByPlayer())||((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode)) )
+		&& ((pm->ps->clientNum >= MAX_CLIENTS&&!PM_ControlledByPlayer())||((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode)) )
 	{//okay, we just jumped and we're in an attack
 		if ( !PM_RollingAnim( pm->ps->legsAnim )
 			&& !PM_InKnockDown( pm->ps )
@@ -4789,7 +4789,7 @@ static void PM_GroundTraceMissed( void ) {
 		if ( !(pm->ps->eFlags&EF_FORCE_DRAINED) )
 		{
 			//FIXME: if in a contents_falldeath brush, play the falling death anim and sound?
-			if ( pm->ps->clientNum != 0 && pm->gent && pm->gent->NPC && pm->gent->client && pm->gent->client->NPC_class != CLASS_DESANN )//desann never falls to his death
+			if ( pm->ps->clientNum >= MAX_CLIENTS && pm->gent && pm->gent->NPC && pm->gent->client && pm->gent->client->NPC_class != CLASS_DESANN )//desann never falls to his death
 			{
 				if ( pm->ps->groundEntityNum == ENTITYNUM_NONE )
 				{
@@ -9709,7 +9709,7 @@ void PM_SetSaberMove(saberMoveName_t newMove)
 		pm->ps->saberMove = newMove;
 		pm->ps->saberBlocking = saberMoveData[newMove].blocking;
 
-		if ( pm->ps->clientNum == 0 || PM_ControlledByPlayer() )
+		if ( pm->ps->clientNum < MAX_CLIENTS || PM_ControlledByPlayer() )
 		{
 			if ( pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT_PROJ && pm->ps->saberBlocked <= BLOCKED_TOP_PROJ
 				&& newMove >= LS_REFLECT_UP && newMove <= LS_REFLECT_LL )
@@ -11726,7 +11726,7 @@ qboolean PM_SaberBlocking( void )
 
 		if ( pm->ps->saberBlocked != BLOCKED_ATK_BOUNCE )
 		{//can't attack for twice whatever your skill level's parry debounce time is
-			if ( pm->ps->clientNum == 0 || PM_ControlledByPlayer() )
+			if ( pm->ps->clientNum < MAX_CLIENTS || PM_ControlledByPlayer() )
 			{//player
 				if ( pm->ps->forcePowerLevel[FP_SABER_DEFENSE] <= FORCE_LEVEL_1 )
 				{
@@ -11784,7 +11784,7 @@ qboolean PM_SaberBlocking( void )
 
 					if ( pm->cmd.buttons & BUTTON_ATTACK )
 					{//transition to a new attack
-						if ( pm->ps->clientNum && !PM_ControlledByPlayer() )
+						if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() )
 						{//NPC
 							nextMove = saberMoveData[pm->ps->saberMove].chain_attack;
 						}
@@ -11802,7 +11802,7 @@ qboolean PM_SaberBlocking( void )
 					}
 					else
 					{//return to ready
-						if ( pm->ps->clientNum && !PM_ControlledByPlayer() )
+						if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() )
 						{//NPC
 							nextMove = saberMoveData[pm->ps->saberMove].chain_idle;
 						}
@@ -12619,7 +12619,7 @@ void PM_WeaponLightsaber(void)
 			}
 			else if ( PM_SaberInBounce( curmove ) )
 			{//in a bounce
-				if ( pm->ps->clientNum && !PM_ControlledByPlayer() )
+				if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() )
 				{//NPCs must play sequential attack
 					//going into another attack...
 					//allow endless chaining in level 1 attacks, several in level 2 and only one or a few in level 3

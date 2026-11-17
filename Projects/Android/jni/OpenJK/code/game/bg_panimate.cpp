@@ -2346,7 +2346,7 @@ saberMoveName_t PM_AttackForEnemyPos( qboolean allowFB, qboolean allowStabDown )
 			{//okay to do backstabs with this saber
 				if ( enemyDist > 200 || pm->gent->enemy->health <= 0 )
 				{//hmm, look in back for an enemy
-					if ( pm->ps->clientNum && !PM_ControlledByPlayer() )
+					if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() )
 					{//player should never do this automatically
 						if ( pm->ps->groundEntityNum != ENTITYNUM_NONE )
 						{//only when on ground
@@ -2362,7 +2362,7 @@ saberMoveName_t PM_AttackForEnemyPos( qboolean allowFB, qboolean allowStabDown )
 				}
 			}
 			//this is the default only if they're *right* in front...
-			if ( (pm->ps->clientNum&&!PM_ControlledByPlayer())
+			if ( (pm->ps->clientNum >= MAX_CLIENTS&&!PM_ControlledByPlayer())
 				|| ((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode) )
 			{//NPC or player not in 1st person
 				if ( PM_CheckFlipOverAttackMove( qtrue ) )
@@ -2444,7 +2444,7 @@ saberMoveName_t PM_AttackForEnemyPos( qboolean allowFB, qboolean allowStabDown )
 					else if ( pm->ps->saberAnimLevel != SS_FAST
 						&& pm->ps->saberAnimLevel != SS_STAFF )
 					{//higher level back spin-attacks
-						if ( (pm->ps->clientNum&&!PM_ControlledByPlayer()) || ((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode) )
+						if ( (pm->ps->clientNum >= MAX_CLIENTS&&!PM_ControlledByPlayer()) || ((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode) )
 						{
 							if ( (pm->ps->pm_flags&PMF_DUCKED) || pm->cmd.upmove < 0 )
 							{
@@ -3753,7 +3753,7 @@ saberMoveName_t PM_SaberAttackForMovement( int forwardmove, int rightmove, int c
 					PM_SaberLungeAttackMove( qfalse );
 				}
 			}
-			else if ( (pm->ps->clientNum&&!PM_ControlledByPlayer()) //NPC
+			else if ( (pm->ps->clientNum >= MAX_CLIENTS&&!PM_ControlledByPlayer()) //NPC
 				|| ((pm->ps->clientNum < MAX_CLIENTS||PM_ControlledByPlayer()) && cg.renderingThirdPerson && !cg.zoomMode) )//player in third person, not zooomed
 			{//NPC or player in third person, not zoomed
 				if ( PM_CheckBackflipAttackMove() )
@@ -3884,7 +3884,7 @@ saberMoveName_t PM_SaberAttackForMovement( int forwardmove, int rightmove, int c
 					}
 				}
 				saberMoveName_t newmove;
-				if ( pm->ps->clientNum && !PM_ControlledByPlayer() && Q_irand( 0, 3 ) )
+				if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() && Q_irand( 0, 3 ) )
 				{//use NPC random
 					newmove = PM_NPCSaberAttackFromQuad( saberMoveData[curmove].endQuad );
 				}
@@ -3911,7 +3911,7 @@ saberMoveName_t PM_SaberAttackForMovement( int forwardmove, int rightmove, int c
 					}
 				}
 				saberMoveName_t newmove;
-				if ( pm->ps->clientNum && !PM_ControlledByPlayer() && Q_irand( 0, 3 ) )
+				if ( pm->ps->clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer() && Q_irand( 0, 3 ) )
 				{//use NPC random
 					newmove = PM_NPCSaberAttackFromQuad( saberMoveData[curmove].endQuad );
 				}
@@ -5314,7 +5314,7 @@ void PM_TorsoAnimLightsaber()
 			PM_SetAnim(pm,SETANIM_TORSO,BOTH_WALK_DUAL,SETANIM_FLAG_NORMAL);
 			pm->ps->saberMove = LS_READY;
 		}
-		else if( pm->ps->legsAnim == BOTH_CROUCH1IDLE && pm->ps->clientNum != 0 )//player falls through
+		else if( pm->ps->legsAnim == BOTH_CROUCH1IDLE && pm->ps->clientNum >= MAX_CLIENTS )//player falls through
 		{
 			//??? Why nothing?  What if you were running???
 			//PM_SetAnim(pm,SETANIM_TORSO,BOTH_CROUCH1IDLE,SETANIM_FLAG_NORMAL);
@@ -5809,7 +5809,7 @@ void PM_TorsoAnimation( void )
 		{
 			PM_SetAnim(pm,SETANIM_TORSO,BOTH_WALK_DUAL,SETANIM_FLAG_NORMAL);
 		}
-		else if( pm->ps->legsAnim == BOTH_CROUCH1IDLE && pm->ps->clientNum != 0 )//player falls through
+		else if( pm->ps->legsAnim == BOTH_CROUCH1IDLE && pm->ps->clientNum >= MAX_CLIENTS )//player falls through
 		{
 			//??? Why nothing?  What if you were running???
 			//PM_SetAnim(pm,SETANIM_TORSO,BOTH_CROUCH1IDLE,SETANIM_FLAG_NORMAL);

@@ -1494,7 +1494,7 @@ qboolean WP_SaberApplyDamage( gentity_t *ent, float baseDamage, int baseDFlags,
 							}
 							if ( baseDamage <= 1.0f )
 							{//very mild damage
-								if ( victim->s.number == 0 || victim->client->ps.weapon == WP_SABER || victim->client->NPC_class == CLASS_GALAKMECH )
+								if ( victim->s.number < MAX_CLIENTS || victim->client->ps.weapon == WP_SABER || victim->client->NPC_class == CLASS_GALAKMECH )
 								{//if it's the player or a saber-user, don't kill them with this blow
 									dFlags |= DAMAGE_NO_KILL;
 								}
@@ -2597,7 +2597,7 @@ qboolean WP_SaberDamageForTrace( int ignore, vec3_t start, vec3_t end, float dmg
 			qboolean sabersIntersect = WP_SabersIntersect( attacker, saberNum, bladeNum, owner, qfalse );//qtrue );
 			float sabersDist;
 			if ( attacker && attacker->client && attacker->client->ps.saberInFlight
-				&& owner && owner->s.number == 0 && (g_saberAutoBlocking->integer||attacker->client->ps.saberBlockingTime>level.time) )//NPC flying saber hit player's saber bounding box
+				&& owner && owner->s.number < MAX_CLIENTS && (g_saberAutoBlocking->integer||attacker->client->ps.saberBlockingTime>level.time) )//NPC flying saber hit player's saber bounding box
 			{//players have g_saberAutoBlocking, do the more generous check against flying sabers
 				//FIXME: instead of hitting the player's saber bounding box
 				//and picking an anim afterwards, have him use AI similar
@@ -4550,7 +4550,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 		return;
 	}
 
-	if ( !ent->s.number )
+	if ( ent->s.number < MAX_CLIENTS )
 	{//player never uses these
 		ent->client->ps.saberEventFlags &= ~SEF_EVENTS;
 	}
@@ -4598,7 +4598,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 	{
 		entPowerLevel = SaberDroid_PowerLevelForSaberAnim( ent );
 	}
-	else if ( !ent->s.number && (ent->client->ps.forcePowersActive&(1<<FP_SPEED)) )
+	else if ( ent->s.number < MAX_CLIENTS && (ent->client->ps.forcePowersActive&(1<<FP_SPEED)) )
 	{
 		entPowerLevel = FORCE_LEVEL_3;
 	}
@@ -4637,7 +4637,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 		}
 		else
 		{
-			if ( !ent->s.number )
+			if ( ent->s.number < MAX_CLIENTS )
 			{//cheat for player
 				baseDamage = 10.0f;
 			}
@@ -4918,7 +4918,7 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 			baseDamage = 25.0f;
 		}
 	}
-	else if ( ((!ent->s.number&&ent->client->ps.forcePowersActive&(1<<FP_SPEED))||ent->client->ps.forcePowersActive&(1<<FP_RAGE))
+	else if ( (((ent->s.number < MAX_CLIENTS)&&ent->client->ps.forcePowersActive&(1<<FP_SPEED))||ent->client->ps.forcePowersActive&(1<<FP_RAGE))
 		&& g_timescale->value < 1.0f )
 	{
 		baseDamage *= (1.0f-g_timescale->value);
@@ -7136,7 +7136,7 @@ void WP_SaberThrow( gentity_t *self, usercmd_t *ucmd )
 		if ( (ucmd->buttons&BUTTON_ATTACK)
 			&& (ucmd->buttons&BUTTON_ALT_ATTACK)
 			&& !self->client->ps.saberInFlight
-            && self->client->ps.clientNum == 0
+			&& self->client->ps.clientNum < MAX_CLIENTS
             && cg.renderingThirdPerson)
 		{//trying to do special attack, don't throw it
             return;
@@ -7409,7 +7409,7 @@ void WP_SaberBlockNonRandom( gentity_t *self, vec3_t hitloc, qboolean missileBlo
 		return;
 	}
 	//NPCs don't auto-block
-	if ( !missileBlock && self->s.number != 0 && self->client->ps.saberBlocked != BLOCKED_NONE )
+	if ( !missileBlock && self->s.number >= MAX_CLIENTS && self->client->ps.saberBlocked != BLOCKED_NONE )
 	{
 		return;
 	}
@@ -7900,7 +7900,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 					continue;
 				}
 			}
-			if ( self->s.number != 0 )
+			if ( self->s.number >= MAX_CLIENTS )
 			{//An NPC
 				if ( self->NPC && !self->enemy && ent->owner )
 				{
@@ -8124,8 +8124,8 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 								(!cg_thirdPerson.integer && g_saberAutoDeflect1stPerson->integer);
 			vec3_t	saberOrg;
 			if ( !forceBlock
-				&& ( (self->s.number&&!Jedi_SaberBusy(self)&&!g_saberRealisticCombat->integer) ||
-					(self->s.number == 0 && self->client->ps.saberBlocking == BLK_WIDE && (autoBlocking||self->client->ps.saberBlockingTime>level.time)) )
+				&& ( ((self->s.number >= MAX_CLIENTS)&&!Jedi_SaberBusy(self)&&!g_saberRealisticCombat->integer) ||
+					(self->s.number < MAX_CLIENTS && self->client->ps.saberBlocking == BLK_WIDE && (autoBlocking||self->client->ps.saberBlockingTime>level.time)) )
 				&& self->client->ps.weaponTime <= 0
 				&& !G_InCinematicSaberAnim( self ) )
 			{//full-size blocking for non-attacking player with g_saberAutoBlocking on
@@ -9595,7 +9595,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 				}
 
 				//okay, everyone else (or player who couldn't resist it)...
-				if ( ((self->s.number == 0 && Q_irand( 0, 2 ) ) || Q_irand( 0, 2 ) ) && push_list[x]->client && push_list[x]->health > 0 //a living client
+				if ( ((self->s.number < MAX_CLIENTS && Q_irand( 0, 2 ) ) || Q_irand( 0, 2 ) ) && push_list[x]->client && push_list[x]->health > 0 //a living client
 						&& push_list[x]->client->ps.weapon == WP_SABER //Jedi
 						&& push_list[x]->health > 0 //alive
 						&& push_list[x]->client->ps.forceRageRecoveryTime < level.time //not recobering from rage
@@ -9603,7 +9603,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 						&& push_list[x]->client->ps.groundEntityNum != ENTITYNUM_NONE //on the ground
 						&& InFront( center, push_list[x]->currentOrigin, push_list[x]->client->ps.viewangles, 0.3f ) //I'm in front of him
 						&& ( push_list[x]->client->ps.powerups[PW_FORCE_PUSH] > level.time ||//he's pushing too
-								(push_list[x]->s.number != 0 && push_list[x]->client->ps.weaponTime < level.time)//not the player and not attacking (NPC jedi auto-defend against pushes)
+								(push_list[x]->s.number >= MAX_CLIENTS && push_list[x]->client->ps.weaponTime < level.time)//not the player and not attacking (NPC jedi auto-defend against pushes)
 						   )
 					)
 				{//Jedi don't get pushed, they resist as long as they aren't already attacking and are on the ground
@@ -9820,7 +9820,7 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 					else */if ( push_list[x]->owner && push_list[x]->owner->client && push_list[x]->owner->client->ps.SaberActive() && push_list[x]->s.pos.trType == TR_LINEAR && push_list[x]->owner->client->ps.saberEntityState != SES_RETURNING )
 					{//it's on and being controlled
 						//FIXME: prevent it from damaging me?
-						if ( self->s.number == 0 || Q_irand( 0, 2 ) )
+						if ( self->s.number < MAX_CLIENTS || Q_irand( 0, 2 ) )
 						{//certain chance of throwing it aside and turning it off?
 							//give it some velocity away from me
 							//FIXME: maybe actually push or pull it?

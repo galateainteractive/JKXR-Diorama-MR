@@ -586,6 +586,12 @@ extern	vmCvar_t		cg_remoteClientCvar;
 static inline const playerState_t *CG_LocalPS( const centity_t *cent ) {
 	return ( !cg_remoteClient && cent->gent && cent->gent->client ) ? &cent->gent->client->ps : &cg.snap->ps;
 }
+// Single-player code traditionally used entity/client 0 as shorthand for
+// "the player rendered by this cgame".  A co-op guest is client 1, so use the
+// snapshot owner instead.  This remains client 0 on the host.
+static inline qboolean CG_IsLocalPlayer( const centity_t *cent ) {
+	return (qboolean)( cg.snap && cent && cent->currentState.clientNum == cg.snap->ps.clientNum );
+}
 // cg_coop.cpp: remote-client character rebuild/sync (no-ops on the host)
 void CG_CoopSyncEntity( centity_t *cent );
 void CG_CoopSyncCharacter( centity_t *cent );

@@ -315,9 +315,15 @@ void CG_CoopSyncCharacter( centity_t *cent )
 	VectorCopy( s->pos.trDelta, gent->client->ps.velocity );
 	gent->client->ps.groundEntityNum = s->groundEntityNum;
 	gent->client->ps.eFlags = s->eFlags;
-	gent->s.eFlags = s->eFlags;
+	gent->s = *s;
 	gent->client->ps.weapon = s->weapon;
 	gent->client->ps.saberInFlight = s->saberInFlight;
+	gent->client->ps.saberMove = (short)s->frame;
+	gent->client->ps.saberEntityNum =
+		( s->otherEntityNum2 >= 0 && s->otherEntityNum2 < MAX_GENTITIES )
+		? s->otherEntityNum2 : ENTITYNUM_NONE;
+	gent->client->ps.stats[STAT_HEALTH] = 1;
+	VectorCopy( cent->lerpAngles, gent->client->ps.viewangles );
 	VectorCopy( cent->lerpOrigin, gent->currentOrigin );
 	VectorCopy( cent->lerpAngles, gent->currentAngles );
 

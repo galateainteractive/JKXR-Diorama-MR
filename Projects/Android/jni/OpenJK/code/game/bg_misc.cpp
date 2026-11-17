@@ -642,7 +642,13 @@ void PlayerStateToEntityState( playerState_t *ps, entityState_t *s )
 
 	s->angles2[YAW] = ps->movementDir;
 	s->legsAnim = ps->legsAnim;
+	s->legsAnimTimer = ps->legsAnimTimer;
 	s->torsoAnim = ps->torsoAnim;
+	s->torsoAnimTimer = ps->torsoAnimTimer;
+	// ET_PLAYER does not otherwise use these legacy fields.  Co-op guests need
+	// the authoritative saber state to render attacks and thrown sabers safely.
+	s->frame = ps->saberMove;
+	s->otherEntityNum2 = ps->saberEntityNum;
 	s->clientNum = ps->clientNum;		// ET_PLAYER looks here instead of at number
 										// so corpses can also reference the proper config
 	s->eFlags = ps->eFlags;
