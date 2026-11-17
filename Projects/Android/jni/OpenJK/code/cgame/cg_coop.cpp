@@ -49,12 +49,17 @@ extern void G_SetG2PlayerModel( gentity_t * const ent, const char *modelName, co
 extern void G_CreateG2AttachedWeaponModel( gentity_t *ent, const char *psWeaponModel, int boltNum, int weaponNum );
 extern void G_RemoveWeaponModels( gentity_t *ent );
 extern int WP_SaberInitBladeData( gentity_t *ent );
+extern void CG_RegisterClientRenderInfo( clientInfo_t *ci, renderInfo_t *ri );
 
 typedef struct coopCharState_s {
 	int		specIndex;		// modelindex3 the current ghoul2 was built from (0 = none)
 	int		weapon;			// s.weapon the attached weapon models match
 	int		legsTimer;		// last networked timers, to detect a restarted anim
 	int		torsoTimer;
+	int		lastDebugTime;
+	qboolean inFlight;		// s.saberInFlight we last acted on (hand hilt removed / restored)
+	qboolean legacyMd3;		// pre-ghoul2 md3 legs/torso/head model (remote_sp, mouse, seeker): no ghoul2 to build
+	byte	tint[4];		// customRGBA the spec gave (debug: detect it being clobbered)
 } coopCharState_t;
 
 static coopCharState_t	coopChar[MAX_GENTITIES];
@@ -62,6 +67,13 @@ static qboolean	coopLoggedEntity[MAX_GENTITIES];
 static qboolean	coopLoggedMissingSpec[MAX_GENTITIES];
 static qboolean	coopLoggedAnimFailure[MAX_GENTITIES];
 static qboolean	coopLoggedAnimActive[MAX_GENTITIES];
+static qboolean			coopHostVideo = qfalse;	// the host is watching an in-game video (CG_CoopVideo_f)
+// cl_coopPaksGen the skin / model tables and the characters were built at, latched
+// again at every level start (CG_CoopReset) so that a pack loaded after this module
+// registered its graphics is always noticed (CG_CoopCheckPaksGen)
+static int				coopPaksGenSeen = -1;
+static vmCvar_t			cg_coopPaksGen;	// Quest build does not transfer packs; remains generation zero
+static void CG_CoopResetCamera( void );
 
 /*
 ================
@@ -88,6 +100,29 @@ static void CG_CoopTearDown( centity_t *cent )
 	memset( &coopChar[cent->currentState.number], 0, sizeof( coopChar[0] ) );
 	coopLoggedAnimFailure[cent->currentState.number] = qfalse;
 	coopLoggedAnimActive[cent->currentState.number] = qfalse;
+}
+
+/*
+================
+CG_CoopModelSpecChanged
+
+The host rewrote a CS_COOP_MODELSPECS slot (G_CoopModelSpecIndex recycling):
+every character built from it must be rebuilt from the new string.
+================
+*/
+void CG_CoopModelSpecChanged( int specIndex )
+{
+	if ( !cg_remoteClient || specIndex <= 0 )
+	{
+		return;
+	}
+	for ( int i = 0; i < MAX_GENTITIES; i++ )
+	{
+		if ( coopChar[i].specIndex == specIndex )
+		{
+			coopChar[i].specIndex = -1;		// never matches: CG_CoopEnsureCharacter tears down and rebuilds
+		}
+	}
 }
 
 /*
@@ -182,9 +217,19 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 		return;
 	}
 	coopLoggedMissingSpec[entNum] = qfalse;
-	if ( specIndex == st->specIndex && gent->playerModel >= 0 )
-	{
+	if ( specIndex == st->specIndex && st->legacyMd3 && gent->client && gent->client->clientInfo.infoValid )
+	{	// legacy md3 model registered
 		return;
+	}
+	if ( specIndex == st->specIndex && gent->playerModel >= 0
+		&& gent->playerModel < gent->ghoul2.size() && strstr( gent->ghoul2[gent->playerModel].mFileName, "models/players/" ) )
+	{	// built, and the skeleton slot still holds the body
+		return;
+	}
+	if ( cg_developer.integer && st->specIndex )
+	{
+		Com_Printf( "coop: ent %i rebuilding appearance spec %i -> %i\n",
+			entNum, st->specIndex, specIndex );
 	}
 
 	char spec[MAX_STRING_CHARS];
@@ -233,6 +278,7 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 			return;
 		}
 		memset( gent->client, 0, sizeof( gclient_t ) );
+		gent->client->renderInfo.lookTarget = ENTITYNUM_NONE;	// 0 would be "stare at the host"
 	}
 	gent->s.number = entNum;
 	gent->inuse = qtrue;
@@ -252,7 +298,28 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	gent->playerModel = -1;
 	gent->weaponModel[0] = gent->weaponModel[1] = -1;
 
+	if ( modelName[0] == '@' )
+	{	// "@legs;torso;head": pre-ghoul2 md3 model, drawn by CG_Player's legacy path from clientInfo
+		renderInfo_t *ri = &gent->client->renderInfo;
+		Q_strncpyz( ri->legsModelName, modelName + 1, sizeof( ri->legsModelName ) );
+		Q_strncpyz( ri->torsoModelName, skin, sizeof( ri->torsoModelName ) );
+		Q_strncpyz( ri->headModelName, surfOff, sizeof( ri->headModelName ) );
+		ri->legsFpsMod = ri->torsoFpsMod = 1.0f;
+		CG_RegisterClientRenderInfo( &gent->client->clientInfo, ri );
+		gent->client->clientInfo.infoValid = qtrue;
+		st->specIndex = specIndex;
+		st->legacyMd3 = qtrue;
+		st->weapon = -1;
+		if ( cg_developer.integer )
+		{
+			Com_Printf( "coop: ent %i built legacy model legs '%s' torso '%s' head '%s' class %s -> legs %i torso %i head %i\n", entNum, modelName + 1, skin, surfOff, f[8],
+				gent->client->clientInfo.legsModel, gent->client->clientInfo.torsoModel, gent->client->clientInfo.headModel );
+		}
+		return;
+	}
+
 	G_SetG2PlayerModel( gent, modelName, skin[0] ? skin : NULL, surfOff[0] ? surfOff : NULL, surfOn[0] ? surfOn : NULL );
+	gent->client->NPC_class = npcClass;
 	if ( gent->playerModel < 0 )
 	{
 #if defined(__ANDROID__)
@@ -272,8 +339,12 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 	st->weapon = -1;		// force the weapon models to be (re)attached
 	if ( cg_developer.integer )
 	{
-		Com_Printf( "coop: ent %i built model '%s' skin '%s' class %s rgba %s -> playerModel %i animFile %i\n", entNum, modelName, skin, f[8], f[9], gent->playerModel, gent->client->clientInfo.animFileIndex );
+		const int skinIdx = gent->ghoul2[gent->playerModel].mCustomSkin;
+		Com_Printf( "coop: ent %i built model '%s' skin '%s' class %s rgba %s -> playerModel %i animFile %i skinIdx %i cs '%s' handle %i\n", entNum, modelName, skin, f[8], f[9], gent->playerModel, gent->client->clientInfo.animFileIndex,
+			skinIdx, ( skinIdx > 0 && skinIdx < MAX_CHARSKINS ) ? CG_ConfigString( CS_CHARSKINS + skinIdx ) : "?", ( skinIdx > 0 && skinIdx < MAX_CHARSKINS ) ? cgs.skins[skinIdx] : -1 );
+		Com_Printf( "coop: ent %i tint now %i,%i,%i,%i\n", entNum, gent->client->renderInfo.customRGBA[0], gent->client->renderInfo.customRGBA[1], gent->client->renderInfo.customRGBA[2], gent->client->renderInfo.customRGBA[3] );
 	}
+	memcpy( st->tint, gent->client->renderInfo.customRGBA, 4 );
 	st->legsTimer = st->torsoTimer = 0;
 	gent->client->ps.legsAnim = gent->client->ps.torsoAnim = -1;
 
@@ -282,6 +353,384 @@ static void CG_CoopEnsureCharacter( centity_t *cent )
 		"player %d rebuilt model='%s' spec=%d saber='%s'",
 		entNum, modelName, specIndex, f[4] );
 #endif
+}
+
+/*
+================
+CG_CoopEnsureG2Model
+
+Non-character entities whose model is a ghoul2 .glm (misc_model_ghoul,
+turrets, det packs / trip mines, saber pickups): the host built their ghoul2
+in the game, and the renderer draws nothing for a .glm handle without an
+instance. Build one here from the model the entity names. Items name it in
+modelindex3 (g_items.cpp), everything else in modelindex.
+================
+*/
+static int coopG2Key[MAX_GENTITIES];	// CS_MODELS index the ghoul2 in this slot was built from (0 = none, -1 = a limb)
+
+// Emplaced guns / E-Webs / turrets: CG_General animates the gun from host-only
+// fields (activator, health, bolts, bounceCount); the host networks the user
+// (s.otherEntityNum), the health (s.coopHealth) and the turret pitch (s.angles2)
+typedef enum { COOP_GUN_NONE, COOP_GUN_EWEB, COOP_GUN_CHAIR, COOP_GUN_TURRET } coopGunKind_t;
+static byte		coopGunKind[MAX_GENTITIES];
+static float	coopTurretPitch[MAX_GENTITIES][2];	// last angles2 applied
+
+// Dismemberment: the host cuts the victim's ghoul2 into a limb entity
+// (ET_THINKER) and turns the limb's surfaces off on the victim - all of it in
+// ghoul2 data that never travels. The host sends "limb" with the names it
+// used (g_combat.cpp G_Dismember); when that entity reaches the snapshot the
+// same cut is made here from the victim's placeholder.
+typedef struct coopLimb_s {
+	qboolean	pending;
+	int			owner;
+	char		limbName[MAX_QPATH];
+	char		limbCapName[MAX_QPATH];
+	char		stubCapName[MAX_QPATH];
+	char		rotateBone[MAX_QPATH];
+	int			limbAnim;
+	int			protocolWaist;
+} coopLimb_t;
+static coopLimb_t coopLimb[MAX_GENTITIES];
+
+void CG_CoopLimb_f( void )
+{
+	const int num = atoi( CG_Argv( 1 ) );
+	if ( !cg_remoteClient || num <= 0 || num >= MAX_GENTITIES )
+	{
+		return;
+	}
+	coopLimb_t *l = &coopLimb[num];
+	memset( l, 0, sizeof( *l ) );
+	l->pending = qtrue;
+	l->owner = atoi( CG_Argv( 2 ) );
+	Q_strncpyz( l->limbName, CG_Argv( 3 ), sizeof( l->limbName ) );
+	Q_strncpyz( l->limbCapName, CG_Argv( 4 ), sizeof( l->limbCapName ) );
+	Q_strncpyz( l->stubCapName, CG_Argv( 5 ), sizeof( l->stubCapName ) );
+	Q_strncpyz( l->rotateBone, CG_Argv( 6 ), sizeof( l->rotateBone ) );
+	l->limbAnim = atoi( CG_Argv( 7 ) );
+	l->protocolWaist = atoi( CG_Argv( 8 ) );
+}
+
+extern void CG_Limb( centity_t *cent );
+
+// the limb entity is in the snapshot and its victim has a body: cut it
+static void CG_CoopBuildLimb( centity_t *cent )
+{
+	const int	entNum = cent->currentState.number;
+	coopLimb_t	*l = &coopLimb[entNum];
+	gentity_t	*limb = cent->gent;
+
+	if ( l->owner < 0 || l->owner >= MAX_GENTITIES )
+	{
+		l->pending = qfalse;
+		return;
+	}
+	gentity_t *owner = &g_entities[l->owner];
+	if ( !owner->client || owner->playerModel < 0 || owner->playerModel >= owner->ghoul2.size() )
+	{
+		return;	// victim not built yet, try next frame
+	}
+	if ( limb->ghoul2.size() )
+	{
+		gi.G2API_CleanGhoul2Models( limb->ghoul2 );
+	}
+	gi.G2API_CopyGhoul2Instance( owner->ghoul2, limb->ghoul2, 0 );
+	limb->playerModel = 0;
+	limb->craniumBone = owner->craniumBone;
+	limb->cervicalBone = owner->cervicalBone;
+	limb->thoracicBone = owner->thoracicBone;
+	limb->upperLumbarBone = owner->upperLumbarBone;
+	limb->lowerLumbarBone = owner->lowerLumbarBone;
+	limb->hipsBone = owner->hipsBone;
+	limb->rootBone = owner->rootBone;
+	gi.G2API_StopBoneAnimIndex( &limb->ghoul2[0], limb->hipsBone );
+	gi.G2API_SetRootSurface( limb->ghoul2, 0, l->limbName );
+	if ( l->protocolWaist && ValidAnimFileIndex( owner->client->clientInfo.animFileIndex ) )
+	{
+		gi.G2API_StopBoneAnim( &limb->ghoul2[0], "model_root" );
+		gi.G2API_StopBoneAnim( &limb->ghoul2[0], "motion" );
+		gi.G2API_StopBoneAnim( &limb->ghoul2[0], "pelvis" );
+		gi.G2API_StopBoneAnim( &limb->ghoul2[0], "upper_lumbar" );
+		animation_t *animations = level.knownAnimFileSets[owner->client->clientInfo.animFileIndex].animations;
+		gi.G2API_SetBoneAnim( &limb->ghoul2[0], 0, animations[l->limbAnim].firstFrame,
+			animations[l->limbAnim].numFrames + animations[l->limbAnim].firstFrame, BONE_ANIM_OVERRIDE_FREEZE, 1, cg.time, -1, -1 );
+	}
+	if ( l->rotateBone[0] )
+	{
+		gi.G2API_SetNewOrigin( &limb->ghoul2[0], gi.G2API_AddBolt( &limb->ghoul2[0], l->rotateBone ) );
+	}
+	if ( l->limbCapName[0] )
+	{
+		gi.G2API_SetSurfaceOnOff( &limb->ghoul2[0], l->limbCapName, 0 );
+	}
+	limb->s.number = entNum;
+	limb->inuse = qtrue;
+	limb->classname = "limb";
+	limb->owner = owner;
+	limb->target2 = G_NewString( l->limbName );
+	limb->target3 = l->stubCapName[0] ? G_NewString( l->stubCapName ) : NULL;
+	limb->count = l->limbAnim;
+	limb->aimDebounceTime = 0;
+	limb->startRGBA[0] = owner->client->renderInfo.customRGBA[0];
+	limb->startRGBA[1] = owner->client->renderInfo.customRGBA[1];
+	limb->startRGBA[2] = owner->client->renderInfo.customRGBA[2];
+	CG_Limb( cent );	// takes the limb off the victim, caps the stub
+	coopG2Key[entNum] = -1;
+	l->pending = qfalse;
+	if ( cg_developer.integer )
+	{
+		Com_Printf( "coop: ent %i limb '%s' cut from ent %i\n", entNum, l->limbName, l->owner );
+	}
+}
+
+/*
+================
+CG_CoopReset
+
+New level on a remote client (CG_Init): the game module is not reloaded, so
+the placeholder gentities, their ghoul2 (built against the previous level's
+renderer handles and sound/skin indices) and our tables would survive. Drop
+everything; the snapshot rebuilds it.
+================
+*/
+static int			coopDownMax;		// downed overlay: the bleed-out total, taken from the first frame down
+static char			coopSoundSetName[MAX_COOP_SOUNDSETS][64];	// CS_COOP_SOUNDSETS, as gentity soundSet pointers
+static qboolean		coopAllDownShown;	// the everyone-down screen is up: no overlay under it
+
+void CG_CoopReset( void )
+{
+	// CG_PreInit: whatever the pack list is right now is what CG_RegisterGraphics
+	// is about to register the skins and models against. A pack that arrives after
+	// this (the joiner reconnects and FS_CoopHavePak loads a leftover coopdl_*.pk3
+	// once the host's offer comes in, well after this module has registered its
+	// graphics) then always shows up as a generation change.
+	coopPaksGenSeen = cg_coopPaksGen.integer;
+	coopAllDownShown = qfalse;
+	coopDownMax = 0;
+	memset( coopLimb, 0, sizeof( coopLimb ) );
+	if ( !cg_remoteClient )
+	{
+		return;
+	}
+	for ( int i = 0; i < MAX_GENTITIES; i++ )
+	{
+		gentity_t *gent = &g_entities[i];
+		if ( gent->ghoul2.size() )
+		{
+			gi.G2API_CleanGhoul2Models( gent->ghoul2 );
+		}
+		gent->playerModel = -1;
+		gent->weaponModel[0] = gent->weaponModel[1] = -1;
+		gent->owner = NULL;
+		gent->inuse = qfalse;
+		gent->soundSet = NULL;
+		gent->setTime = 0;
+		if ( gent->client )
+		{
+			memset( gent->client->ps.saber, 0, sizeof( gent->client->ps.saber ) );
+			gent->client->ps.dualSabers = qfalse;
+			gent->client->clientInfo.infoValid = qfalse;
+		}
+	}
+	memset( coopChar, 0, sizeof( coopChar ) );
+	memset( coopG2Key, 0, sizeof( coopG2Key ) );
+	memset( coopGunKind, 0, sizeof( coopGunKind ) );
+	memset( coopTurretPitch, 0, sizeof( coopTurretPitch ) );
+	memset( coopSoundSetName, 0, sizeof( coopSoundSetName ) );
+	Com_Printf( "coop: remote client state reset for the new level\n" );
+}
+
+/*
+================
+CG_CoopSyncSoundSet
+
+Local ambient sets (target_speaker & co): the host tags each emitter with its
+CS_COOP_SOUNDSETS slot in s.time2 (G_ParsePrecaches); the placeholder gets the
+name so CG_AddLocalSet plays it here like on the host.
+================
+*/
+static void CG_CoopSyncSoundSet( centity_t *cent )
+{
+	const entityState_t	*s = &cent->currentState;
+	gentity_t			*gent = cent->gent;
+	const int			idx = s->time2;
+
+	if ( s->eType == ET_MOVER || s->eType == ET_PLAYER || s->eType == ET_ITEM || idx <= 0 || idx >= MAX_COOP_SOUNDSETS )
+	{
+		if ( gent->soundSet )
+		{
+			gent->soundSet = NULL;
+			gent->setTime = 0;
+		}
+		return;
+	}
+	if ( !coopSoundSetName[idx][0] )
+	{
+		const char *name = CG_ConfigString( CS_COOP_SOUNDSETS + idx );
+		if ( !name[0] )
+		{
+			return;
+		}
+		Q_strncpyz( coopSoundSetName[idx], name, sizeof( coopSoundSetName[idx] ) );
+	}
+	if ( gent->soundSet != coopSoundSetName[idx] )
+	{
+		gent->soundSet = coopSoundSetName[idx];
+		gent->setTime = 0;
+		if ( cg_developer.integer )
+		{
+			Com_Printf( "coop: ent %i local sound set '%s'\n", s->number, gent->soundSet );
+		}
+	}
+}
+
+static void CG_CoopEnsureG2Model( centity_t *cent )
+{
+	gentity_t			*gent = cent->gent;
+	const entityState_t	*s = &cent->currentState;
+	const int			entNum = s->number;
+	int					modelIndex = 0;
+	int					key = 0;
+
+	if ( s->eType == ET_ITEM )
+	{
+		modelIndex = s->modelindex3;
+	}
+	else if ( s->eType != ET_PLAYER && s->eType < ET_EVENTS && s->solid != SOLID_BMODEL )
+	{
+		modelIndex = s->modelindex;
+	}
+	if ( modelIndex > 0 && modelIndex < MAX_MODELS )
+	{
+		const char	*name = CG_ConfigString( CS_MODELS + modelIndex );
+		const int	len = strlen( name );
+		if ( len > 4 && !Q_stricmp( name + len - 4, ".glm" ) )
+		{
+			key = modelIndex;
+		}
+	}
+	if ( key == coopG2Key[entNum] && ( !key || gent->ghoul2.size() ) )
+	{
+		return;
+	}
+	if ( coopChar[entNum].specIndex )
+	{	// the slot held a character
+		CG_CoopTearDown( cent );
+	}
+	else if ( coopG2Key[entNum] && gent->ghoul2.size() )
+	{
+		gi.G2API_CleanGhoul2Models( gent->ghoul2 );
+	}
+	coopG2Key[entNum] = key;
+	coopGunKind[entNum] = COOP_GUN_NONE;
+	if ( gent->activator && gent->activator->owner == gent )
+	{
+		gent->activator->owner = NULL;
+	}
+	gent->activator = NULL;
+	if ( !key )
+	{
+		return;
+	}
+	const char *name = CG_ConfigString( CS_MODELS + key );
+	gent->s.number = entNum;
+	gent->inuse = qtrue;
+	gent->playerModel = gi.G2API_InitGhoul2Model( gent->ghoul2, name, key, NULL_HANDLE, NULL_HANDLE, 0, 0 );
+	if ( gent->playerModel >= 0 && s->eType == ET_GENERAL )
+	{	// the bolts and bones CG_General's gun code needs (SP_emplaced_eweb / SP_emplaced_gun / turrets)
+		// (CG_Player aims the gun through lowerLumbarBone/upperLumbarBone and seats
+		// the user on headBolt: same bones and bolts as SP_emplaced_eweb / SP_emplaced_gun)
+		if ( strstr( name, "eweb_model" ) )
+		{
+			gent->handLBolt = gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "*cannonflash" );
+			gent->handRBolt = -1;
+			gent->headBolt = gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "cannon_Xrot" );
+			gent->rootBone = gi.G2API_GetBoneIndex( &gent->ghoul2[gent->playerModel], "model_root", qtrue );
+			gent->lowerLumbarBone = gi.G2API_GetBoneIndex( &gent->ghoul2[gent->playerModel], "cannon_Yrot", qtrue );
+			gent->upperLumbarBone = gi.G2API_GetBoneIndex( &gent->ghoul2[gent->playerModel], "cannon_Xrot", qtrue );
+			gi.G2API_SetBoneAnglesIndex( &gent->ghoul2[gent->playerModel], gent->lowerLumbarBone, vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_X, NEGATIVE_Y, NULL, 0, 0 );
+			gi.G2API_SetBoneAnglesIndex( &gent->ghoul2[gent->playerModel], gent->upperLumbarBone, vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_X, NEGATIVE_Y, NULL, 0, 0 );
+			gent->bounceCount = 1;
+			coopGunKind[entNum] = COOP_GUN_EWEB;
+			if ( cg_developer.integer )
+			{
+				Com_Printf( "coop: ent %i E-Web bolts flash %i seat %i bones root %i yrot %i xrot %i\n", entNum, gent->handLBolt, gent->headBolt, gent->rootBone, gent->lowerLumbarBone, gent->upperLumbarBone );
+			}
+		}
+		else if ( strstr( name, "turret_chair" ) )
+		{
+			gent->headBolt = gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "*seat" );
+			gent->handLBolt = gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "*flash01" );
+			gent->handRBolt = gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "*flash02" );
+			gent->rootBone = gi.G2API_GetBoneIndex( &gent->ghoul2[gent->playerModel], "base_bone", qtrue );
+			gent->lowerLumbarBone = gi.G2API_GetBoneIndex( &gent->ghoul2[gent->playerModel], "swivel_bone", qtrue );
+			gent->upperLumbarBone = -1;
+			gi.G2API_SetBoneAnglesIndex( &gent->ghoul2[gent->playerModel], gent->lowerLumbarBone, vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Y, POSITIVE_Z, POSITIVE_X, NULL, 0, 0 );
+			gent->bounceCount = 0;
+			coopGunKind[entNum] = COOP_GUN_CHAIR;
+		}
+		else if ( strstr( name, "turret_canon" ) || strstr( name, "laser_cannon_model" ) )
+		{
+			coopGunKind[entNum] = COOP_GUN_TURRET;
+			coopTurretPitch[entNum][0] = coopTurretPitch[entNum][1] = 0;
+		}
+	}
+	if ( s->eType == ET_GENERAL && s->weapon == WP_SABER && gent->playerModel >= 0 )
+	{	// a thrown saber: CG_General draws its blade from bolt 0 ("*flash") of model weaponModel[0]
+		gi.G2API_AddBolt( &gent->ghoul2[gent->playerModel], "*flash" );
+		gent->weaponModel[0] = gent->playerModel;
+		gent->classname = "lightsaber";
+	}
+	if ( cg_developer.integer )
+	{
+		Com_Printf( "coop: ent %i built ghoul2 '%s' (type %i) -> %i\n", entNum, name, s->eType, gent->playerModel );
+	}
+}
+
+/*
+================
+CG_CoopEnts_f
+
+"coop_ents": what the last snapshot holds, to find an object the host sees
+and we do not.
+================
+*/
+void CG_CoopEnts_f( void )
+{
+	if ( !cg.snap )
+	{
+		return;
+	}
+	for ( int i = 0; i < cg.snap->numEntities; i++ )
+	{
+		const entityState_t	*es = &cg.snap->entities[i];
+		const centity_t		*cent = &cg_entities[es->number];
+		const char			*name;
+		if ( es->eType == ET_ITEM )
+		{
+			name = ( es->modelindex > 0 && es->modelindex < bg_numItems ) ? bg_itemlist[es->modelindex].classname : "?";
+		}
+		else if ( es->solid == SOLID_BMODEL )
+		{
+			name = va( "*%i (draw %i) pos %i base %.0f %.0f %.0f lerpOrg %.0f %.0f %.0f interp %i curState.number %i apos %i lerpAng %.0f %.0f %.0f", es->modelindex, cgs.inlineDrawModel[es->modelindex],
+				es->pos.trType, es->pos.trBase[0], es->pos.trBase[1], es->pos.trBase[2], cent->lerpOrigin[0], cent->lerpOrigin[1], cent->lerpOrigin[2],
+				cent->interpolate, cent->currentState.number, es->apos.trType, cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] );
+		}
+		else if ( es->eType == ET_PLAYER )
+		{
+			vec3_t amb, dir, ldir;
+			cgi_R_GetLighting( cent->lerpOrigin, amb, dir, ldir );
+			name = va( "spec %i hp %i/%i pw 0x%x ef 0x%x light amb %.0f %.0f %.0f dir %.0f %.0f %.0f", es->modelindex3, es->coopHealth, es->coopMaxHealth, es->powerups, es->eFlags, amb[0], amb[1], amb[2], dir[0], dir[1], dir[2] );
+		}
+		else
+		{
+			name = CG_ConfigString( CS_MODELS + es->modelindex );
+		}
+		Com_Printf( "%4i type %2i model %3i %-40s ghoul2 %i%s%s at %.0f %.0f %.0f %s\n", es->number, es->eType, es->modelindex, name,
+			cent->gent ? (int)cent->gent->ghoul2.size() : -1, ( es->eFlags & EF_NODRAW ) ? " NODRAW" : "", ( es->eFlags & EF_PERMANENT ) ? " PERMANENT" : "",
+			es->pos.trBase[0], es->pos.trBase[1], es->pos.trBase[2], ( cent->gent && cent->gent->classname ) ? cent->gent->classname : "" );
+	}
+	Com_Printf( "%i entities in the snapshot\n", cg.snap->numEntities );
 }
 
 /*
@@ -334,9 +783,13 @@ static void CG_CoopDriveAnim( centity_t *cent )
 		const int torsoFlags = flags | ( ( s->torsoAnimTimer > st->torsoTimer && s->torsoAnim == ps->torsoAnim ) ? SETANIM_FLAG_RESTART : 0 );
 		PM_SetAnimFinal( &ps->torsoAnim, &ps->legsAnim, SETANIM_TORSO, s->torsoAnim, torsoFlags, &ps->torsoAnimTimer, &ps->legsAnimTimer, gent );
 	}
-	if ( cg_developer.integer && ( st->legsTimer == -12345 || ps->legsAnim != s->legsAnim || ps->torsoAnim != s->torsoAnim ) )
+	if ( cg_developer.integer > 1 && cent->currentState.number < MAX_CLIENTS && ( cg.time / 1000 ) != ( st->lastDebugTime / 1000 ) )
 	{
-		Com_Printf( "coop: ent %i anim net legs %i torso %i -> ps legs %i torso %i (speed %.0f)\n", cent->currentState.number, s->legsAnim, s->torsoAnim, ps->legsAnim, ps->torsoAnim, gent->resultspeed );
+		float cur = 0, spd = 0; int sf = 0, ef = 0, fl = 0;
+		const qboolean playing = gi.G2API_GetBoneAnimIndex( &gent->ghoul2[gent->playerModel], gent->rootBone, cg.time, &cur, &sf, &ef, &fl, &spd, NULL );
+		const animation_t *anims = level.knownAnimFileSets[gent->client->clientInfo.animFileIndex].animations;
+		Com_Printf( "coop: ent %i anim net %i/%i ps %i/%i root bone %i playing %i speed %.2f frames %i-%i animFile %i glaOffset %i animGla %i numFrames %i vel %.0f at %.0f %.0f %.0f\n", cent->currentState.number, s->legsAnim, s->torsoAnim, ps->legsAnim, ps->torsoAnim, gent->rootBone, playing, spd, sf, ef, gent->client->clientInfo.animFileIndex, gi.G2API_GetAnimIndex( &gent->ghoul2[gent->playerModel] ), anims[s->legsAnim].glaIndex, anims[s->legsAnim].numFrames, gent->resultspeed, cent->lerpOrigin[0], cent->lerpOrigin[1], cent->lerpOrigin[2] );
+		st->lastDebugTime = cg.time;
 	}
 	st->legsTimer = s->legsAnimTimer;
 	st->torsoTimer = s->torsoAnimTimer;
@@ -376,13 +829,27 @@ void CG_CoopSyncCharacter( centity_t *cent )
 	coopCharState_t	*st = &coopChar[cent->currentState.number];
 	const entityState_t *s = &cent->currentState;
 
-	if ( !gent || !gent->client || gent->playerModel < 0 )
+	if ( !gent || !gent->client || ( gent->playerModel < 0 && !st->legacyMd3 ) )
 	{
 		return;
 	}
 
+	if ( cg_developer.integer && memcmp( st->tint, gent->client->renderInfo.customRGBA, 4 ) && st->specIndex )
+	{
+		Com_Printf( "coop: ent %i tint clobbered: %i,%i,%i,%i (spec had %i,%i,%i,%i)\n", s->number,
+			gent->client->renderInfo.customRGBA[0], gent->client->renderInfo.customRGBA[1], gent->client->renderInfo.customRGBA[2], gent->client->renderInfo.customRGBA[3],
+			st->tint[0], st->tint[1], st->tint[2], st->tint[3] );
+		memcpy( st->tint, gent->client->renderInfo.customRGBA, 4 );
+	}
 	VectorCopy( s->pos.trDelta, gent->client->ps.velocity );
 	gent->client->ps.groundEntityNum = s->groundEntityNum;
+	if ( cent->currentState.number != cg_localEntNum )
+	{	// ours comes from the playerState (CG_CoopSyncLocalPlayer)
+		gent->health = s->coopHealth;
+		gent->max_health = s->coopMaxHealth;
+	}
+	gent->client->renderInfo.lookMode = LM_ENT;
+	gent->client->renderInfo.lookTarget = ( s->coopLookTarget >= 0 && s->coopLookTarget < ENTITYNUM_WORLD ) ? s->coopLookTarget : ENTITYNUM_NONE;
 	gent->client->ps.eFlags = s->eFlags;
 	gent->s = *s;
 	gent->client->ps.weapon = s->weapon;
@@ -416,6 +883,15 @@ void CG_CoopSyncCharacter( centity_t *cent )
 	VectorCopy( cent->lerpOrigin, gent->currentOrigin );
 	VectorCopy( cent->lerpAngles, gent->currentAngles );
 
+	if ( st->legacyMd3 )
+	{	// md3 legs/torso frames come from ps.legsAnim/torsoAnim (CG_PlayerAnimation); no ghoul2 to dress
+		gent->client->ps.legsAnim = s->legsAnim;
+		gent->client->ps.torsoAnim = s->torsoAnim;
+		gent->client->ps.legsAnimTimer = s->legsAnimTimer;
+		gent->client->ps.torsoAnimTimer = s->torsoAnimTimer;
+		return;
+	}
+
 	// weapon / saber hilt models follow s.weapon
 	if ( s->weapon != st->weapon )
 	{
@@ -429,6 +905,26 @@ void CG_CoopSyncCharacter( centity_t *cent )
 			G_CreateG2AttachedWeaponModel( gent, weaponData[s->weapon].weaponMdl, gent->handRBolt, 0 );
 		}
 		st->weapon = s->weapon;
+		st->inFlight = qfalse;
+	}
+
+	// saber throw: the hilt leaves the hand (the thrown entity carries it and
+	// its blade, drawn from our saber[0] data), and comes back on the catch
+	if ( s->weapon == WP_SABER && (qboolean)( s->saberInFlight != 0 ) != st->inFlight )
+	{
+		st->inFlight = (qboolean)( s->saberInFlight != 0 );
+		if ( st->inFlight )
+		{
+			if ( gent->weaponModel[0] > 0 )
+			{
+				gi.G2API_RemoveGhoul2Model( gent->ghoul2, gent->weaponModel[0] );
+				gent->weaponModel[0] = -1;
+			}
+		}
+		else
+		{
+			WP_SaberAddG2SaberModels( gent, 0 );
+		}
 	}
 
 	// blades ignite / retract with s.saberActive
@@ -471,6 +967,77 @@ void CG_CoopSyncCharacter( centity_t *cent )
 
 /*
 ================
+CG_CoopSyncGun
+
+Emplaced gun / E-Web: CG_General keys its chair code on gent->s.weapon,
+gent->activator (whose owner must be the gun and who must be EF_LOCKED_TO_WEAPON)
+and gent->health; fill them from the wire. Turret: redo the host's pitch bone
+override.
+================
+*/
+static void CG_CoopSyncGun( centity_t *cent )
+{
+	gentity_t			*gent = cent->gent;
+	const entityState_t	*s = &cent->currentState;
+	const int			entNum = s->number;
+
+	if ( coopGunKind[entNum] == COOP_GUN_TURRET )
+	{
+		if ( gent->playerModel < 0 || gent->playerModel >= gent->ghoul2.size() )
+		{
+			return;
+		}
+		if ( s->angles2[0] != coopTurretPitch[entNum][0] || s->angles2[1] != coopTurretPitch[entNum][1] )
+		{
+			const int	mode = (int)s->angles2[1];
+			const float	pitch = s->angles2[0];
+			vec3_t		angles;
+
+			coopTurretPitch[entNum][0] = s->angles2[0];
+			coopTurretPitch[entNum][1] = s->angles2[1];
+			if ( mode & 2 )
+			{	// turbo turret: "pitch" bone (turret_SetBoneAngles)
+				VectorSet( angles, 0.0f, 0.0f, ( mode & 1 ) ? -pitch : pitch );
+				gi.G2API_SetBoneAngles( &gent->ghoul2[gent->playerModel], "pitch", angles, BONE_ANGLES_POSTMULT, POSITIVE_Y, NEGATIVE_Z, NEGATIVE_X, NULL, 100, cg.time );
+			}
+			else
+			{
+				VectorSet( angles, ( mode & 1 ) ? pitch : -pitch, 0.0f, 0.0f );
+				gi.G2API_SetBoneAngles( &gent->ghoul2[gent->playerModel], "Bone_body", angles, BONE_ANGLES_POSTMULT, POSITIVE_Y, POSITIVE_Z, POSITIVE_X, NULL, 100, cg.time );
+			}
+		}
+		return;
+	}
+
+	gent->s.weapon = s->weapon;
+	gent->s.apos = s->apos;		// the chair code copies s.apos.trBase into lerpAngles
+	VectorCopy( s->angles, gent->s.angles );		// base yaw (E-Web turret offset)
+	VectorCopy( cent->lerpOrigin, gent->currentOrigin );	// seat bolt matrix (CG_Player)
+	gent->health = s->coopHealth;
+	gent->max_health = Q_max( gent->max_health, gent->health );
+
+	const int	userNum = s->otherEntityNum;
+	gentity_t	*user = ( userNum >= 0 && userNum < ENTITYNUM_WORLD && g_entities[userNum].client ) ? &g_entities[userNum] : NULL;
+	if ( gent->activator != user )
+	{
+		if ( gent->activator && gent->activator->owner == gent )
+		{
+			gent->activator->owner = NULL;
+		}
+		gent->activator = user;
+		if ( cg_developer.integer )
+		{
+			Com_Printf( "coop: gun %i now used by %i\n", entNum, user ? userNum : -1 );
+		}
+	}
+	if ( user )
+	{
+		user->owner = gent;
+	}
+}
+
+/*
+================
 CG_CoopSyncEntity
 
 Called for every packet entity on the remote client, before it is rendered.
@@ -496,7 +1063,27 @@ void CG_CoopSyncEntity( centity_t *cent )
 			cent->currentState.legsAnim, cent->currentState.torsoAnim );
 	}
 #endif
+	// the placeholder stands for an entity that exists on the host; CG_Item
+	// & co skip a gentity that is not "inuse" (every pickup was invisible)
+	cent->gent->inuse = qtrue;
+	cent->gent->s.number = cent->currentState.number;
+	CG_CoopEnsureG2Model( cent );
 	CG_CoopEnsureCharacter( cent );
+	CG_CoopSyncSoundSet( cent );
+	if ( coopGunKind[cent->currentState.number] )
+	{
+		CG_CoopSyncGun( cent );
+	}
+	if ( cent->currentState.eType == ET_ITEM )
+	{	// orientation / glow flags and saber pitch (G_CoopItemSyncFlags)
+		cent->gent->spawnflags = cent->currentState.time2 & 0xff;
+		cent->gent->random = (float)(short)( ( cent->currentState.time2 >> 8 ) & 0xffff );
+	}
+	if ( cent->currentState.eType == ET_GENERAL && cent->currentState.weapon == WP_SABER )
+	{	// thrown saber: the blade is drawn from its owner's saber data (CG_General)
+		const int owner = cent->currentState.otherEntityNum;
+		cent->gent->owner = ( owner >= 0 && owner < MAX_CLIENTS && g_entities[owner].client ) ? &g_entities[owner] : NULL;
+	}
 }
 
 /*
@@ -524,6 +1111,8 @@ void CG_CoopSyncLocalPlayer( void )
 	{
 		return;
 	}
+	// shared code compares against level.time; there is no server clock here, use ours
+	level.time = cg.time;
 
 	gentity_t *me = &g_entities[cg_localEntNum];
 	if ( !me->client )
@@ -543,10 +1132,618 @@ void CG_CoopSyncLocalPlayer( void )
 	memcpy( me->client->ps.saber, saber, sizeof( saber ) );
 	me->client->ps.dualSabers = dualSabers;
 
+
+	// mission objectives mirrored from the host (CS_COOP_OBJECTIVES); a change
+	// flashes the HUD prompt exactly as an ICARUS update does on the host
+	{
+		extern qboolean missionInfo_Updated;
+		const char *obj = CG_ConfigString( CS_COOP_OBJECTIVES );
+		for ( int i = 0; i < MAX_MISSION_OBJ && obj[i]; i++ )
+		{
+			objectives_t *o = &me->client->sess.mission_objectives[i];
+			const int code = obj[i] - 'A';
+			const qboolean display = (qboolean)( ( code & 8 ) != 0 );
+			const int status = code & 7;
+			if ( o->display != display || o->status != status )
+			{
+				o->display = display;
+				o->status = status;
+				missionInfo_Updated = qtrue;
+			}
+		}
+	}
+
 	me->s.number = cg_localEntNum;
 	me->s.clientNum = cg_localEntNum;
 	me->s.eFlags = cg.snap->ps.eFlags;
+	me->health = cg.snap->ps.stats[STAT_HEALTH];
+	me->max_health = cg.snap->ps.stats[STAT_MAX_HEALTH];
 	me->inuse = qtrue;
 	VectorCopy( cg.snap->ps.origin, me->currentOrigin );
 	VectorCopy( cg.snap->ps.viewangles, me->currentAngles );
+}
+
+/*
+==============================================================================
+Cinematic camera on the remote client
+
+The host broadcasts an ET_COOPCAMERA entity while it is in a cutscene camera
+(g_coop.cpp). Here we feed its interpolated state into our own client_camera
+and raise in_camera, so the stock camera render path (CGCam_RenderScene) and
+the HUD/2D suppression behave exactly as on the host.
+==============================================================================
+*/
+
+#include "cg_camera.h"
+
+extern void CG_CalcEntityLerpPositions( centity_t *cent );
+
+static qboolean coopCameraActive = qfalse;
+
+// The camera only reaches us at the snapshot rate (sv_fps, 20 Hz), and our
+// clock sits right at the newest snapshot, so following it directly steps
+// and stalls. Keep the last samples and render the camera cg_coopCameraLag
+// ms in the past, between two of them.
+#define COOP_CAM_SAMPLES	32
+typedef struct coopCamSample_s {
+	int			time;
+	vec3_t		origin;
+	vec3_t		angles;
+	float		fov;
+	float		bar;
+	vec4_t		fade;
+	qboolean	cut;		// a jump from the previous sample: never interpolate into it
+} coopCamSample_t;
+static coopCamSample_t	coopCam[COOP_CAM_SAMPLES];
+static int				coopCamCount;		// samples in the ring
+static int				coopCamHead;		// next slot to write
+static int				coopCamLastTime;	// serverTime of the newest sample
+
+static const coopCamSample_t *CG_CoopCamAt( int i )	// 0 = oldest
+{
+	return &coopCam[( coopCamHead - coopCamCount + i + COOP_CAM_SAMPLES ) % COOP_CAM_SAMPLES];
+}
+
+static void CG_CoopCamPush( const entityState_t *s, int time )
+{
+	if ( coopCamCount && time <= coopCamLastTime )
+	{
+		return;
+	}
+	coopCamSample_t *c = &coopCam[coopCamHead];
+	c->time = time;
+	VectorCopy( s->pos.trBase, c->origin );
+	VectorCopy( s->apos.trBase, c->angles );
+	c->fov = s->origin2[0];
+	c->bar = s->origin2[1];
+	VectorCopy( s->angles2, c->fade );
+	c->fade[3] = s->origin2[2];
+	c->cut = qfalse;
+	if ( coopCamCount )
+	{
+		const coopCamSample_t *p = CG_CoopCamAt( coopCamCount - 1 );
+		const int dt = time - p->time;
+		if ( dt > 500 || Distance( p->origin, c->origin ) > 400.0f
+			|| fabsf( AngleSubtract( p->angles[YAW], c->angles[YAW] ) ) > 60.0f
+			|| fabsf( AngleSubtract( p->angles[PITCH], c->angles[PITCH] ) ) > 60.0f )
+		{
+			c->cut = qtrue;
+		}
+	}
+	coopCamHead = ( coopCamHead + 1 ) % COOP_CAM_SAMPLES;
+	if ( coopCamCount < COOP_CAM_SAMPLES )
+	{
+		coopCamCount++;
+	}
+	coopCamLastTime = time;
+}
+
+/*
+================
+CG_CoopCheckPaksGen
+
+The engine bumps cl_coopPaksGen when a pk3 from the host is added to the search
+path (or unloaded). Every character we built is torn down; CG_CoopEnsureCharacter
+rebuilds it from its spec at the next snapshot, this time with the real model
+instead of the stormtrooper fallback (the renderer forgot its failed lookups).
+
+The skin and model tables have to be registered again first. cgs.skins[] and
+cgs.model_draw[] were filled when the level loaded (CG_RegisterGraphics) or as
+each configstring arrived, i.e. while the host's pack was still missing, so
+every entry naming it is 0. They are not just a cache: CG_AddPacketEntities
+hands them to G2API_SetGhoul2ModelIndexes every frame, which sets each ghoul2's
+render skin to cgs.skins[mCustomSkin] - so a character rebuilt with a perfectly
+good skin is still drawn with no skin at all (the untextured grey character a
+joiner sees after a download or a reconnect) until this table holds the handle.
+================
+*/
+static void CG_CoopRegisterTablesAgain( void )
+{
+	int i, skins = 0, models = 0;
+
+	for ( i = 1; i < MAX_CHARSKINS; i++ )
+	{
+		const char *name = CG_ConfigString( CS_CHARSKINS + i );
+		if ( !name[0] )
+		{
+			continue;
+		}
+		const qhandle_t h = cgi_R_RegisterSkin( name );
+		if ( h != cgs.skins[i] )
+		{
+			cgs.skins[i] = h;
+			skins++;
+		}
+	}
+	for ( i = 1; i < MAX_MODELS; i++ )
+	{
+		const char *name = CG_ConfigString( CS_MODELS + i );
+		if ( !name[0] )
+		{
+			continue;
+		}
+		const qhandle_t h = cgi_R_RegisterModel( name );
+		if ( h != cgs.model_draw[i] )
+		{
+			cgs.model_draw[i] = h;
+			models++;
+		}
+	}
+	if ( skins || models )
+	{
+		Com_Printf( "coop: %i skin(s) and %i model(s) registered again\n", skins, models );
+	}
+}
+
+static void CG_CoopCheckPaksGen( void )
+{
+	if ( coopPaksGenSeen == cg_coopPaksGen.integer )
+	{
+		return;
+	}
+	if ( coopPaksGenSeen != -1 )
+	{
+		int n = 0;
+		CG_CoopRegisterTablesAgain();
+		for ( int i = 0; i < MAX_GENTITIES; i++ )
+		{
+			if ( coopChar[i].specIndex && cg_entities[i].gent )
+			{
+				CG_CoopTearDown( &cg_entities[i] );
+				n++;
+			}
+		}
+		Com_Printf( "coop: pk3 list changed (gen %i), %i character(s) rebuilt\n", cg_coopPaksGen.integer, n );
+	}
+	coopPaksGenSeen = cg_coopPaksGen.integer;
+}
+
+// new level: whatever camera or fade the host had is gone with it
+static void CG_CoopResetCamera( void )
+{
+	coopCameraActive = qfalse;
+	coopCamCount = coopCamHead = coopCamLastTime = 0;
+	in_camera = false;
+	memset( &client_camera, 0, sizeof( client_camera ) );
+}
+
+// the host left its camera: let the bars fade out as CGCam_Disable does
+static void CG_CoopCameraEnd( void )
+{
+	coopCameraActive = qfalse;
+	in_camera = false;
+	client_camera.info_state = CAMERA_BAR_FADING;
+	client_camera.bar_time = cg.time;
+	client_camera.bar_alpha_source = client_camera.bar_alpha;
+	client_camera.bar_alpha_dest = 0.0f;
+	client_camera.bar_height_source = client_camera.bar_height;
+	client_camera.bar_height_dest = 0.0f;
+	client_camera.shake_duration = 0;
+}
+
+/*
+================
+CG_CoopSkip_f / CG_CoopTimescale_f
+
+"skip N": the host toggled the cinematic skip. Our own skippingCinematic
+makes the client freeze the screen on "SKIPPING", stop the sounds and drop
+the captions (cl_main.cpp, cg_text.cpp), exactly as on the host.
+"ts V": the script timescale; ours follows it below 1 (slow motion: our
+clock then slows with the host's), never the 100 of a skip (the screen is
+frozen anyway and a fast clock trips the net timeouts).
+================
+*/
+// "credits": the campaign is over, roll the closing credits like the host
+void CG_CoopCredits_f( void )
+{
+	if ( cg_remoteClient )
+	{
+		cgi_Cvar_Set( "cg_endcredits", "1" );
+	}
+}
+
+void CG_CoopSkip_f( void )
+{
+	if ( cg_remoteClient )
+	{
+		cgi_Cvar_Set( "skippingCinematic", atoi( CG_Argv( 1 ) ) ? "1" : "0" );
+	}
+}
+
+void CG_CoopTimescale_f( void )
+{
+	if ( cg_remoteClient )
+	{
+		float ts = atof( CG_Argv( 1 ) );
+		if ( ts <= 0.0f || ts > 1.0f )
+		{
+			ts = 1.0f;
+		}
+		cgi_Cvar_Set( "timescale", va( "%g", ts ) );
+	}
+}
+
+void CG_CoopSyncCamera( void )
+{
+	if ( !cg_remoteClient || !cg.snap )
+	{
+		return;
+	}
+
+	centity_t *cam = NULL;
+	for ( int i = 0; i < cg.snap->numEntities; i++ )
+	{
+		centity_t *cent = &cg_entities[cg.snap->entities[i].number];
+		if ( cent->currentState.eType == ET_COOPCAMERA )
+		{
+			cam = cent;
+			break;
+		}
+	}
+
+	if ( !cam )
+	{
+		if ( coopCameraActive )
+		{
+			coopCameraActive = qfalse;
+			in_camera = false;
+			client_camera.info_state = 0;
+			client_camera.bar_alpha = 0.0f;
+			client_camera.bar_height = 0.0f;
+			client_camera.fade_color[3] = 0.0f;
+		}
+		coopCamCount = coopCamHead = coopCamLastTime = 0;
+		return;
+	}
+
+	// new samples: this snapshot's, and the next one's when we already have it
+	CG_CoopCamPush( &cam->currentState, cg.snap->serverTime );
+	if ( cg.nextSnap && cam->interpolate && cam->nextState )
+	{
+		CG_CoopCamPush( cam->nextState, cg.nextSnap->serverTime );
+	}
+
+	// the two samples around our (delayed) render time
+	const int t = cg.time - cg_coopCameraLag.integer;
+	const coopCamSample_t *a = CG_CoopCamAt( 0 ), *b = a;
+	for ( int i = 1; i < coopCamCount; i++ )
+	{
+		b = CG_CoopCamAt( i );
+		if ( b->time >= t )
+		{
+			break;
+		}
+		a = b;
+	}
+	float f = 0.0f;
+	if ( b->cut )
+	{
+		f = ( t >= b->time ) ? 1.0f : 0.0f;
+	}
+	else if ( b->time > a->time && t > a->time )
+	{
+		f = Com_Clamp( 0.0f, 1.0f, ( t - a->time ) / (float)( b->time - a->time ) );
+	}
+
+	if ( !coopCameraActive )
+	{
+		coopCameraActive = qtrue;
+		memset( &client_camera, 0, sizeof( client_camera ) );
+		in_camera = true;
+		cg.zoomMode = 0;
+	}
+	client_camera.info_state = 0;
+	for ( int i = 0; i < 3; i++ )
+	{
+		client_camera.origin[i] = a->origin[i] + f * ( b->origin[i] - a->origin[i] );
+		client_camera.angles[i] = LerpAngle( a->angles[i], b->angles[i], f );
+		client_camera.fade_color[i] = a->fade[i] + f * ( b->fade[i] - a->fade[i] );
+	}
+	client_camera.FOV = a->fov + f * ( b->fov - a->fov );
+	client_camera.FOV2 = client_camera.FOV;
+	const float bar = a->bar + f * ( b->bar - a->bar );
+	client_camera.bar_alpha = bar > 0.0f ? 1.0f : 0.0f;
+	client_camera.bar_height = bar;
+	// CGCam_UpdateBarFade snaps to the *_dest values once bar_time is stale; keep them equal
+	client_camera.bar_alpha_dest = client_camera.bar_alpha_source = client_camera.bar_alpha;
+	client_camera.bar_height_dest = client_camera.bar_height_source = client_camera.bar_height;
+	client_camera.bar_time = cg.time;
+	client_camera.fade_color[3] = a->fade[3] + f * ( b->fade[3] - a->fade[3] );
+	if ( cg_developer.integer > 1 )
+	{
+		Com_Printf( "coopcam %i t %i a %i b %i f %.2f n %i org %.1f %.1f %.1f yaw %.1f%s\n", cg.time, t, a->time, b->time, f, coopCamCount, client_camera.origin[0], client_camera.origin[1], client_camera.origin[2], client_camera.angles[YAW], b->cut ? " cut" : "" );
+	}
+}
+
+/*
+==============================================================================
+Client-only map entities
+
+SP_misc_model_static "cheats since this is SP": the host pushes the model
+straight into its cgame (CG_CreateMiscEntFromGent) and frees the entity, so
+nothing ever reaches the wire. A remote client re-reads them from the map's
+entity string itself, before CG_CreateMiscEnts registers the queue.
+==============================================================================
+*/
+extern void CG_CreateMiscEnt( const char *model, const vec3_t origin, const vec3_t angles, const vec3_t scale, float zOff );
+
+void CG_CoopSpawnStaticModels( void )
+{
+	if ( !cg_remoteClient || !gi.CoopEntityString )
+	{
+		return;
+	}
+	const char *p = gi.CoopEntityString();
+	int count = 0;
+
+	COM_BeginParseSession();
+
+	while ( p && *p )
+	{
+		const char *token = COM_Parse( &p );
+		if ( !token[0] || token[0] != '{' )
+		{
+			break;
+		}
+
+		char	classname[64] = "", model[MAX_QPATH] = "";
+		vec3_t	origin = { 0, 0, 0 }, angles = { 0, 0, 0 }, scale = { 1, 1, 1 };
+		float	zOff = 0;
+
+		while ( 1 )
+		{
+			char key[MAX_TOKEN_CHARS];
+			token = COM_Parse( &p );
+			if ( !token[0] || token[0] == '}' )
+			{
+				break;
+			}
+			Q_strncpyz( key, token, sizeof( key ) );
+			token = COM_Parse( &p );
+			if ( !token[0] )
+			{
+				break;
+			}
+			if ( !Q_stricmp( key, "classname" ) )		Q_strncpyz( classname, token, sizeof( classname ) );
+			else if ( !Q_stricmp( key, "model" ) )		Q_strncpyz( model, token, sizeof( model ) );
+			else if ( !Q_stricmp( key, "origin" ) )		sscanf( token, "%f %f %f", &origin[0], &origin[1], &origin[2] );
+			else if ( !Q_stricmp( key, "angles" ) )		sscanf( token, "%f %f %f", &angles[0], &angles[1], &angles[2] );
+			else if ( !Q_stricmp( key, "angle" ) )		angles[YAW] = atof( token );
+			else if ( !Q_stricmp( key, "modelscale_vec" ) )	sscanf( token, "%f %f %f", &scale[0], &scale[1], &scale[2] );
+			else if ( !Q_stricmp( key, "modelscale" ) )	{ const float s = atof( token ); if ( s != 0.0f ) { scale[0] = scale[1] = scale[2] = s; } }
+			else if ( !Q_stricmp( key, "zoffset" ) )	zOff = atof( token );
+		}
+
+		if ( !Q_stricmp( classname, "misc_model_static" ) && model[0] )
+		{
+			CG_CreateMiscEnt( model, origin, angles, scale, zOff );
+			count++;
+		}
+	}
+	COM_EndParseSession();
+	if ( cg_developer.integer )
+	{
+		Com_Printf( "coop: %i misc_model_static spawned from the entity string\n", count );
+	}
+}
+
+/*
+==============================================================================
+CG_CoopPrecacheCharacters
+
+The host built every character's ghoul2 during its own level load, so the
+appearance specs are all in the gamestate by the time we connect. Building
+each model once now (and throwing the scratch ghoul2 away) pulls the .glm,
+skins, textures and animation.cfg into the caches, instead of stalling the
+first frame each character comes into view (the stall was long enough to
+trigger "Delta request from out of date entities" on the host).
+==============================================================================
+*/
+void CG_CoopPrecacheCharacters( void )
+{
+	if ( !cg_remoteClient )
+	{
+		return;
+	}
+	static gentity_t	scratch;
+	static gclient_t	scratchClient;
+	char				seen[MAX_COOP_MODELSPECS][MAX_QPATH];
+	int					numSeen = 0, count = 0;
+
+	for ( int i = 1; i < MAX_COOP_MODELSPECS; i++ )
+	{
+		char spec[MAX_STRING_CHARS];
+		Q_strncpyz( spec, CG_ConfigString( CS_COOP_MODELSPECS + i ), sizeof( spec ) );
+		if ( !spec[0] )
+		{
+			continue;
+		}
+		const char *f[11];
+		CG_CoopSplitSpec( spec, f, 11 );
+		// one build per model+skin pair is enough, the rest is per-entity
+		char key[MAX_QPATH];
+		Com_sprintf( key, sizeof( key ), "%s/%s", f[0], f[1] );
+		int k;
+		for ( k = 0; k < numSeen; k++ )
+		{
+			if ( !Q_stricmp( seen[k], key ) )
+			{
+				break;
+			}
+		}
+		if ( k < numSeen )
+		{
+			continue;
+		}
+		Q_strncpyz( seen[numSeen++], key, sizeof( seen[0] ) );
+
+		scratch.s.number = ENTITYNUM_NONE;	// keeps G_CoopRecordModel off the real slots
+		scratch.client = &scratchClient;
+		scratch.playerModel = -1;
+		scratch.weaponModel[0] = scratch.weaponModel[1] = -1;
+		G_SetG2PlayerModel( &scratch, f[0], f[1][0] ? f[1] : NULL, f[2][0] ? f[2] : NULL, f[3][0] ? f[3] : NULL );
+		if ( scratch.playerModel >= 0 )
+		{
+			count++;
+		}
+		gi.G2API_CleanGhoul2Models( scratch.ghoul2 );
+		scratch.playerModel = -1;
+	}
+	if ( cg_developer.integer )
+	{
+		Com_Printf( "coop: %i character models precached\n", count );
+	}
+}
+
+/*
+================
+CG_CoopFixLocalEntityState
+
+CG_AddPacketEntities rebuilds the local player's entityState from the
+playerState every frame (PlayerStateToEntityState). Fields the playerState
+does not carry over the wire — saber ignition, the appearance spec, anim
+timers — end up zeroed, so the joiner's own blade and model spec vanish.
+The server also sends our own entity in the snapshot; take those fields back
+from it.
+================
+*/
+void CG_CoopFixLocalEntityState( centity_t *cent )
+{
+	if ( !cg_remoteClient || !cg.snap )
+	{
+		return;
+	}
+	VectorCopy( cg.snap->ps.velocity, cent->currentState.pos.trDelta );	// PM_SetAnimFinal scales walk/run anims by it
+	for ( int i = 0; i < cg.snap->numEntities; i++ )
+	{
+		const entityState_t *es = &cg.snap->entities[i];
+		if ( es->number != cent->currentState.number )
+		{
+			continue;
+		}
+		cent->currentState.saberActive = es->saberActive;
+		cent->currentState.saberInFlight = es->saberInFlight;
+		cent->currentState.modelindex3 = es->modelindex3;
+		cent->currentState.legsAnimTimer = es->legsAnimTimer;
+		cent->currentState.torsoAnimTimer = es->torsoAnimTimer;
+		cent->currentState.coopHealth = es->coopHealth;
+		cent->currentState.coopMaxHealth = es->coopMaxHealth;
+		cent->currentState.coopLookTarget = es->coopLookTarget;
+		return;
+	}
+}
+
+/*
+================
+CG_CoopMissionFailed_f
+
+"mf <statusTextIndex>": everyone is dead, or a script failed the mission.
+Same screen as the host; it goes away with the host's next level load.
+================
+*/
+// "wp <weapon>": the host put a weapon in our hand (saber handed by the host);
+// our usercmd would switch straight back to the old selection otherwise
+void CG_CoopSelectWeapon_f( void )
+{
+	const int wp = atoi( CG_Argv( 1 ) );
+	if ( wp <= WP_NONE || wp >= WP_NUM_WEAPONS )
+	{
+		return;
+	}
+	cg.weaponSelect = wp;
+	cg.weaponSelectTime = cg.time;
+}
+
+/*
+================
+CG_CoopFog_f
+
+"fog r g b": fx_rain lightning flash of the global fog (g_fx.cpp fx_rain_fog);
+the host applies it straight to its renderer, we get the command.
+================
+*/
+void CG_CoopFog_f( void )
+{
+	vec3_t color;
+
+	if ( !cg_remoteClient || !gi.WE_SetTempGlobalFogColor )
+	{
+		return;
+	}
+	color[0] = atof( CG_Argv( 1 ) );
+	color[1] = atof( CG_Argv( 2 ) );
+	color[2] = atof( CG_Argv( 3 ) );
+	if ( cg_developer.integer )
+	{
+		Com_Printf( "coop: fog flash %g %g %g\n", color[0], color[1], color[2] );
+	}
+	gi.WE_SetTempGlobalFogColor( color );
+}
+
+void CG_CoopMissionFailed_f( void )
+{
+	extern int statusTextIndex;
+
+	statusTextIndex = atoi( CG_Argv( 1 ) );
+	cg.missionStatusShow = qtrue;
+}
+
+/*
+================
+CG_CoopSound_f
+
+"snd <ent> <channel> <index> <customSet> <path>" from the host: a sound the
+host played straight into its own sound system (G_SoundOnEnt & co).
+================
+*/
+extern qboolean CG_TryPlayCustomSound( vec3_t origin, int entityNum, soundChannel_t channel, const char *soundName, int customSoundSet );
+
+void CG_CoopSound_f( void )
+{
+	const int	entNum = atoi( CG_Argv( 1 ) );
+	const int	channel = atoi( CG_Argv( 2 ) );
+	const int	index = atoi( CG_Argv( 3 ) );
+	const int	customSet = atoi( CG_Argv( 4 ) );
+	const char	*path = CG_Argv( 5 );
+
+	if ( entNum < 0 || entNum >= MAX_GENTITIES )
+	{
+		return;
+	}
+	cgi_S_UpdateEntityPosition( entNum, cg_entities[entNum].lerpOrigin );
+	if ( index > 0 && index < MAX_SOUNDS && cgs.sound_precache[index] )
+	{
+		cgi_S_StartSound( NULL, entNum, channel, cgs.sound_precache[index] );
+	}
+	else if ( path[0] )
+	{
+		if ( customSet >= 0 )
+		{
+			CG_TryPlayCustomSound( NULL, entNum, (soundChannel_t)channel, path, customSet );
+		}
+		else
+		{
+			cgi_S_StartSound( NULL, entNum, channel, cgi_S_RegisterSound( path ) );
+		}
+	}
 }

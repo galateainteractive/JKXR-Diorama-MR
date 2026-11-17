@@ -721,12 +721,19 @@ Ghoul2 Insert End
 */
 #define CS_DYNAMIC_MUSIC_STATE	(CS_CHARSKINS + MAX_CHARSKINS)
 #define CS_WORLD_FX				(CS_DYNAMIC_MUSIC_STATE + 1)
+// Shared by the common snapshot code, which is also compiled for Jedi Outcast.
+#define MAX_COOP_SOUNDSETS		32
 #ifndef JK2_MODE
 // coop: per-appearance model specs ("model|skin|surfOff|surfOn|saber1|saber2|colors")
 // registered by the host and used by the serverless JA guest to rebuild ghoul2.
 #define MAX_COOP_MODELSPECS		128
 #define CS_COOP_MODELSPECS		(CS_WORLD_FX + MAX_WORLD_FX)
-#define CS_MAX					(CS_COOP_MODELSPECS + MAX_COOP_MODELSPECS)
+#define CS_COOP_OBJECTIVES		(CS_COOP_MODELSPECS + MAX_COOP_MODELSPECS)	// coop: host mission objectives
+// coop: ambient sound set names of the level's entities (target_speaker & co carry
+// their slot in s.time2, so a remote client can play the local set and precache
+// every set the host did); stock maps use at most 19 distinct names
+#define CS_COOP_SOUNDSETS		(CS_COOP_OBJECTIVES + 1)
+#define CS_MAX					(CS_COOP_SOUNDSETS + MAX_COOP_SOUNDSETS)
 #else
 // Jedi Outcast shares this header but does not build the JA co-op game module.
 #define CS_MAX					(CS_WORLD_FX + MAX_WORLD_FX)
@@ -736,7 +743,7 @@ Ghoul2 Insert End
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS
 #endif
 
-#define	MAX_GAMESTATE_CHARS	16000
+#define	MAX_GAMESTATE_CHARS	32000	// coop: was 16000; CS_COOP_MODELSPECS (up to 128 specs) plus a full CS_SOUNDS table came close
 typedef struct {
 	int			stringOffsets[MAX_CONFIGSTRINGS];
 	char		stringData[MAX_GAMESTATE_CHARS];
@@ -2478,6 +2485,12 @@ Ghoul2 Insert End
 	qboolean	isPortalEnt;
 #endif // !JK2_MODE
 
+	// coop: health of characters (ET_PLAYER), so remote clients can drive faces,
+	// health bars and corpse handling that read gentity_t::health
+	int		coopHealth;
+	int		coopMaxHealth;
+	int		coopLookTarget;	// entity the head turns to (renderInfo.lookTarget), ENTITYNUM_NONE if none
+
 
 	void sg_export(
 		ojk::SavedGameHelper& saved_game) const
@@ -2533,6 +2546,9 @@ Ghoul2 Insert End
 #ifndef JK2_MODE
 		saved_game.write<int32_t>(isPortalEnt);
 #endif // !JK2_MODE
+		saved_game.write<int32_t>(coopHealth);
+		saved_game.write<int32_t>(coopMaxHealth);
+		saved_game.write<int32_t>(coopLookTarget);
 	}
 
 	void sg_import(
@@ -2589,6 +2605,9 @@ Ghoul2 Insert End
 #ifndef JK2_MODE
 		saved_game.read<int32_t>(isPortalEnt);
 #endif // !JK2_MODE
+		saved_game.read<int32_t>(coopHealth);
+		saved_game.read<int32_t>(coopMaxHealth);
+		saved_game.read<int32_t>(coopLookTarget);
 	}
 } entityState_t;
 

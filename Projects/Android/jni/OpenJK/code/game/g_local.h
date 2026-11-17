@@ -407,11 +407,31 @@ int G_ModelIndex( const char *name );
 void G_CoopRecordModel( const gentity_t *ent, const char *modelName, const char *customSkin, const char *surfOff, const char *surfOn );
 void G_CoopClearAppearance( const gentity_t *ent );
 void G_CoopUpdateAppearance( gentity_t *ent );
+void G_CoopFixClientScriptName( gentity_t *ent );
 qboolean G_CoopIsPlayer( const gentity_t *ent );
 int G_CoopNumPlayers( void );
 gentity_t *G_CoopNearestPlayer( const vec3_t org, qboolean aliveOnly );
 qboolean G_CoopAnyPlayerAlive( void );
+gentity_t *G_CoopPlayerSlot( int i );	// connected player in that slot, or NULL
 qboolean G_CoopInAnyPlayerPVS( const vec3_t org );
+qboolean G_CoopRespawnPending( const gentity_t *ent );
+qboolean G_CoopPlayerDied( gentity_t *self );
+void G_CoopRunRespawns( void );
+void G_CoopPlaceBeside( gentity_t *ent, gentity_t *mate );
+void G_CoopGatherJoiners( qboolean all );
+void G_CoopTeleportCommand( gentity_t *ent );
+gentity_t *G_CoopLivingTeammate( const gentity_t *self );
+const char *G_CoopPlayerVar( const gentity_t *ent, const char *key, const cvar_t *hostCvar );
+void G_CoopCheckCharacterChange( gentity_t *ent );
+void G_InitPlayerFromCvars( gentity_t *ent );
+void G_CoopUpdateCamera( void );
+void G_CoopResetCamera( void );
+void G_CoopUpdateObjectives( void );
+void G_CoopUpdateMissionFailed( void );
+void G_CoopClientBegin( const gentity_t *ent );
+void G_CoopForwardSound( int entNum, int channel, int index, const char *path, int customSet );
+qboolean G_CoopCustomSound( vec3_t origin, int entityNum, soundChannel_t channel, const char *soundName, int customSoundSet );
+void G_CoopSoundPath( const vec3_t origin, int entityNum, int channel, const char *path );
 int	G_SoundIndex( const char *name );
 /*
 Ghoul2 Insert Start

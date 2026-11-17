@@ -1037,6 +1037,7 @@ void target_level_change_use(gentity_t *self, gentity_t *other, gentity_t *activ
 		{
 			cgi_S_StopSounds();
 			cgi_S_StartSound( NULL, 0, CHAN_VOICE, cgs.sound_precache[ self->noise_index ] );
+			G_CoopForwardSound( 0, CHAN_VOICE, self->noise_index, NULL, -1 );	// coop
 		}
 	}
 
@@ -1232,7 +1233,7 @@ void target_secret_use(gentity_t *self, gentity_t *other, gentity_t *activator)
 	{
 		G_Sound( self, self->noise_index );
 	}
-	gi.SendServerCommand( 0, "cp @SP_INGAME_SECRET_AREA" );
+	gi.SendServerCommand( -1, "cp @SP_INGAME_SECRET_AREA" );
 	if( client->sess.missionStats.secretsFound > client->sess.missionStats.totalSecrets )
 		client->sess.missionStats.totalSecrets++;
 	//assert(client->sess.missionStats.totalSecrets);

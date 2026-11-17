@@ -1402,6 +1402,71 @@ void ClientCommand( int clientNum ) {
 
 	cmd = gi.argv(0);
 
+	if (Q_stricmp (cmd, "sabertoggle") == 0)
+	{	// coop: a joiner's saber key (CG_Weapon_f cannot touch its playerState from there)
+		if ( ent->client && ent->health > 0 && ent->client->ps.weapon == WP_SABER
+			&& ( !ent->client->ps.saberInFlight
+				|| ( ent->client->ps.saberEntityNum > 0 && ent->client->ps.saberEntityNum < ENTITYNUM_WORLD
+					&& g_entities[ent->client->ps.saberEntityNum].s.pos.trType == TR_LINEAR ) ) )
+		{
+			if ( ent->client->ps.SaberActive() )
+			{
+				if ( ent->client->ps.dualSabers && ent->client->ps.saber[1].Active() )
+				{
+					ent->client->ps.saber[1].Deactivate();
+				}
+				ent->client->ps.saber[0].Deactivate();
+				if ( ent->client->ps.saber[0].soundOff )
+				{
+					G_Sound( ent->client->ps.saberInFlight ? &g_entities[ent->client->ps.saberEntityNum] : ent, ent->client->ps.saber[0].soundOff );
+				}
+			}
+			else
+			{
+				ent->client->ps.SaberActivate();
+			}
+		}
+		return;
+	}
+	if (Q_stricmp (cmd, "coop_tp") == 0)
+	{
+		G_CoopTeleportCommand( ent );	// coop: joiner asks to rejoin the host (or the host its nearest joiner)
+		return;
+	}
+	if (Q_stricmp (cmd, "coop_gather") == 0)
+	{	// coop: the host brings every joiner beside it
+		if ( ent->s.number == 0 )
+		{
+			G_CoopGatherJoiners( qtrue );
+		}
+		return;
+	}
+	if (Q_stricmp (cmd, "coop_killclass") == 0)
+	{	// coop dev: kill every NPC of this class number (cheats), e.g. remotes without touching Kyle/Rosh
+		if ( !CheatsOk( ent ) ) return;
+		if ( gi.argc() < 2 ) { gi.SendServerCommand( ent - g_entities, "print \"usage: coop_killclass <class number>\\n\"" ); return; }
+		const int cls = atoi( gi.argv( 1 ) );
+		int n = 0;
+		for ( int i = MAX_CLIENTS; i < globals.num_entities; i++ )
+		{
+			gentity_t *e = &g_entities[i];
+			if ( e->inuse && e->client && e->NPC && e->health > 0 && e->client->NPC_class == cls )
+			{
+				G_Damage( e, ent, ent, NULL, e->currentOrigin, e->health + 1000, DAMAGE_NO_PROTECTION, MOD_UNKNOWN );
+				n++;
+			}
+		}
+		gi.Printf( "coop_killclass: %i killed\n", n );
+		return;
+	}
+	if (Q_stricmp (cmd, "coop_use") == 0)
+	{	// coop dev: "use" every entity with this targetname, as a script would (needs cheats)
+		if ( !CheatsOk( ent ) ) return;
+		if ( gi.argc() < 2 ) { gi.SendServerCommand( ent - g_entities, "print \"usage: coop_use <targetname>\\n\"" ); return; }
+		G_UseTargets2( ent, ent, gi.argv( 1 ) );
+		return;
+	}
+
 	if (Q_stricmp (cmd, "spawn") == 0)
 	{
 		Cmd_Spawn( ent );

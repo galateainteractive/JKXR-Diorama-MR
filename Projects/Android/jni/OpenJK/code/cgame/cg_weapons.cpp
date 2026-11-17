@@ -1066,8 +1066,8 @@ void CG_AddViewWeapon( playerState_t *ps )
 
 	cent = &cg_entities[ps->clientNum];
 
-	// Co-op guests rebuild their local gentity from the snapshot, so the same
-	// first-person weapon path is now valid for host and guest.
+	// coop: the remote client's placeholder gentity carries a rebuilt ghoul2 and the
+	// snapshot playerstate, enough for the view weapon; just never fault on a missing one
 	if ( !cent->gent || !cent->gent->client )
 	{
 		return;

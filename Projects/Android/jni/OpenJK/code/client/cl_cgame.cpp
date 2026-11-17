@@ -319,6 +319,7 @@ static void CL_BuildCGameImport( game_import_t &import ) {
 	import.WE_GetChanceOfSaberFizz = re.GetChanceOfSaberFizz;
 	import.WE_IsShaking = re.IsShaking;
 	import.WE_AddWeatherZone = re.AddWeatherZone;
+	import.CoopEntityString = CM_EntityString;
 	import.WE_SetTempGlobalFogColor = re.SetTempGlobalFogColor;
 }
 /*
@@ -1835,7 +1836,6 @@ void CL_CGameRendering( stereoFrame_t stereo ) {
 		}
 		re.G2API_SetTime(cl.serverTime, G2T_CG_TIME);
 	}
-
 	VM_Call( CG_DRAW_ACTIVE_FRAME,timei, stereo, qfalse );
 //	VM_Debug( 0 );
 }

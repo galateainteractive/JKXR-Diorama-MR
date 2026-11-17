@@ -172,15 +172,25 @@ static void CG_EntityEffects( centity_t *cent ) {
 
 		gentity_t *ent = cent->gent;
 
-		if ( ent->s.eFlags & EF_LESS_ATTEN )
+		if ( cent->currentState.eFlags & EF_LESS_ATTEN )	// coop: networked flags (the placeholder's s.eFlags are only synced for characters)
 		{
 			chan = CHAN_LESS_ATTEN;
 		}
 
-		sfxHandle_t	sfx = ( cent->currentState.eType == ET_MOVER ) ? cent->currentState.loopSound : cgs.sound_precache[ cent->currentState.loopSound ];
+		sfxHandle_t	sfx;
+		if ( !cg_remoteClient && ( cent->currentState.eType == ET_MOVER || ( ent->soundSet && !ent->client ) ) )
+		{	// host: a local sfx handle the game registered itself (movers, and the
+			// fx_runner / misc_weapon_shooter loops taken from CAS_GetBModelSound in g_fx.cpp,
+			// which indexed cgs.sound_precache with a handle before)
+			sfx = cent->currentState.loopSound;
+		}
+		else
+		{	// coop: the server sends remote viewers a CS_SOUNDS index for movers too
+			sfx = ( cent->currentState.loopSound > 0 && cent->currentState.loopSound < MAX_SOUNDS ) ? cgs.sound_precache[ cent->currentState.loopSound ] : 0;
+		}
 
 		// Only play sound if being drawn.
-		if ( !( ent->s.eFlags & EF_NODRAW ) )
+		if ( !( cent->currentState.eFlags & EF_NODRAW ) )
 		{
 			cgi_S_AddLoopingSound( cent->currentState.number, v3Origin/*cent->lerpOrigin*/, vec3_origin, sfx, chan );
 		}
@@ -356,7 +366,7 @@ Ghoul2 Insert End
 	{
 		//s1->frame++;
 		//ent.frame = s1->frame;
-		ent.frame = cent->gent->s.frame;
+		ent.frame = s1->frame;	// coop: the networked frame (G_RunFrame advances s.frame; the placeholder's stays 0)
 		ent.renderfx|=RF_CAP_FRAMES;
 	}
 	else if ( s1->eFlags & EF_ANIM_ALLFAST )
@@ -757,6 +767,8 @@ Ghoul2 Insert End
 		vec3_t			beamOrg;
 		int				handle = 0;
 		SEffectTemplate	*temp;
+		// coop: the laser end point is host-only in pos4; the host also puts it in s.angles2 (laserTrapThink)
+		const float		*laserEnd = cg_remoteClient ? cent->currentState.angles2 : cent->gent->pos4;
 
 		VectorMA( ent.origin, 6.6f, ent.axis[0], beamOrg );// forward
 
@@ -771,9 +783,9 @@ Ghoul2 Insert End
 			if ( prim )
 			{
 				// we have the primitive, so modify the endpoint
-				prim->mOrigin2X.SetRange( cent->gent->pos4[0], cent->gent->pos4[0] );
-				prim->mOrigin2Y.SetRange( cent->gent->pos4[1], cent->gent->pos4[1] );
-				prim->mOrigin2Z.SetRange( cent->gent->pos4[2], cent->gent->pos4[2] );
+				prim->mOrigin2X.SetRange( laserEnd[0], laserEnd[0] );
+				prim->mOrigin2Y.SetRange( laserEnd[1], laserEnd[1] );
+				prim->mOrigin2Z.SetRange( laserEnd[2], laserEnd[2] );
 
 				// have a copy, so get the line element out of there
 				CPrimitiveTemplate *prim = theFxScheduler.GetPrimitiveCopy( temp, "line2" );
@@ -781,9 +793,9 @@ Ghoul2 Insert End
 				if ( prim )
 				{
 					// we have the primitive, so modify the cent->gent->pos3point
-					prim->mOrigin2X.SetRange( cent->gent->pos4[0], cent->gent->pos4[0] );
-					prim->mOrigin2Y.SetRange( cent->gent->pos4[1], cent->gent->pos4[1] );
-					prim->mOrigin2Z.SetRange( cent->gent->pos4[2], cent->gent->pos4[2] );
+					prim->mOrigin2X.SetRange( laserEnd[0], laserEnd[0] );
+					prim->mOrigin2Y.SetRange( laserEnd[1], laserEnd[1] );
+					prim->mOrigin2Z.SetRange( laserEnd[2], laserEnd[2] );
 
 					// play the modified effect
 					theFxScheduler.PlayEffect( handle, beamOrg, ent.axis[0] );
@@ -791,7 +803,7 @@ Ghoul2 Insert End
 			}
 		}
 
-		theFxScheduler.PlayEffect( "tripMine/laserImpactGlow", cent->gent->pos4, ent.axis[0] );
+		theFxScheduler.PlayEffect( "tripMine/laserImpactGlow", (float *)laserEnd, ent.axis[0] );
 	}
 
 
@@ -993,7 +1005,7 @@ Ghoul2 Insert End
 	vec3_t spinAngles;
 
 	//AxisClear( ent.axis );
-	VectorCopy( cent->gent->s.angles, spinAngles );
+	VectorCopy( cent->currentState.angles, spinAngles );	// coop: networked (the placeholder's s.angles stays 0)
 
 	if ( cent->gent->ghoul2.IsValid()
 		&& cent->gent->ghoul2.size() )
@@ -1374,7 +1386,7 @@ Ghoul2 Insert End
 	ent.skinNum = 0;
 	if ( s1->eFlags & EF_ANIM_ONCE )
 	{//FIXME: needs to anim at once per 100 ms
-		ent.frame = cent->gent->s.frame;
+		ent.frame = s1->frame;	// coop: the networked frame
 		ent.renderfx|=RF_CAP_FRAMES;
 	}
 	else if ( s1->eFlags & EF_ANIM_ALLFAST )
@@ -1758,7 +1770,9 @@ Ghoul2 Insert End
 	{
 		gentity_t *ent = &g_entities[cent->currentState.number];
 
-		if ( ent && ent->inuse)
+		// coop: a remote client has no server gentities (placeholders at the
+		// origin); everything it knows is in currentState, so never read them here
+		if ( !cg_remoteClient && ent && ent->inuse)
 		{
 			if ( ent->s.eFlags & EF_BLOCKED_MOVER || ent->s.pos.trType == TR_STATIONARY )
 			{//this mover has stopped moving and is going to wig out if we predict it
@@ -1874,7 +1888,9 @@ OutputDebugString(va("[%3d] nonext %4.2f t=%6d  st = %6d  nst = %6d     b=%6.2f 
 	{
 		gentity_t *ent = &g_entities[cent->currentState.number];
 
-		if ( ent && ent->inuse)
+		// coop: a remote client has no server gentities (placeholders at the
+		// origin); everything it knows is in currentState, so never read them here
+		if ( !cg_remoteClient && ent && ent->inuse)
 		{
 			if ( ent->s.eFlags & EF_BLOCKED_MOVER || ent->s.pos.trType == TR_STATIONARY )
 			{//this mover has stopped moving and is going to wig out if we predict it
@@ -1907,7 +1923,7 @@ CG_AddLocalSet
 
 static void CG_AddLocalSet( centity_t *cent )
 {
-	cent->gent->setTime = cgi_S_AddLocalSet( cent->gent->soundSet, cg.refdef.vieworg, cent->lerpOrigin, cent->gent->s.number, cent->gent->setTime );
+	cent->gent->setTime = cgi_S_AddLocalSet( cent->gent->soundSet, cg.refdef.vieworg, cent->lerpOrigin, cent->currentState.number, cent->gent->setTime );
 }
 
 /*
@@ -2395,6 +2411,7 @@ Ghoul2 Insert End
 		CG_Error( "Bad entity type: %i\n", cent->currentState.eType );
 		break;
 	case ET_INVISIBLE:
+	case ET_COOPCAMERA:	// coop: consumed by CG_CoopSyncCamera, nothing to draw
 	case ET_PUSH_TRIGGER:
 	case ET_TELEPORT_TRIGGER:
 	case ET_TERRAIN:
@@ -2500,6 +2517,7 @@ void CG_AddPacketEntities( qboolean isPortal ) {
 	// generate and add the entity from the playerstate
 	ps = &cg.predicted_player_state;
 	PlayerStateToEntityState( ps, &cg_entities[ ps->clientNum ].currentState );
+	CG_CoopFixLocalEntityState( &cg_entities[ ps->clientNum ] );	// coop: keep the server-only fields
 //	cent = &cg_entities[ ps->clientNum ];	// not needed now that player is in the snap packet
 //	CG_AddCEntity( cent );					//
 

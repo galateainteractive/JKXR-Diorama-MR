@@ -3150,7 +3150,8 @@ static void CG_PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t torso[3], v
 			legsYawSwingTolMax = 0;
 		}
 
-		yawSpeed = maxYawSpeed = cent->gent->NPC->stats.yawSpeed/150;//about 0.33 normally
+		// coop: the remote client's placeholder NPCs (md3 droids) have no NPC_t
+		yawSpeed = maxYawSpeed = cent->gent->NPC ? cent->gent->NPC->stats.yawSpeed/150 : 0.8f;//about 0.33 normally
 	}
 	else
 	{
@@ -4443,6 +4444,10 @@ static void CG_BoltedEffects( centity_t *cent, const vec3_t origin, vec3_t tempA
 	{
 		Vehicle_t *pVeh = cent->gent->m_pVehicle;
 		gentity_t *parent = cent->gent;
+		if ( !pVeh )
+		{	// coop: a remote client's placeholder never gets a Vehicle_t (the host game creates it)
+			return;
+		}
  		if (pVeh->m_ulFlags&VEH_ARMORLOW
 			&& (pVeh->m_iLastFXTime<=cg.time)
 			&& Q_irand(0,1)==0 )
@@ -4673,11 +4678,19 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, centity_t *cen
 	{
 		// HACK HACK HACK
 		// If this entity is a vehicle being piloted by the player, then increase the radius so it doesn't get culled
-		if (gent->m_pVehicle && gent->m_pVehicle->m_pPilot && gent->m_pVehicle->m_pPilot->s.number == 0 )
+		if (gent->m_pVehicle && gent->m_pVehicle->m_pPilot && gent->m_pVehicle->m_pPilot->s.number == cg_localEntNum )
 		{
 			ent->radius = 80;
 		}
 
+		if ( cg_developer.integer > 2 && gent->s.number > MAX_CLIENTS && ( cg.time / 1000 ) != ( gent->painDebounceTime / 1000 ) )
+		{	// coop dev: what the renderer gets for this character
+			gent->painDebounceTime = cg.time;
+			Com_Printf( "coop: refent %i rgba %i,%i,%i,%i renderfx 0x%x customShader %i customSkin %i skin %i scale %.2f %.2f %.2f org %.0f %.0f %.0f lightorg %.0f %.0f %.0f g2 %i\n",
+				gent->s.number, ent->shaderRGBA[0], ent->shaderRGBA[1], ent->shaderRGBA[2], ent->shaderRGBA[3], ent->renderfx, ent->customShader, ent->customSkin,
+				( gent->playerModel >= 0 && gent->playerModel < gent->ghoul2.size() ) ? gent->ghoul2[gent->playerModel].mCustomSkin : -1,
+				ent->modelScale[0], ent->modelScale[1], ent->modelScale[2], ent->origin[0], ent->origin[1], ent->origin[2], ent->lightingOrigin[0], ent->lightingOrigin[1], ent->lightingOrigin[2], (int)gent->ghoul2.size() );
+		}
 		cgi_R_AddRefEntityToScene( ent );
 	}
 
@@ -7903,7 +7916,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 					}
 				}
 				// Set the Vehicle Muzzle Point and Direction.
-				else if ( cent->gent && cent->gent->client && cent->gent->client->NPC_class == CLASS_VEHICLE )
+				else if ( cent->gent && cent->gent->client && cent->gent->client->NPC_class == CLASS_VEHICLE && cent->gent->m_pVehicle )	// coop: no Vehicle_t on a remote client
 				{
 					// Get the Position and Direction of the Tag and use that as our Muzzles Properties.
 					mdxaBone_t	boltMatrix;
@@ -7985,7 +7998,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 			}
 
 			// Draw Vehicle Muzzle Flashs.
-			if ( cent->gent && cent->gent->client && cent->gent->client->NPC_class == CLASS_VEHICLE )
+			if ( cent->gent && cent->gent->client && cent->gent->client->NPC_class == CLASS_VEHICLE && cent->gent->m_pVehicle )	// coop: no Vehicle_t on a remote client
 			{
 				for ( int i = 0; i < MAX_VEHICLE_MUZZLES; i++ )
 				{

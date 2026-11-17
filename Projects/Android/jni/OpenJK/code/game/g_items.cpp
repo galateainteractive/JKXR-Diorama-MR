@@ -97,13 +97,13 @@ int Pickup_Holdable( gentity_t *ent, gentity_t *other )
 	if ( ent->item->giTag == INV_SECURITY_KEY )
 	{//give the key
 		//FIXME: temp message
-		gi.SendServerCommand( 0, "cp @SP_INGAME_YOU_TOOK_SECURITY_KEY" );
+		gi.SendServerCommand( -1, "cp @SP_INGAME_YOU_TOOK_SECURITY_KEY" );
 		INV_SecurityKeyGive( other, ent->message );
 	}
 	else if ( ent->item->giTag == INV_GOODIE_KEY )
 	{//give the key
 		//FIXME: temp message
-		gi.SendServerCommand( 0, "cp @SP_INGAME_YOU_TOOK_SUPPLY_KEY" );
+		gi.SendServerCommand( -1, "cp @SP_INGAME_YOU_TOOK_SUPPLY_KEY" );
 		INV_GoodieKeyGive( other );
 	}
 	else
@@ -877,7 +877,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	{//SIGH... with timescale on, you lose events left and right
 extern void CG_ItemPickup( int itemNum, qboolean bHadItem );
 		// but we're SP so we'll cheat
-		cgi_S_StartSound( NULL, other->s.number, CHAN_AUTO,	cgi_S_RegisterSound( ent->item->pickup_sound ) );
+		G_CoopSoundPath( NULL, other->s.number, CHAN_AUTO, ent->item->pickup_sound );	// coop: the picking player may be remote
 		// show icon and name on status bar
 		CG_ItemPickup( ent->s.modelindex, bHadWeapon );
 	}
@@ -937,6 +937,8 @@ LaunchItem
 Spawns an item and tosses it forward
 ================
 */
+void G_CoopItemSyncFlags( gentity_t *ent );	// below
+
 gentity_t *LaunchItem( gitem_t *item, const vec3_t origin, const vec3_t velocity, char *target ) {
 	gentity_t	*dropped;
 
@@ -1007,6 +1009,7 @@ gentity_t *LaunchItem( gitem_t *item, const vec3_t origin, const vec3_t velocity
 
 	dropped->flags = FL_DROPPED_ITEM;
 
+	G_CoopItemSyncFlags( dropped );
 	gi.linkentity (dropped);
 
 	return dropped;
@@ -1096,6 +1099,20 @@ free fall from their spawn points
 */
 extern int delayedShutDown;
 extern cvar_t	*g_saber;
+/*
+================
+G_CoopItemSyncFlags
+
+coop: the remote cgame orients and glows items from spawnflags (ITMSF_VERTICAL,
+ITMSF_NOGLOW) and 'random' (saber pitch), gentity fields that never travel.
+s.time2 is free on ET_ITEM: low byte spawnflags, next 16 bits (int)random.
+================
+*/
+void G_CoopItemSyncFlags( gentity_t *ent )
+{
+	ent->s.time2 = ( ent->spawnflags & 0xff ) | ( ( ((int)ent->random) & 0xffff ) << 8 );
+}
+
 void FinishSpawningItem( gentity_t *ent ) {
 	trace_t		tr;
 	vec3_t		dest;
@@ -1156,11 +1173,13 @@ void FinishSpawningItem( gentity_t *ent ) {
 		//NOTE:  should I keep this string around for any reason?  Will I ever need it later?
 		//ent->??? = G_NewString( itemSaber.model );
 		gi.G2API_InitGhoul2Model( ent->ghoul2, itemSaber.model, G_ModelIndex( itemSaber.model ), NULL_HANDLE, NULL_HANDLE, 0, 0);
+		ent->s.modelindex3 = G_ModelIndex( itemSaber.model );	// coop: remote clients build their ghoul2 from it
 		WP_SaberFreeStrings(itemSaber);
 	}
 	else
 	{
 		gi.G2API_InitGhoul2Model( ent->ghoul2, ent->item->world_model, G_ModelIndex( ent->item->world_model ), NULL_HANDLE, NULL_HANDLE, 0, 0);
+		ent->s.modelindex3 = G_ModelIndex( ent->item->world_model );	// coop: remote clients build their ghoul2 from it
 	}
 
 	// Set crystal ammo amount based on skill level
@@ -1250,6 +1269,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 		ent->nextthink = level.time + 30000;
 	}
 
+	G_CoopItemSyncFlags( ent );
 	gi.linkentity (ent);
 }
 

@@ -152,6 +152,10 @@ static void CG_ConfigStringModified( void ) {
 			cgs.sound_precache[ num-CS_SOUNDS] = cgi_S_RegisterSound( str );
 		}
 	}
+	else if ( num >= CS_COOP_MODELSPECS && num < CS_COOP_MODELSPECS + MAX_COOP_MODELSPECS )
+	{	// coop: a recycled appearance slot; whoever was built from it rebuilds
+		CG_CoopModelSpecChanged( num - CS_COOP_MODELSPECS );
+	}
 	else if ( num >= CS_EFFECTS && num < CS_EFFECTS + MAX_FX )
 	{
 		theFxScheduler.RegisterEffect( str );
@@ -181,6 +185,16 @@ static void CG_Print_f( void ) {
 static void CG_CaptionText_f( void ) {
 	sfxHandle_t sound = (sfxHandle_t)atoi( CG_Argv( 2 ) );
 
+	if ( cg_remoteClient )
+	{	// coop: the host sends every audible line; our own g_subtitles decides
+		extern cvar_t *g_subtitles;
+		const int flags = atoi( CG_Argv( 3 ) );		// 1 = NPC forces subtitles, 2 = cinematic
+		const qboolean show = (qboolean)( ( flags & 1 ) || g_subtitles->integer == 1 || ( g_subtitles->integer == 2 && ( flags & 2 ) ) );
+		if ( !show )
+		{
+			return;
+		}
+	}
 	CG_CaptionText( CG_Argv( 1 ), sound >= 0 && sound < MAX_SOUNDS ? cgs.sound_precache[sound] : NULL_SOUND );
 }
 
@@ -207,6 +221,9 @@ static int svcmdcmp( const void *a, const void *b ) {
 	return Q_stricmp( (const char *)a, ((serverCommand_t*)b)->cmd );
 }
 
+extern void CG_CoopSelectWeapon_f( void );	// cg_coop.cpp
+extern void CG_CoopLimb_f( void );			// cg_coop.cpp
+
 /* This array MUST be sorted correctly by alphabetical name field */
 static serverCommand_t	commands[] = {
 	{ "chat",				CG_Print_f },
@@ -215,9 +232,14 @@ static serverCommand_t	commands[] = {
 	{ "cs",					CG_ConfigStringModified },
 	{ "ct",					CG_CaptionText_f },
 	{ "cts",				CG_CaptionTextStop },
+	{ "fog",				CG_CoopFog_f },				// coop: fx_rain lightning fog flash (host renderer call otherwise)
+	{ "limb",				CG_CoopLimb_f },			// coop: a dismembered limb (host describes the cut)
 	{ "lt",					CG_LCARSText_f },
+	{ "mf",					CG_CoopMissionFailed_f },	// coop: host raised the mission-failed screen
 	{ "print",				CG_Print_f },
+	{ "snd",				CG_CoopSound_f },	// coop: host-side sound forwarded to remote clients
 	{ "st",					CG_ScrollText_f },
+	{ "wp",					CG_CoopSelectWeapon_f },	// coop: host put a weapon in our hand (saber sync)
 };
 
 static const size_t numCommands = ARRAY_LEN( commands );

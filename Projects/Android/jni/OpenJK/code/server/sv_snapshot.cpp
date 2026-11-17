@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../server/exe_headers.h"
 
 #include "../client/vmachine.h"
+#include "../client/snd_public.h"
 #include "server.h"
 
 /*
@@ -210,16 +211,36 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg ) {
 SV_UpdateServerCommandsToClient
 
 (re)send all server commands the client hasn't acknowledged yet
+
+coop: up to a budget. Every snapshot repeats the whole unacknowledged list, and
+a level start can leave dozens of long configstrings in it (SV_UpdateConfigstrings),
+so writing them all can push the message past MAX_MSGLEN. The caller then clears
+the overflowed message entirely, the client receives nothing, acknowledges
+nothing, and the same oversized message is rebuilt every frame until the client
+times out. Stopping early is free: the commands stay in the list and go out in
+the next snapshot, in order, once the client has acknowledged these.
 ==================
 */
-static void SV_UpdateServerCommandsToClient( client_t *client, msg_t *msg ) {
+#define SV_COMMAND_BUDGET	( MAX_MSGLEN / 2 )	// leave the rest of the datagram for the snapshot itself
+
+void SV_UpdateServerCommandsToClient( client_t *client, msg_t *msg ) {	// coop: also used by SV_CoopTransferSendEager
 	int		i;
+	const int	start = msg->cursize;
 
 	// write any unacknowledged serverCommands
 	for ( i = client->reliableAcknowledge + 1 ; i <= client->reliableSequence ; i++ ) {
+		const char *cmd = client->reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ];
+		if ( !cmd ) {
+			cmd = "";	// never happens; a hole in the sequence would confuse the client
+		}
+		if ( msg->cursize - start + (int)strlen( cmd ) + 6 > SV_COMMAND_BUDGET ) {
+			Com_DPrintf( "coop: %s: %i command(s) held back, %i bytes already written\n",
+				client->name, client->reliableSequence - i + 1, msg->cursize - start );
+			break;
+		}
 		MSG_WriteByte( msg, svc_serverCommand );
 		MSG_WriteLong( msg, i );
-		MSG_WriteString( msg, client->reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ] );
+		MSG_WriteString( msg, cmd );
 	}
 }
 
@@ -231,7 +252,64 @@ Build a client snapshot structure
 =============================================================================
 */
 
-#define	MAX_SNAPSHOT_ENTITIES	1024
+// coop: movers keep a host-local sfx handle in s.loopSound (cgi_S_RegisterSound /
+// CAS_GetBModelSound, played straight by the host's cgame). A remote client has
+// its own sound table, so that number means another sound there (or a missing
+// one, and S_AddLoopingSound drops the client). For remote viewers, swap it for
+// a CS_SOUNDS index, allocated on demand; the remote cgame looks it up in
+// cgs.sound_precache like every other entity's loop sound.
+#define COOP_MOVER_SOUND_CACHE	4096
+static int coopMoverSoundCS[COOP_MOVER_SOUND_CACHE];	// handle -> CS_SOUNDS index (0 = unknown yet, -1 = none)
+static int coopMoverSoundServerId;
+
+static int SV_CoopMoverSoundIndex( int handle )
+{
+	if ( coopMoverSoundServerId != sv.serverId )
+	{
+		memset( coopMoverSoundCS, 0, sizeof( coopMoverSoundCS ) );
+		coopMoverSoundServerId = sv.serverId;
+	}
+	if ( handle <= 0 || handle >= COOP_MOVER_SOUND_CACHE )
+	{
+		return 0;
+	}
+	if ( coopMoverSoundCS[handle] )
+	{
+		return coopMoverSoundCS[handle] > 0 ? coopMoverSoundCS[handle] : 0;
+	}
+	const char *name = S_SoundNameForHandle( handle );
+	if ( !name || !name[0] )
+	{
+		coopMoverSoundCS[handle] = -1;
+		return 0;
+	}
+	char stripped[MAX_QPATH];
+	COM_StripExtension( name, stripped, sizeof( stripped ) );	// G_SoundIndex stores them stripped
+	int i;
+	for ( i = 1; i < MAX_SOUNDS; i++ )
+	{
+		const char *cs = sv.configstrings[CS_SOUNDS + i];
+		if ( !cs || !cs[0] )
+		{
+			break;
+		}
+		if ( !Q_stricmp( cs, stripped ) )
+		{
+			coopMoverSoundCS[handle] = i;
+			return i;
+		}
+	}
+	if ( i >= MAX_SOUNDS )
+	{
+		Com_Printf( "coop: no CS_SOUNDS slot left for mover sound %s\n", stripped );
+		coopMoverSoundCS[handle] = -1;
+		return 0;
+	}
+	SV_SetConfigstring( CS_SOUNDS + i, stripped );
+	coopMoverSoundCS[handle] = i;
+	return i;
+}
+
 typedef struct {
 	int		numSnapshotEntities;
 	int		snapshotEntities[MAX_SNAPSHOT_ENTITIES];
@@ -648,6 +726,24 @@ static clientSnapshot_t *SV_BuildClientSnapshot( client_t *client ) {
 		ent = SV_GentityNum(entityNumbers.snapshotEntities[i]);
 		state = &svs.snapshotEntities[svs.nextSnapshotEntities % svs.numSnapshotEntities];
 		*state = ent->s;
+		if ( ent->client && frame->ps.clientNum != 0 )
+		{	// coop: SP never puts a client's velocity on the wire; the remote cgame
+			// scales the walk/run animations by it (PM_SetAnimFinal, resultspeed)
+			VectorCopy( ent->client->velocity, state->pos.trDelta );
+		}
+		if ( frame->ps.clientNum != 0 && state->loopSound
+			&& ( state->eType == ET_MOVER
+				|| ( !ent->client && state->eType != ET_ITEM && state->time2 > 0 && state->time2 < MAX_COOP_SOUNDSETS ) ) )
+		{	// coop: host-local sfx handle -> CS_SOUNDS index (see SV_CoopMoverSoundIndex);
+			// fx_runner / misc_weapon_shooter loops come from CAS_GetBModelSound as well
+			// (g_fx.cpp): those carry their sound set's slot in s.time2 (G_ParsePrecaches)
+			state->loopSound = SV_CoopMoverSoundIndex( state->loopSound );
+		}
+		if ( frame->ps.clientNum != 0 && ( state->event & ~EV_EVENT_BITS ) == EV_BMODEL_SOUND && state->eventParm )
+		{	// coop: same for the start/end sounds of doors and fx_runners (G_PlayDoorSound):
+			// a raw handle was "S_StartSound: handle N out of range" on the remote client
+			state->eventParm = SV_CoopMoverSoundIndex( state->eventParm );
+		}
 		svs.nextSnapshotEntities++;
 		frame->num_entities++;
 	}
@@ -710,6 +806,12 @@ void SV_SendClientSnapshot( client_t *client ) {
 	MSG_Init (&msg, msg_buf, sizeof(msg_buf));
 	msg.allowoverflow = qtrue;
 
+	// coop: configstrings left over from the load, as the window drains
+	if ( client->csPending )
+	{
+		SV_UpdateConfigstrings( client );
+	}
+
 	// (re)send any reliable server commands
 	SV_UpdateServerCommandsToClient( client, &msg );
 
@@ -719,7 +821,11 @@ void SV_SendClientSnapshot( client_t *client ) {
 
 	// check for overflow
 	if ( msg.overflowed ) {
-		Com_Printf ("WARNING: msg overflowed for %s\n", client->name);
+		// coop: say what filled it. A cleared message reaches the client as nothing
+		// at all, so an overflow that repeats every frame is a silent timeout.
+		Com_Printf ("WARNING: msg overflowed for %s (%i command(s) / %i bytes pending, %i configstrings left)\n",
+			client->name, client->reliableSequence - client->reliableAcknowledge,
+			SV_ReliableBytesPending( client ), client->csPending );
 		MSG_Clear (&msg);
 	}
 

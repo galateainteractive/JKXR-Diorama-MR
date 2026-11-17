@@ -968,6 +968,22 @@ int WP_SaberInitBladeData( gentity_t *ent )
 		}
 		ent->client->ps.saberAttackChainCount = 0;
 
+		static cvar_t *coopRemote = NULL;
+		if ( !coopRemote )
+		{
+			coopRemote = gi.cvar( "cg_remoteClient", "0", 0 );
+		}
+		if ( coopRemote->integer )
+		{	// coop: a remote client only mirrors the host's entities. G_Spawn()
+			// here would hand out a slot that belongs to a networked entity
+			// (its placeholder is only marked in use while it is in the
+			// snapshot) and the saber .glm would land in that character's
+			// ghoul2, replacing its body: black/white students, the lobby's
+			// "Ghoul2 Model has no mdxa saber_7.glm" crash. The thrown saber is
+			// a networked entity of its own (CG_CoopEnsureG2Model).
+			ent->client->ps.saberEntityNum = ENTITYNUM_NONE;
+		}
+		else
 		if ( ent->client->ps.saberEntityNum <= 0 || ent->client->ps.saberEntityNum >= ENTITYNUM_WORLD )
 		{//FIXME: if you do have a saber already, be sure to re-set the model if it's changed (say, via a script).
 			gentity_t *saberent = G_Spawn();
@@ -10162,11 +10178,11 @@ void ForceThrowEx( gentity_t *self, qboolean pull, qboolean fake, qboolean aimBy
 					push_list[x]->forcePuller = self->s.number;//remember this regardless
 					if ( push_list[x]->item && push_list[x]->item->giTag == INV_SECURITY_KEY )
 					{
-						AddSightEvent( player, push_list[x]->currentOrigin, 128, AEL_DISCOVERED );//security keys are more important
+						AddSightEvent( self, push_list[x]->currentOrigin, 128, AEL_DISCOVERED );//security keys are more important
 					}
 					else
 					{
-						AddSightEvent( player, push_list[x]->currentOrigin, 128, AEL_SUSPICIOUS );//hmm... or should this always be discovered?
+						AddSightEvent( self, push_list[x]->currentOrigin, 128, AEL_SUSPICIOUS );//hmm... or should this always be discovered?
 					}
 				}
 				else if ( push_list[x]->s.weapon == WP_TURRET
@@ -10534,6 +10550,15 @@ qboolean WP_CheckBreakControl( gentity_t *self )
 		if ( self->NPC && self->NPC->controlledTime > level.time )
 		{//being controlled
 			gentity_t *controller = &g_entities[0];
+			for ( int c = 1; c < MAX_CLIENTS; c++ )
+			{	// coop: whichever player is looking through us
+				const gentity_t *pl = G_CoopPlayerSlot( c );
+				if ( pl && pl->client->ps.viewEntity == self->s.number )
+				{
+					controller = &g_entities[c];
+					break;
+				}
+			}
 			if ( controller->client && controller->client->ps.viewEntity == self->s.number )
 			{//we are being controlled by player
 				if ( controller->client->ps.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_3 )

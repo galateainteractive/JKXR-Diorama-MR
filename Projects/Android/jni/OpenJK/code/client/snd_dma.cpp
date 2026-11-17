@@ -170,6 +170,17 @@ int   		s_paintedtime; 		// sample PAIRS
 sfx_t		s_knownSfx[MAX_SFX];
 int			s_numSfx;
 
+// Coop snapshots cannot expose host-local sound handles to a joining client.
+// Resolve the registered path so the server can translate it to CS_SOUNDS.
+const char *S_SoundNameForHandle( sfxHandle_t handle )
+{
+	if ( handle <= 0 || handle >= s_numSfx )
+	{
+		return NULL;
+	}
+	return s_knownSfx[handle].sSoundName;
+}
+
 #define		LOOP_HASH		128
 static	sfx_t		*sfxHash[LOOP_HASH];
 

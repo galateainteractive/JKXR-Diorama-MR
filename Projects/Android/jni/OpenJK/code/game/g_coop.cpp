@@ -78,9 +78,100 @@ Entity slot is being freed or reused: forget its appearance so a later
 occupant does not inherit it.
 ================
 */
+/*
+================
+G_CoopSoundSetIndex
+
+CS_COOP_SOUNDSETS slot of an ambient sound set name (allocated on first
+use); 0 when the range is full (the remote client then just lacks that set).
+================
+*/
+int G_CoopSoundSetIndex( const char *name )
+{
+	char	s[MAX_STRING_CHARS];
+	int		i;
+
+	if ( !name || !name[0] )
+	{
+		return 0;
+	}
+	for ( i = 1; i < MAX_COOP_SOUNDSETS; i++ )
+	{
+		gi.GetConfigstring( CS_COOP_SOUNDSETS + i, s, sizeof( s ) );
+		if ( !s[0] )
+		{
+			gi.SetConfigstring( CS_COOP_SOUNDSETS + i, name );
+			return i;
+		}
+		if ( !Q_stricmp( s, name ) )
+		{
+			return i;
+		}
+	}
+	gi.Printf( "coop: no CS_COOP_SOUNDSETS slot left for '%s'\n", name );
+	return 0;
+}
+
 void G_CoopClearAppearance( const gentity_t *ent )
 {
 	memset( &coopAppearance[ent->s.number], 0, sizeof( coopAppearance[0] ) );
+}
+
+/*
+================
+G_CoopModelSpecIndex
+
+CS_COOP_MODELSPECS slot for an appearance spec. Like G_FindConfigstringIndex,
+but a full range is not fatal: random tints and saber colours make many
+distinct specs over a level, so a slot no live character references any
+more is recycled (the remote cgame rebuilds whoever pointed at it when the
+configstring changes), and as a last resort the entity keeps its old index.
+================
+*/
+static int G_CoopModelSpecIndex( const gentity_t *ent, const char *spec )
+{
+	char		s[MAX_STRING_CHARS];
+	qboolean	used[MAX_COOP_MODELSPECS];
+	int			i;
+
+	for ( i = 1; i < MAX_COOP_MODELSPECS; i++ )
+	{
+		gi.GetConfigstring( CS_COOP_MODELSPECS + i, s, sizeof( s ) );
+		if ( !s[0] )
+		{
+			gi.SetConfigstring( CS_COOP_MODELSPECS + i, spec );
+			return i;
+		}
+		if ( !Q_stricmp( s, spec ) )
+		{
+			return i;
+		}
+	}
+
+	// full: recycle a slot that no character in use still points at
+	memset( used, 0, sizeof( used ) );
+	for ( i = 0; i < globals.num_entities; i++ )
+	{
+		const gentity_t *e = &g_entities[i];
+		if ( e->inuse && e->client && e != ent && e->s.modelindex3 > 0 && e->s.modelindex3 < MAX_COOP_MODELSPECS )
+		{
+			used[e->s.modelindex3] = qtrue;
+		}
+	}
+	for ( i = 1; i < MAX_COOP_MODELSPECS; i++ )
+	{
+		if ( !used[i] )
+		{
+			if ( g_developer->integer )
+			{
+				gi.Printf( "coop: appearance specs full, ent %i recycles slot %i\n", ent->s.number, i );
+			}
+			gi.SetConfigstring( CS_COOP_MODELSPECS + i, spec );
+			return i;
+		}
+	}
+	gi.Printf( "coop: appearance specs full, ent %i keeps spec %i (remote clients see its previous look)\n", ent->s.number, ent->s.modelindex3 );
+	return ent->s.modelindex3;
 }
 
 static void G_CoopAppendSaber( char *spec, int specSize, const saberInfo_t *saber )
@@ -111,12 +202,31 @@ void G_CoopUpdateAppearance( gentity_t *ent )
 	coopAppearance_t	*a = &coopAppearance[ent->s.number];
 	char				spec[MAX_STRING_CHARS];
 
-	if ( !ent->client || !a->modelName[0] )
+	if ( !ent->client )
 	{
 		return;
 	}
-
-	Com_sprintf( spec, sizeof( spec ), "%s;%s;%s;%s", a->modelName, a->customSkin, a->surfOff, a->surfOn );
+	// the wire has no health; faces, health bars and corpse handling read it
+	ent->s.coopHealth = ent->health;
+	ent->s.coopMaxHealth = ent->max_health;
+	// head tracking: interest points are host-only, so only entity targets travel
+	ent->s.coopLookTarget = ( ent->client->renderInfo.lookMode == LM_ENT ) ? ent->client->renderInfo.lookTarget : ENTITYNUM_NONE;
+	if ( !a->modelName[0] )
+	{
+		// A few NPCs (remote_sp, mouse, seeker) still use the pre-ghoul2 md3
+		// legs/torso/head models: no G_SetG2PlayerModel, so nothing recorded.
+		// Describe them as "@legs;torso;head" for the remote cgame.
+		const renderInfo_t *ri = &ent->client->renderInfo;
+		if ( ent->ghoul2.size() || !ri->legsModelName[0] )
+		{
+			return;
+		}
+		Com_sprintf( spec, sizeof( spec ), "@%s;%s;%s;", ri->legsModelName, ri->torsoModelName, ri->headModelName );
+	}
+	else
+	{
+		Com_sprintf( spec, sizeof( spec ), "%s;%s;%s;%s", a->modelName, a->customSkin, a->surfOff, a->surfOn );
+	}
 	G_CoopAppendSaber( spec, sizeof( spec ), &ent->client->ps.saber[0] );
 	G_CoopAppendSaber( spec, sizeof( spec ), ent->client->ps.dualSabers ? &ent->client->ps.saber[1] : NULL );
 	Q_strcat( spec, sizeof( spec ), va( ";%i;%i,%i,%i,%i",
@@ -131,7 +241,7 @@ void G_CoopUpdateAppearance( gentity_t *ent )
 		return;
 	}
 	Q_strncpyz( a->lastSpec, spec, sizeof( a->lastSpec ) );
-	ent->s.modelindex3 = G_FindConfigstringIndex( spec, CS_COOP_MODELSPECS, MAX_COOP_MODELSPECS, qtrue );
+	ent->s.modelindex3 = G_CoopModelSpecIndex( ent, spec );
 }
 
 /*
@@ -142,6 +252,31 @@ Stock SP hardcodes "the player" as g_entities[0]. With several clients the AI
 must consider all of them; these helpers replace those sites.
 ==============================================================================
 */
+
+/*
+================
+G_CoopFixClientScriptName
+
+ICARUS resolves script names through a map with one entity per name, and the
+mission scripts only know the host as "player". Client slots get fixed names:
+slot 0 is "player", the joiners are "player2".."player4". Called wherever an
+entity is (re)associated with ICARUS and after a savegame load, so a save
+written by an older build (joiner saved as "player") cannot steal the host's
+scripts.
+================
+*/
+void G_CoopFixClientScriptName( gentity_t *ent )
+{
+	if ( !ent || ent->s.number >= MAX_CLIENTS || !ent->client )
+	{
+		return;
+	}
+	const char *want = ( ent->s.number == 0 ) ? "player" : va( "player%i", ent->s.number + 1 );
+	if ( !ent->script_targetname || Q_stricmp( ent->script_targetname, want ) )
+	{
+		ent->script_targetname = ( ent->s.number == 0 ) ? (char *)"player" : G_NewString( want );
+	}
+}
 
 // true for any human player's entity (slots [0, MAX_CLIENTS) are reserved for clients)
 qboolean G_CoopIsPlayer( const gentity_t *ent )
@@ -199,6 +334,16 @@ gentity_t *G_CoopNearestPlayer( const vec3_t org, qboolean aliveOnly )
 }
 
 // true if at least one connected player is alive
+gentity_t *G_CoopPlayerSlot( int i )
+{
+	gentity_t *ent = &g_entities[i];
+	if ( i < 0 || i >= MAX_CLIENTS || !ent->inuse || !ent->client || ent->client->pers.connected != CON_CONNECTED )
+	{
+		return NULL;
+	}
+	return ent;
+}
+
 qboolean G_CoopAnyPlayerAlive( void )
 {
 	for ( int i = 0; i < MAX_CLIENTS; i++ )
@@ -224,4 +369,496 @@ qboolean G_CoopInAnyPlayerPVS( const vec3_t org )
 		}
 	}
 	return qfalse;
+}
+
+/*
+==============================================================================
+Death and respawn
+
+Single player ends the mission when the player dies. In co-op a dead player
+comes back a few seconds later beside a living teammate, keeping the loadout
+they died with; the mission only fails once nobody is left alive.
+==============================================================================
+*/
+
+#define COOP_RESPAWN_DELAY	4000
+
+static int				coopRespawnTime[MAX_CLIENTS];
+static playerState_t	coopDeathState[MAX_CLIENTS];	// loadout snapshot taken at death
+
+// true while this player is dead and waiting for a co-op respawn
+qboolean G_CoopRespawnPending( const gentity_t *ent )
+{
+	return (qboolean)( G_CoopIsPlayer( ent ) && coopRespawnTime[ent->s.number] != 0 );
+}
+
+gentity_t *G_CoopLivingTeammate( const gentity_t *self )
+{
+	gentity_t	*best = NULL;
+	float		bestDist = -1;
+
+	for ( int i = 0; i < MAX_CLIENTS; i++ )
+	{
+		gentity_t *ent = &g_entities[i];
+		if ( ent == self || !ent->inuse || !ent->client || ent->client->pers.connected != CON_CONNECTED || ent->health <= 0 )
+		{
+			continue;
+		}
+		const float dist = DistanceSquared( self->currentOrigin, ent->currentOrigin );
+		if ( bestDist < 0 || dist < bestDist )
+		{
+			bestDist = dist;
+			best = ent;
+		}
+	}
+	return best;
+}
+
+/*
+================
+G_CoopPlayerDied
+
+Called from player_die. Returns qtrue when the death is handled as a co-op
+respawn, in which case the caller must not start the mission-failed flow.
+================
+*/
+qboolean G_CoopPlayerDied( gentity_t *self )
+{
+	if ( !G_CoopIsPlayer( self ) || !G_CoopLivingTeammate( self ) )
+	{
+		return qfalse;
+	}
+	coopDeathState[self->s.number] = self->client->ps;
+	coopRespawnTime[self->s.number] = level.time + COOP_RESPAWN_DELAY;
+	gi.SendServerCommand( -1, "print \"%s ^3est tombé, retour dans %i s...\n\"", self->client->pers.netname, COOP_RESPAWN_DELAY / 1000 );
+	return qtrue;
+}
+
+extern void G_DisplaceSpawnOrigin( vec3_t origin );
+extern qboolean G_SpawnOriginIsFree( vec3_t org );
+extern void G_AddWeaponModels( gentity_t *ent );
+
+// move a freshly spawned player next to mate (no-op without one)
+void G_CoopPlaceBeside( gentity_t *ent, gentity_t *mate )
+{
+	if ( !mate || !mate->client || mate == ent )
+	{
+		return;
+	}
+	vec3_t origin;
+	VectorCopy( mate->currentOrigin, origin );
+	origin[2] += 9;
+	G_DisplaceSpawnOrigin( origin );
+	if ( VectorCompare( origin, mate->currentOrigin ) || Distance( origin, mate->currentOrigin ) < 16.0f )
+	{	// the mate did not count as an obstacle (cutscene, non-solid): step aside anyway
+		vec3_t right;
+		AngleVectors( mate->client->ps.viewangles, NULL, right, NULL );
+		VectorMA( mate->currentOrigin, 48.0f, right, origin );
+		origin[2] += 9;
+		if ( !G_SpawnOriginIsFree( origin ) )
+		{
+			VectorMA( mate->currentOrigin, -48.0f, right, origin );
+			origin[2] += 9;
+			if ( !G_SpawnOriginIsFree( origin ) )
+			{
+				VectorCopy( mate->currentOrigin, origin );
+				origin[2] += 9;
+			}
+		}
+	}
+	VectorCopy( origin, ent->client->ps.origin );
+	VectorCopy( origin, ent->currentOrigin );
+	SetClientViewAngle( ent, mate->client->ps.viewangles );
+	ent->client->ps.eFlags ^= EF_TELEPORT_BIT;
+	gi.linkentity( ent );
+}
+
+/*
+================
+G_CoopGatherJoiners
+
+Teleport joiners beside the host: every one of them when 'all' is set,
+otherwise only those the host cannot see (not in its PVS), alive and on foot.
+================
+*/
+void G_CoopGatherJoiners( qboolean all )
+{
+	gentity_t *host = &g_entities[0];
+	if ( !host->inuse || !host->client || host->health <= 0 )
+	{
+		return;
+	}
+	for ( int i = 1; i < MAX_CLIENTS; i++ )
+	{
+		gentity_t *ent = &g_entities[i];
+		if ( !ent->inuse || !ent->client || ent->client->pers.connected != CON_CONNECTED || ent->health <= 0 )
+		{
+			continue;
+		}
+		if ( ent->client->ps.eFlags & EF_LOCKED_TO_WEAPON )
+		{
+			continue;
+		}
+		if ( !all && gi.inPVS( host->currentOrigin, ent->currentOrigin ) )
+		{
+			continue;
+		}
+		G_CoopPlaceBeside( ent, host );
+		gi.Printf( "coop: %s brought to the host\n", ent->client->pers.netname );
+	}
+}
+
+// "coop_tp": a joiner asks to be brought beside the host (stuck behind a locked
+// door...); the host asks to be brought beside its nearest joiner (a script
+// locked a door with the joiner on the far side).
+void G_CoopTeleportCommand( gentity_t *ent )
+{
+	if ( !ent || !ent->client || ent->s.number >= MAX_CLIENTS || ent->health <= 0 )
+	{
+		return;
+	}
+	gentity_t *target = NULL;
+	if ( ent->s.number == 0 )
+	{
+		float best = 0;
+		for ( int i = 1; i < MAX_CLIENTS; i++ )
+		{
+			gentity_t *other = &g_entities[i];
+			if ( !other->inuse || !other->client || other->client->pers.connected != CON_CONNECTED || other->health <= 0 )
+			{
+				continue;
+			}
+			const float d = DistanceSquared( ent->currentOrigin, other->currentOrigin );
+			if ( !target || d < best )
+			{
+				target = other;
+				best = d;
+			}
+		}
+	}
+	else
+	{
+		target = &g_entities[0];
+	}
+	if ( !target || !target->inuse || !target->client )
+	{
+		return;
+	}
+	G_CoopPlaceBeside( ent, target );
+	gi.Printf( "coop: %s teleported to %s on request\n", ent->client->pers.netname, target->client->pers.netname );
+}
+
+static void G_CoopRespawn( gentity_t *ent )
+{
+	const int		slot = ent->s.number;
+	playerState_t	*dead = &coopDeathState[slot];
+	gentity_t		*mate = G_CoopLivingTeammate( ent );
+
+	ClientSpawn( ent, eNO );
+
+	// bring the loadout back
+	playerState_t *ps = &ent->client->ps;
+	ps->stats[STAT_WEAPONS] = dead->stats[STAT_WEAPONS] | ( 1 << WP_NONE );
+	memcpy( ps->ammo, dead->ammo, sizeof( ps->ammo ) );
+	memcpy( ps->inventory, dead->inventory, sizeof( ps->inventory ) );
+	memcpy( ps->forcePowerLevel, dead->forcePowerLevel, sizeof( ps->forcePowerLevel ) );
+	ps->forcePowersKnown = dead->forcePowersKnown;
+	ps->forcePowerMax = dead->forcePowerMax;
+	ps->forcePower = ps->forcePowerMax;
+	ps->saberStylesKnown = dead->saberStylesKnown;
+	ps->saberAnimLevel = dead->saberAnimLevel;
+	if ( dead->weapon > WP_NONE && dead->weapon < WP_NUM_WEAPONS && ( ps->stats[STAT_WEAPONS] & ( 1 << dead->weapon ) ) )
+	{
+		ps->weapon = dead->weapon;
+		G_RemoveWeaponModels( ent );
+		G_AddWeaponModels( ent );
+	}
+
+	// come back beside a living teammate rather than at the map start
+	G_CoopPlaceBeside( ent, mate );
+	ent->health = ps->stats[STAT_HEALTH] = ps->stats[STAT_MAX_HEALTH];
+}
+
+// run once per server frame
+void G_CoopRunRespawns( void )
+{
+	for ( int slot = 0; slot < MAX_CLIENTS; slot++ )
+	{
+		if ( !coopRespawnTime[slot] || level.time < coopRespawnTime[slot] )
+		{
+			continue;
+		}
+		coopRespawnTime[slot] = 0;
+		gentity_t *ent = &g_entities[slot];
+		if ( ent->inuse && ent->client && ent->client->pers.connected == CON_CONNECTED && ent->health <= 0 )
+		{
+			G_CoopRespawn( ent );
+		}
+	}
+}
+
+/*
+==============================================================================
+Cinematic camera replication
+
+Cutscenes run entirely on the host: ICARUS drives the cgame camera
+(cg_camera.cpp) through shared memory, which a remote client never sees.
+While the host is in a camera, a broadcast entity mirrors the final view the
+host renders (origin, angles, fov, cinematic bars, fade) into every snapshot;
+the remote cgame turns it back into its own client_camera (cg_coop.cpp).
+==============================================================================
+*/
+
+#include "../cgame/cg_local.h"
+#include "../cgame/cg_camera.h"
+
+static qboolean coopMissionFailedSent[MAX_CLIENTS];	// per client: told about the mission-failed screen
+static gentity_t *coopCameraEnt = NULL;
+
+void G_CoopUpdateCamera( void )
+{
+	if ( !in_camera )
+	{
+		if ( coopCameraEnt )
+		{
+			G_FreeEntity( coopCameraEnt );
+			coopCameraEnt = NULL;
+		}
+		return;
+	}
+
+	if ( !coopCameraEnt || !coopCameraEnt->inuse || coopCameraEnt->s.eType != ET_COOPCAMERA )
+	{
+		// a cutscene starts: scripts lock doors behind the host and drive the
+		// story from where it stands. A joiner left out of sight (a door that
+		// closed on it, a fall, a detour) would be stranded, so bring it along.
+		G_CoopGatherJoiners( qfalse );
+		coopCameraEnt = G_Spawn();
+		if ( !coopCameraEnt )
+		{
+			return;
+		}
+		coopCameraEnt->classname = "coop_camera";
+		coopCameraEnt->s.eType = ET_COOPCAMERA;
+		coopCameraEnt->svFlags |= SVF_BROADCAST;	// sent regardless of PVS
+		coopCameraEnt->contents = 0;
+		coopCameraEnt->clipmask = 0;
+	}
+
+	gentity_t *cam = coopCameraEnt;
+	VectorCopy( cg.refdef.vieworg, cam->s.origin );
+	VectorCopy( cg.refdef.vieworg, cam->s.pos.trBase );
+	VectorCopy( cg.refdef.vieworg, cam->currentOrigin );
+	VectorCopy( cg.refdefViewAngles, cam->s.angles );
+	VectorCopy( cg.refdefViewAngles, cam->s.apos.trBase );
+	cam->s.pos.trType = cam->s.apos.trType = TR_INTERPOLATE;
+	cam->s.origin2[0] = cg.refdef.fov_x;
+	cam->s.origin2[1] = client_camera.bar_height * client_camera.bar_alpha;
+	cam->s.origin2[2] = client_camera.fade_color[3];
+	VectorCopy( client_camera.fade_color, cam->s.angles2 );
+	gi.linkentity( cam );
+}
+
+// forget the camera entity when the level goes away
+void G_CoopResetCamera( void )
+{
+	coopCameraEnt = NULL;
+	memset( coopMissionFailedSent, 0, sizeof( coopMissionFailedSent ) );
+}
+
+/*
+================
+G_CoopUpdateMissionFailed
+
+The mission-failed screen is raised straight in the host's cgame (a script
+via Q3_SetMissionFailed, or the last player dying: cg.missionStatusShow /
+cg.missionStatusDeadTime). Tell the remote clients once, with the status
+text, so they show the same screen.
+================
+*/
+void G_CoopUpdateMissionFailed( void )
+{
+	extern int statusTextIndex;
+
+	const qboolean allDead = (qboolean)( !G_CoopAnyPlayerAlive() && cg.missionStatusDeadTime && cg.missionStatusDeadTime < level.time );
+	if ( !cg.missionStatusShow && !allDead )
+	{
+		return;
+	}
+	for ( int i = 1; i < MAX_CLIENTS; i++ )
+	{
+		const gentity_t *ent = &g_entities[i];
+		if ( !coopMissionFailedSent[i] && ent->inuse && ent->client && ent->client->pers.connected == CON_CONNECTED )
+		{
+			coopMissionFailedSent[i] = qtrue;
+			gi.SendServerCommand( i, "mf %i", statusTextIndex );
+		}
+	}
+}
+
+/*
+================
+G_CoopClientBegin
+
+A client (re)entered the world: forget what we told the previous occupant.
+================
+*/
+void G_CoopClientBegin( const gentity_t *ent )
+{
+	if ( ent->s.number >= 0 && ent->s.number < MAX_CLIENTS )
+	{
+		coopMissionFailedSent[ent->s.number] = qfalse;
+	}
+}
+
+/*
+==============================================================================
+Per-player character settings
+
+Single player builds the player from the host's cvars (g_char_*, g_saber*).
+A joiner sends the same cvars in its userinfo (they are CVAR_USERINFO in
+G_InitCvars), and the spawn code reads them through here so every player
+gets the look and sabers they chose. Slot 0 keeps reading the cvars.
+==============================================================================
+*/
+const char *G_CoopPlayerVar( const gentity_t *ent, const char *key, const cvar_t *hostCvar )
+{
+	static char	buffers[8][MAX_QPATH];
+	static int	next = 0;
+
+	if ( ent && ent->s.number > 0 && ent->s.number < MAX_CLIENTS && ent->client )
+	{
+		char userinfo[MAX_INFO_STRING];
+		gi.GetUserinfo( ent->s.number, userinfo, sizeof( userinfo ) );
+		const char *v = Info_ValueForKey( userinfo, key );
+		if ( v && v[0] )
+		{
+			char *buf = buffers[next++ & 7];
+			Q_strncpyz( buf, v, MAX_QPATH );
+			return buf;
+		}
+	}
+	return hostCvar ? hostCvar->string : "";
+}
+
+// Rebuild a joiner's model/sabers when the character keys in its userinfo change
+// after it spawned (the flags may only reach the client after connect).
+void G_CoopCheckCharacterChange( gentity_t *ent )
+{
+	static char	lastKeys[MAX_CLIENTS][MAX_INFO_STRING];
+	static const char *keys[] = { "g_char_model", "g_char_skin_head", "g_char_skin_torso", "g_char_skin_legs",
+		"g_char_color_red", "g_char_color_green", "g_char_color_blue", "g_saber", "g_saber2", "g_saber_color", "g_saber2_color", "snd" };
+
+	if ( !ent || ent->s.number <= 0 || ent->s.number >= MAX_CLIENTS || !ent->client )
+	{
+		return;
+	}
+	char userinfo[MAX_INFO_STRING], now[MAX_INFO_STRING] = "";
+	gi.GetUserinfo( ent->s.number, userinfo, sizeof( userinfo ) );
+	for ( size_t i = 0; i < ARRAY_LEN( keys ); i++ )
+	{
+		Q_strcat( now, sizeof( now ), Info_ValueForKey( userinfo, keys[i] ) );
+		Q_strcat( now, sizeof( now ), "|" );
+	}
+	if ( !strcmp( now, lastKeys[ent->s.number] ) )
+	{
+		return;
+	}
+	const qboolean hadKeys = (qboolean)( lastKeys[ent->s.number][0] != '\0' );
+	Q_strncpyz( lastKeys[ent->s.number], now, sizeof( lastKeys[0] ) );
+	if ( hadKeys && ent->inuse && ent->health > 0 && ent->client->pers.connected == CON_CONNECTED )
+	{
+		G_InitPlayerFromCvars( ent );
+	}
+}
+
+/*
+==============================================================================
+Mission objectives
+
+ICARUS updates the host's client->sess.mission_objectives; joiners read them
+back from a configstring (one character per objective: display bit + status)
+into their own placeholder client so the datapad and the HUD flash work.
+==============================================================================
+*/
+void G_CoopUpdateObjectives( void )
+{
+	static char	last[MAX_MISSION_OBJ + 1];
+	char		now[MAX_MISSION_OBJ + 1];
+	const gclient_t *host = g_entities[0].client;
+
+	if ( !host || G_CoopNumPlayers() < 2 )
+	{
+		return;
+	}
+	for ( int i = 0; i < MAX_MISSION_OBJ; i++ )
+	{
+		const objectives_t *o = &host->sess.mission_objectives[i];
+		now[i] = (char)( 'A' + ( o->display ? 8 : 0 ) + ( o->status & 7 ) );
+	}
+	now[MAX_MISSION_OBJ] = '\0';
+	if ( strcmp( now, last ) )
+	{
+		Q_strncpyz( last, now, sizeof( last ) );
+		gi.SetConfigstring( CS_COOP_OBJECTIVES, now );
+	}
+}
+
+/*
+==============================================================================
+Sounds played straight into the host's sound system
+
+"Bypass network for sounds on specific channels" (g_utils.cpp): dialogue,
+NPC voices and a few others never become entity events, so a remote client
+would stay silent (and its lips still, since facial animation follows the
+voice volume). Forward them as a "snd" server command to every remote client.
+==============================================================================
+*/
+extern qboolean CG_TryPlayCustomSound( vec3_t origin, int entityNum, soundChannel_t channel, const char *soundName, int customSoundSet );
+
+void G_CoopForwardSound( int entNum, int channel, int index, const char *path, int customSet )
+{
+	if ( G_CoopNumPlayers() < 2 )
+	{
+		return;
+	}
+	// Indexed, non-voice sounds (weapon fire, saber swings, footsteps, movers:
+	// dozens per second in a fight) travel as an unreliable temp-entity event,
+	// which the snapshot delivers without the 64-command reliable window ever
+	// filling up. Voice lines keep the reliable path: they are rare, must not
+	// be lost (captions, lip sync) and are heard from anywhere.
+	const qboolean voice = (qboolean)( channel == CHAN_VOICE || channel == CHAN_VOICE_ATTEN || channel == CHAN_VOICE_GLOBAL );
+	if ( index > 0 && index < MAX_SOUNDS && !voice && entNum >= 0 && entNum < MAX_GENTITIES )
+	{
+		gentity_t *te = G_TempEntity( g_entities[entNum].currentOrigin, EV_COOP_SOUND );
+		te->svFlags |= SVF_BROADCAST;		// audible range is not the PVS
+		te->s.otherEntityNum = entNum;
+		te->s.time2 = channel;
+		te->s.eventParm = index;
+		return;
+	}
+	for ( int i = 1; i < MAX_CLIENTS; i++ )
+	{
+		const gentity_t *cl = &g_entities[i];
+		if ( cl->inuse && cl->client && cl->client->pers.connected == CON_CONNECTED )
+		{
+			gi.SendServerCommand( i, "snd %i %i %i %i \"%s\"", entNum, channel, index, customSet, path ? path : "" );
+		}
+	}
+}
+
+// CG_TryPlayCustomSound for the host, forwarded to remote clients
+qboolean G_CoopCustomSound( vec3_t origin, int entityNum, soundChannel_t channel, const char *soundName, int customSoundSet )
+{
+	G_CoopForwardSound( entityNum, channel, -1, soundName, customSoundSet );
+	return CG_TryPlayCustomSound( origin, entityNum, channel, soundName, customSoundSet );
+}
+
+// cgi_S_StartSound by path for the host, forwarded to remote clients
+extern void cgi_S_StartSound( const vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx );
+extern sfxHandle_t cgi_S_RegisterSound( const char *sample );
+void G_CoopSoundPath( const vec3_t origin, int entityNum, int channel, const char *path )
+{
+	G_CoopForwardSound( entityNum, channel, -1, path, -1 );
+	cgi_S_StartSound( origin, entityNum, channel, cgi_S_RegisterSound( path ) );
 }

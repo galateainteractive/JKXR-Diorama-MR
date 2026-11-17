@@ -253,7 +253,10 @@ static void G_DynamicMusicUpdate( usercmd_t *ucmd )
 
   FIXME: can we merge any of this with the G_ChooseLookEnemy stuff?
 */
-static void G_DynamicMusicUpdate( void )
+// coop: the threat scan around one player (was inline in G_DynamicMusicUpdate);
+// every living player is scanned and the results add up, so a fight around
+// either of them brings the action music
+static void G_DynamicMusicScan( gentity_t *player, int &danger, int &battle )
 {
 	gentity_t	*ent;
 	gentity_t	*entityList[MAX_GENTITIES];
@@ -262,65 +265,16 @@ static void G_DynamicMusicUpdate( void )
 	int			i, e;
 	int			distSq, radius = 2048;
 	vec3_t		center;
-	int			danger = 0;
-	int			battle = 0;
 	int			entTeam;
-	//qboolean	dangerNear = qfalse;
-	//qboolean	suspicious = qfalse;
 	qboolean	LOScalced = qfalse, clearLOS = qfalse;
-
-	//FIXME: intro and/or other cues? (one-shot music sounds)
-
-	//loops
-
-	//player-based
-	if ( !player )
-	{//WTF?
-		player = &g_entities[0];
-		return;
-	}
-
-	if ( !G_PlayerSpawned() )
-	{//player hasn't spawned yet!
-		return;
-	}
-
-	if ( player->health <= 0 && player->max_health > 0 )
-	{//defeat music
-		if ( level.dmState != DM_DEATH )
-		{
-			level.dmState = DM_DEATH;
-		}
-	}
-
-	if ( level.dmState == DM_DEATH )
-	{
-		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "death" );
-		return;
-	}
-
-	if ( level.dmState == DM_BOSS )
-	{
-		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "boss" );
-		return;
-	}
-
-	if ( level.dmState == DM_SILENCE )
-	{
-		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "silence" );
-		return;
-	}
-
-	if ( level.dmBeatTime > level.time )
-	{//not on a beat
-		return;
-	}
-
-	level.dmBeatTime = level.time + 1000;//1 second beats
 
 	if ( player->health <= 20 )
 	{
 		danger = 1;
+	}
+	if ( player->health <= 0 )
+	{
+		return;
 	}
 
 	//enemy-based
@@ -377,12 +331,12 @@ static void G_DynamicMusicUpdate( void )
 		}
 
 		LOScalced = clearLOS = qfalse;
-		if ( (ent->enemy==player&&(!ent->NPC||ent->NPC->confusionTime<level.time)) || (ent->client&&ent->client->ps.weaponTime) || (!ent->client&&ent->attackDebounceTime>level.time))
+		if ( (G_CoopIsPlayer( ent->enemy )&&(!ent->NPC||ent->NPC->confusionTime<level.time)) || (ent->client&&ent->client->ps.weaponTime) || (!ent->client&&ent->attackDebounceTime>level.time))
 		{//mad
 			if ( ent->health > 0 )
 			{//alive
 				//FIXME: do I really need this check?
-				if ( ent->s.weapon == WP_SABER && ent->client && !ent->client->ps.SaberActive() && ent->enemy != player )
+				if ( ent->s.weapon == WP_SABER && ent->client && !ent->client->ps.SaberActive() && !G_CoopIsPlayer( ent->enemy ) )
 				{//a Jedi who has not yet gotten made at me
 					continue;
 				}
@@ -474,6 +428,73 @@ static void G_DynamicMusicUpdate( void )
 					break;
 				}
 			}
+		}
+	}
+
+}
+
+static void G_DynamicMusicUpdate( void )
+{
+	int			danger = 0;
+	int			battle = 0;
+	//qboolean	dangerNear = qfalse;
+	//qboolean	suspicious = qfalse;
+
+	//FIXME: intro and/or other cues? (one-shot music sounds)
+
+	//loops
+
+	//player-based
+	if ( !player )
+	{//WTF?
+		player = &g_entities[0];
+		return;
+	}
+
+	if ( !G_PlayerSpawned() )
+	{//player hasn't spawned yet!
+		return;
+	}
+
+	if ( !G_CoopAnyPlayerAlive() && player->max_health > 0 )
+	{//defeat music
+		if ( level.dmState != DM_DEATH )
+		{
+			level.dmState = DM_DEATH;
+		}
+	}
+
+	if ( level.dmState == DM_DEATH )
+	{
+		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "death" );
+		return;
+	}
+
+	if ( level.dmState == DM_BOSS )
+	{
+		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "boss" );
+		return;
+	}
+
+	if ( level.dmState == DM_SILENCE )
+	{
+		gi.SetConfigstring( CS_DYNAMIC_MUSIC_STATE, "silence" );
+		return;
+	}
+
+	if ( level.dmBeatTime > level.time )
+	{//not on a beat
+		return;
+	}
+
+	level.dmBeatTime = level.time + 1000;//1 second beats
+
+	for ( int slot = 0; slot < MAX_CLIENTS; slot++ )
+	{
+		gentity_t *pl = G_CoopPlayerSlot( slot );
+		if ( pl && pl->health > 0 )
+		{
+			G_DynamicMusicScan( pl, danger, battle );
 		}
 	}
 
@@ -699,17 +720,18 @@ void G_InitCvars( void ) {
 
 	g_speederControlScheme = gi.cvar( "g_speederControlScheme", "2", CVAR_ARCHIVE );//2 is default, 1 is alternate
 
-	g_char_model = gi.cvar( "g_char_model", "jedi_tf", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_skin_head = gi.cvar( "g_char_skin_head", "head_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_skin_torso = gi.cvar( "g_char_skin_torso", "torso_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_skin_legs = gi.cvar( "g_char_skin_legs", "lower_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_color_red = gi.cvar( "g_char_color_red", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_color_green = gi.cvar( "g_char_color_green", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_char_color_blue = gi.cvar( "g_char_color_blue", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_saber = gi.cvar( "g_saber", "single_1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_saber2 = gi.cvar( "g_saber2", "", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_saber_color = gi.cvar( "g_saber_color", "yellow", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_saber2_color = gi.cvar( "g_saber2_color", "yellow", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
+	g_char_model = gi.cvar( "g_char_model", "jedi_tf", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_skin_head = gi.cvar( "g_char_skin_head", "head_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_skin_torso = gi.cvar( "g_char_skin_torso", "torso_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_skin_legs = gi.cvar( "g_char_skin_legs", "lower_a1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_color_red = gi.cvar( "g_char_color_red", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_color_green = gi.cvar( "g_char_color_green", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_char_color_blue = gi.cvar( "g_char_color_blue", "255", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_saber = gi.cvar( "g_saber", "single_1", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_saber2 = gi.cvar( "g_saber2", "", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_saber_color = gi.cvar( "g_saber_color", "yellow", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	g_saber2_color = gi.cvar( "g_saber2_color", "yellow", CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART|CVAR_USERINFO );	// coop: travels in the joiner's userinfo
+	gi.cvar( "g_fighting_style", "0", CVAR_ARCHIVE|CVAR_USERINFO );	// coop: chosen saber style travels in the joiner's userinfo
 	g_saberDarkSideSaberColor = gi.cvar( "g_saberDarkSideSaberColor", "0", CVAR_ARCHIVE );	//when you turn evil, it turns your saber red!
 
 	g_broadsword = gi.cvar( "broadsword", "1", 0);
@@ -847,6 +869,7 @@ ShutdownGame
 */
 void ShutdownGame( void )
 {
+	G_CoopResetCamera();	// coop: the camera entity dies with the level
 	// write all the client session data so we can get it back
 	G_WriteSessionData();
 
@@ -2012,6 +2035,8 @@ void G_RunFrame( int levelTime ) {
 	level.previousTime = level.time;
 	level.time = levelTime;
 
+	G_CoopRunRespawns();	// coop: bring dead players back beside a teammate
+
 	//ResetTeamCounters();
 	NAV::DecayDangerSenses();
 	Rail_Update();
@@ -2164,12 +2189,20 @@ void G_RunFrame( int levelTime ) {
 		//UpdateTeamCounters( ent );	//	   to call anyway on a freed ent.
 	}
 
-	// perform final fixups on the player
-	ent = &g_entities[0];
-	if ( ent->inuse )
+	// perform final fixups on the players (coop: every connected client, not just slot 0)
+	for ( i = 0; i < MAX_CLIENTS; i++ )
 	{
-		ClientEndFrame( ent );
+		if ( g_entities[i].inuse && g_entities[i].client && g_entities[i].client->pers.connected == CON_CONNECTED )
+		{
+			ClientEndFrame( &g_entities[i] );
+		}
 	}
+	ent = &g_entities[0];
+
+	// coop: mirror the host's cinematic camera to remote clients
+	G_CoopUpdateCamera();
+	G_CoopUpdateObjectives();
+	G_CoopUpdateMissionFailed();
 	if( g_numEntities->integer )
 	{
 		gi.Printf( S_COLOR_WHITE"Number of Entities in use : %d\n", ents_inuse );

@@ -596,6 +596,19 @@ static inline qboolean CG_IsLocalPlayer( const centity_t *cent ) {
 void CG_CoopSyncEntity( centity_t *cent );
 void CG_CoopSyncCharacter( centity_t *cent );
 void CG_CoopSyncLocalPlayer( void );
+void CG_CoopSyncCamera( void );
+void CG_CoopSpawnStaticModels( void );
+void CG_CoopPrecacheCharacters( void );
+void CG_CoopFixLocalEntityState( centity_t *cent );
+void CG_CoopSound_f( void );
+void CG_CoopMissionFailed_f( void );
+void CG_CoopFog_f( void );
+void CG_CoopMenu_f( void );
+void CG_CoopAllDown_f( void );
+void CG_CoopDrawDowned( void );
+void CG_CoopReset( void );
+void CG_CoopModelSpecChanged( int specIndex );	// coop: CS_COOP_MODELSPECS slot rewritten
+void CG_CoopEnts_f( void );
 // entity slot of the local player: 0 on the host (vanilla), the assigned slot on a remote client
 extern int cg_localEntNum;
 extern	centity_t		cg_entities[MAX_GENTITIES];
@@ -688,6 +701,7 @@ extern  vmCvar_t		cg_tabletopScale;
 extern  vmCvar_t		cg_tabletopForward;
 extern  vmCvar_t		cg_tabletopDown;
 extern	vmCvar_t		cg_developer;
+extern	vmCvar_t		cg_coopCameraLag;
 extern	vmCvar_t		cg_timescale;
 extern	vmCvar_t		cg_skippingcin;
 

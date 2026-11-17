@@ -576,7 +576,7 @@ const netField_t	entityStateFields[] =
 { NETF(loopSound), 16 },
 { NETF(modelindex), 9 },	//0 to 511
 { NETF(modelindex2), 8 },
-{ NETF(modelindex3), 8 },
+{ NETF(modelindex3), 9 },	// coop: also a CS_MODELS index on items
 { NETF(clientNum), 32 },
 { NETF(frame), 16 },
 
@@ -618,6 +618,9 @@ Ghoul2 Insert Start
 { NETF(isPortalEnt), 1 },
 #endif
 
+{ NETF(coopHealth), 32 },
+{ NETF(coopMaxHealth), 32 },
+{ NETF(coopLookTarget), GENTITYNUM_BITS },
 };
 
 

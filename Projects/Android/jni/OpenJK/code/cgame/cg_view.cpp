@@ -2066,6 +2066,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 
 	// coop: feed the local player's placeholder gentity from the snapshot (remote client)
 	CG_CoopSyncLocalPlayer();
+	CG_CoopSyncCamera();
 
 	// make sure the lagometerSample and frame timing isn't done twice when in stereo
 	if ( stereoView != STEREO_RIGHT ) {

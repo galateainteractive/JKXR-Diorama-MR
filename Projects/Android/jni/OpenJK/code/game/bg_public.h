@@ -328,6 +328,7 @@ typedef enum {
 	EV_BMODEL_SOUND,
 	EV_GENERAL_SOUND,
 	EV_GLOBAL_SOUND,		// no attenuation
+	EV_COOP_SOUND,			// coop: host-side sound for remote clients (temp entity: otherEntityNum = source, time2 = channel, eventParm = sound index)
 
 	EV_PLAY_EFFECT,
 	EV_PLAY_MUZZLE_EFFECT,
@@ -745,6 +746,7 @@ typedef enum {
 	ET_THINKER,
 	ET_CLOUD, // dumb
 	ET_TERRAIN,
+	ET_COOPCAMERA,			// coop: the host's cinematic camera, broadcast to remote clients (g_coop.cpp)
 
 	ET_EVENTS				// any of the EV_* events can be added freestanding
 							// by setting eType to ET_EVENTS + eventNum

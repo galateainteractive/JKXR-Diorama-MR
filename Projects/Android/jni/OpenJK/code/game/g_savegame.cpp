@@ -893,6 +893,10 @@ static void WriteGEntities(qboolean qbAutosave)
 	{
 		gentity_t* ent = &g_entities[i];
 
+		if ( i > 0 && i < MAX_CLIENTS )
+		{
+			continue;	// coop: joiners are live connections, not part of the save
+		}
 		if ( ent->inuse )
 		{
 			iCount++;
@@ -910,6 +914,10 @@ static void WriteGEntities(qboolean qbAutosave)
 	{
 		gentity_t* ent = &g_entities[i];
 
+		if ( i > 0 && i < MAX_CLIENTS )
+		{
+			continue;	// coop: see above
+		}
 		if ( ent->inuse)
 		{
 			saved_game.write_chunk<int32_t>(
@@ -1205,6 +1213,9 @@ static void ReadGEntities(qboolean qbAutosave)
 
 		// NPCs and other ents store waypoints that aren't valid after a load
 		pEnt->waypoint = 0;
+
+		// coop: a save from an older build may carry a joiner named "player"
+		G_CoopFixClientScriptName( pEnt );
 
 		qboolean qbLinked = pEnt->linked;
 		pEnt->linked = qfalse;

@@ -288,7 +288,7 @@ ground. Used to find somewhere to put a second player, since campaign maps
 provide exactly one spawn point.
 ============
 */
-static qboolean G_SpawnOriginIsFree( vec3_t org )
+qboolean G_SpawnOriginIsFree( vec3_t org )
 {
 	int			i, num;
 	gentity_t	*touch[MAX_GENTITIES], *hit;
@@ -337,7 +337,7 @@ is already occupied, walk outward in a ring until a free spot is found. Leaves
 the origin untouched when it is clear, which is the single-player case.
 ============
 */
-static void G_DisplaceSpawnOrigin( vec3_t origin )
+void G_DisplaceSpawnOrigin( vec3_t origin )
 {
 	static const float	angles[8] = { 0, 45, 90, 135, 180, 225, 270, 315 };
 	vec3_t				candidate;
@@ -596,6 +596,8 @@ void ClientUserinfoChanged( int clientNum ) {
 	Q_strcat( buf, sizeof( buf ), va( "snd\\%s\\", sound ) );
 
 	gi.SetConfigstring( CS_PLAYERS+clientNum, buf );
+
+	G_CoopCheckCharacterChange( ent );	// coop: joiner changed its look after spawning
 }
 
 
@@ -627,6 +629,11 @@ char *ClientConnect( int clientNum, qboolean firstTime, SavedGameJustLoaded_e eS
 	gi.GetUserinfo( clientNum, userinfo, sizeof( userinfo ) );
 
 	// they can connect
+	// coop: joiners are never restored from a savegame (see ClientBegin)
+	if ( clientNum != 0 )
+	{
+		eSavedGameJustLoaded = eNO;
+	}
 	ent->client = level.clients + clientNum;
 	gclient_t *client = ent->client;
 
@@ -688,6 +695,13 @@ void ClientBegin( int clientNum, usercmd_t *cmd, SavedGameJustLoaded_e eSavedGam
 	ent = g_entities + clientNum;
 	client = level.clients + clientNum;
 
+	// coop: only the host's client lives in a savegame; a joiner arriving after a
+	// load (or any joiner at all) always gets a fresh spawn
+	if ( clientNum != 0 )
+	{
+		eSavedGameJustLoaded = eNO;
+	}
+
 	if (eSavedGameJustLoaded == eFULL)//qbFromSavedGame)
 	{
 		client->pers.connected = CON_CONNECTED;
@@ -719,6 +733,12 @@ void ClientBegin( int clientNum, usercmd_t *cmd, SavedGameJustLoaded_e eSavedGam
 		if ( ClientSpawn( ent, eSavedGameJustLoaded) )	// SavedGameJustLoaded_e
 		{
 			// send teleport event
+		}
+		G_CoopClientBegin( ent );
+		if ( clientNum != 0 )
+		{
+			// coop: a joiner lands beside the host, who may be deep into the level (join in progress, load)
+			G_CoopPlaceBeside( ent, G_CoopLivingTeammate( ent ) );
 		}
 		client->ps.inventory[INV_GOODIE_KEY] = 0;
 		client->ps.inventory[INV_SECURITY_KEY] = 0;
@@ -781,10 +801,25 @@ Player_RestoreFromPrevLevel
   Argument		: gentity_t *ent
 ============
 */
+// coop: per-slot carry-over cvar name, mirroring SV_PlayerSaveCvarName on the
+// engine side. Slot 0 (the host) keeps the bare stock name so retail single
+// player is unchanged; joiners read their own suffixed set ("playersave1"...).
+static const char *G_PlayerSaveCvarName( const char *psBase, int slot )
+{
+	static char sName[64];
+	if ( slot <= 0 )
+	{
+		return psBase;
+	}
+	Com_sprintf( sName, sizeof(sName), "%s%i", psBase, slot );
+	return sName;
+}
+
 static void Player_RestoreFromPrevLevel(gentity_t *ent, SavedGameJustLoaded_e eSavedGameJustLoaded)
 {
 	gclient_t	*client = ent->client;
 	int			i;
+	const int	slot = ent - g_entities;	// coop: which carry-over cvar set to read
 
 	assert(client);
 	if (client)	// though I can't see it not being true...
@@ -794,7 +829,7 @@ static void Player_RestoreFromPrevLevel(gentity_t *ent, SavedGameJustLoaded_e eS
 		char	saber1Name[MAX_QPATH];
 		const char	*var;
 
-		gi.Cvar_VariableStringBuffer( sCVARNAME_PLAYERSAVE, s, sizeof(s) );
+		gi.Cvar_VariableStringBuffer( G_PlayerSaveCvarName( sCVARNAME_PLAYERSAVE, slot ), s, sizeof(s) );
 
 		if (strlen(s))	// actually this would be safe anyway because of the way sscanf() works, but this is clearer
 		{//				|general info				  |-force powers |-saber 1										   |-saber 2										  |-general saber
@@ -904,7 +939,7 @@ static void Player_RestoreFromPrevLevel(gentity_t *ent, SavedGameJustLoaded_e eS
 //			SetClientViewAngle( ent, ent->client->ps.viewangles);
 
 			//ammo
-			gi.Cvar_VariableStringBuffer( "playerammo", s, sizeof(s) );
+			gi.Cvar_VariableStringBuffer( G_PlayerSaveCvarName( "playerammo", slot ), s, sizeof(s) );
 			i=0;
 			var = strtok( s, " " );
 			while( var != NULL )
@@ -917,7 +952,7 @@ static void Player_RestoreFromPrevLevel(gentity_t *ent, SavedGameJustLoaded_e eS
 			assert (i==AMMO_MAX);
 
 			//inventory
-			gi.Cvar_VariableStringBuffer( "playerinv", s, sizeof(s) );
+			gi.Cvar_VariableStringBuffer( G_PlayerSaveCvarName( "playerinv", slot ), s, sizeof(s) );
 			i=0;
 			var = strtok( s, " " );
 			while( var != NULL )
@@ -932,7 +967,7 @@ static void Player_RestoreFromPrevLevel(gentity_t *ent, SavedGameJustLoaded_e eS
 
 			// the new JK2 stuff - force powers, etc...
 			//
-			gi.Cvar_VariableStringBuffer( "playerfplvl", s, sizeof(s) );
+			gi.Cvar_VariableStringBuffer( G_PlayerSaveCvarName( "playerfplvl", slot ), s, sizeof(s) );
 			i=0;
 			var = strtok( s, " " );
 			while( var != NULL )
@@ -1955,12 +1990,12 @@ extern void WP_RemoveSaber( gentity_t *ent, int saberNum );
 void G_ChangePlayerModel( gentity_t *ent, const char *newModel );
 void G_SetSabersFromCVars( gentity_t *ent )
 {
-	if ( g_saber->string
-		&& g_saber->string[0]
-		&& Q_stricmp( "none", g_saber->string )
-		&& Q_stricmp( "NULL", g_saber->string ) )
+	if ( G_CoopPlayerVar( ent, "g_saber", g_saber )
+		&& G_CoopPlayerVar( ent, "g_saber", g_saber )[0]
+		&& Q_stricmp( "none", G_CoopPlayerVar( ent, "g_saber", g_saber ) )
+		&& Q_stricmp( "NULL", G_CoopPlayerVar( ent, "g_saber", g_saber ) ) )
 	{//FIXME: how to specify second saber?
-		WP_SaberParseParms( g_saber->string, &ent->client->ps.saber[0] );
+		WP_SaberParseParms( G_CoopPlayerVar( ent, "g_saber", g_saber ), &ent->client->ps.saber[0] );
 		if ( ent->client->ps.saber[0].stylesLearned )
 		{
 			ent->client->ps.saberStylesKnown |= ent->client->ps.saber[0].stylesLearned;
@@ -1982,22 +2017,22 @@ void G_SetSabersFromCVars( gentity_t *ent )
 			ent->client->ps.saber[0].blade[n].color = SABER_RED;
 		}
 	}
-	else if ( g_saber_color->string )
+	else if ( G_CoopPlayerVar( ent, "g_saber_color", g_saber_color ) )
 	{//FIXME: how to specify color for each blade and/or color for second saber?
-		saber_colors_t color = TranslateSaberColor( g_saber_color->string );
+		saber_colors_t color = TranslateSaberColor( G_CoopPlayerVar( ent, "g_saber_color", g_saber_color ) );
 		for ( int n = 0; n < MAX_BLADES; n++ )
 		{
 			ent->client->ps.saber[0].blade[n].color = color;
 		}
 	}
-	if ( g_saber2->string
-		&& g_saber2->string[0]
-		&& Q_stricmp( "none", g_saber2->string )
-		&& Q_stricmp( "NULL", g_saber2->string ) )
+	if ( G_CoopPlayerVar( ent, "g_saber2", g_saber2 )
+		&& G_CoopPlayerVar( ent, "g_saber2", g_saber2 )[0]
+		&& Q_stricmp( "none", G_CoopPlayerVar( ent, "g_saber2", g_saber2 ) )
+		&& Q_stricmp( "NULL", G_CoopPlayerVar( ent, "g_saber2", g_saber2 ) ) )
 	{
 		if ( !(ent->client->ps.saber[0].saberFlags&SFL_TWO_HANDED) )
 		{//can't use a second saber if first one is a two-handed saber...?
-			WP_SaberParseParms( g_saber2->string, &ent->client->ps.saber[1] );
+			WP_SaberParseParms( G_CoopPlayerVar( ent, "g_saber2", g_saber2 ), &ent->client->ps.saber[1] );
 			if ( ent->client->ps.saber[1].stylesLearned )
 			{
 				ent->client->ps.saberStylesKnown |= ent->client->ps.saber[1].stylesLearned;
@@ -2024,9 +2059,9 @@ void G_SetSabersFromCVars( gentity_t *ent )
 						ent->client->ps.saber[1].blade[n].color = SABER_RED;
 					}
 				}
-				else if ( g_saber2_color->string )
+				else if ( G_CoopPlayerVar( ent, "g_saber2_color", g_saber2_color ) )
 				{//FIXME: how to specify color for each blade and/or color for second saber?
-					saber_colors_t color = TranslateSaberColor( g_saber2_color->string );
+					saber_colors_t color = TranslateSaberColor( G_CoopPlayerVar( ent, "g_saber2_color", g_saber2_color ) );
 					for ( int n = 0; n < MAX_BLADES; n++ )
 					{
 						ent->client->ps.saber[1].blade[n].color = color;
@@ -2040,10 +2075,10 @@ void G_SetSabersFromCVars( gentity_t *ent )
 void G_InitPlayerFromCvars( gentity_t *ent )
 {
 	//set model based on cvars
-	if(Q_stricmp(g_char_skin_head->string, "model_default") == 0 && Q_stricmp(g_char_skin_torso->string, "model_default") == 0 && Q_stricmp(g_char_skin_legs->string, "model_default") == 0)
-		G_ChangePlayerModel( ent, va("%s|model_default", g_char_model->string) );
+	if(Q_stricmp(G_CoopPlayerVar( ent, "g_char_skin_head", g_char_skin_head ), "model_default") == 0 && Q_stricmp(G_CoopPlayerVar( ent, "g_char_skin_torso", g_char_skin_torso ), "model_default") == 0 && Q_stricmp(G_CoopPlayerVar( ent, "g_char_skin_legs", g_char_skin_legs ), "model_default") == 0)
+		G_ChangePlayerModel( ent, va("%s|model_default", G_CoopPlayerVar( ent, "g_char_model", g_char_model )) );
 	else
-		G_ChangePlayerModel( ent, va("%s|%s|%s|%s", g_char_model->string, g_char_skin_head->string, g_char_skin_torso->string, g_char_skin_legs->string) );
+		G_ChangePlayerModel( ent, va("%s|%s|%s|%s", G_CoopPlayerVar( ent, "g_char_model", g_char_model ), G_CoopPlayerVar( ent, "g_char_skin_head", g_char_skin_head ), G_CoopPlayerVar( ent, "g_char_skin_torso", g_char_skin_torso ), G_CoopPlayerVar( ent, "g_char_skin_legs", g_char_skin_legs )) );
 
 	//FIXME: parse these 2 from some cvar or require playermodel to be in a *.npc?
 	if( ent->NPC_type && gi.bIsFromZone(ent->NPC_type, TAG_G_ALLOC) ) {
@@ -2059,7 +2094,7 @@ void G_InitPlayerFromCvars( gentity_t *ent )
 	}
 
 	char snd[512];
-	gi.Cvar_VariableStringBuffer( "snd", snd, sizeof(snd) );
+	Q_strncpyz( snd, G_CoopPlayerVar( ent, "snd", gi.cvar( "snd", "", 0 ) ), sizeof(snd) );	// coop: per player
 
 	ent->client->clientInfo.customBasicSoundDir = G_NewString(snd);	//copy current cvar
 
@@ -2076,13 +2111,13 @@ void G_InitPlayerFromCvars( gentity_t *ent )
 	}
 	//color tinting
 	//FIXME: the customRGBA shouldn't be set if the shader this guys .skin is using doesn't have the tinting on it
-	if ( g_char_color_red->integer
-		|| g_char_color_green->integer
-		|| g_char_color_blue->integer )
+	if ( atoi( G_CoopPlayerVar( ent, "g_char_color_red", g_char_color_red ) )
+		|| atoi( G_CoopPlayerVar( ent, "g_char_color_green", g_char_color_green ) )
+		|| atoi( G_CoopPlayerVar( ent, "g_char_color_blue", g_char_color_blue ) ) )
 	{
-		ent->client->renderInfo.customRGBA[0] = g_char_color_red->integer;
-		ent->client->renderInfo.customRGBA[1] = g_char_color_green->integer;
-		ent->client->renderInfo.customRGBA[2] = g_char_color_blue->integer;
+		ent->client->renderInfo.customRGBA[0] = atoi( G_CoopPlayerVar( ent, "g_char_color_red", g_char_color_red ) );
+		ent->client->renderInfo.customRGBA[1] = atoi( G_CoopPlayerVar( ent, "g_char_color_green", g_char_color_green ) );
+		ent->client->renderInfo.customRGBA[2] = atoi( G_CoopPlayerVar( ent, "g_char_color_blue", g_char_color_blue ) );
 		ent->client->renderInfo.customRGBA[3] = 255;
 	}
 }
@@ -2338,7 +2373,13 @@ qboolean ClientSpawn(gentity_t *ent, SavedGameJustLoaded_e eSavedGameJustLoaded 
 			ent->NPC_type = (char *)"player";
 		}
 		ent->classname = "player";
-		ent->targetname = ent->script_targetname = "player";
+		ent->targetname = "player";
+		// coop: ICARUS maps a script name to ONE entity (m_EntityList); a joiner
+		// named "player" stole every "affect player" from the host, so mission
+		// scripts tested the wrong player's position (yavin2: the remote room
+		// never started, its door stayed shut). Joiners are player2..player4.
+		ent->script_targetname = NULL;
+		G_CoopFixClientScriptName( ent );
 		if ( ent->client->NPC_class == CLASS_NONE )
 		{
 			ent->client->NPC_class = CLASS_PLAYER;
@@ -2398,7 +2439,7 @@ qboolean ClientSpawn(gentity_t *ent, SavedGameJustLoaded_e eSavedGameJustLoaded 
 			client->ps.dualSabers = qfalse;
 			WP_SaberParseParms( g_saber->string, &client->ps.saber[0] );//get saber info
 
-			client->ps.saberStylesKnown |= (1<<gi.Cvar_VariableIntegerValue("g_fighting_style"));
+			client->ps.saberStylesKnown |= (1<<atoi( G_CoopPlayerVar( ent, "g_fighting_style", gi.cvar( "g_fighting_style", "0", 0 ) ) ));	// coop: per player
 
 //			if ( client->ps.saber[0].stylesLearned )
 //			{

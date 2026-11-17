@@ -98,9 +98,40 @@ not have future snapshot_t executed before it is executed
 void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	int		index;
 
+	// coop: a remote client still loading the level (CS_PRIMED) receives nothing
+	// until it enters the world, so transient commands (sounds, captions, prints)
+	// are stale by then: skip them rather than fill its reliable window.
+	if ( client->state != CS_ACTIVE && client->netchan.remoteAddress.type != NA_LOOPBACK ) {
+		if ( !strncmp( cmd + 1, "snd ", 4 ) || !strncmp( cmd + 1, "ct ", 3 )
+			|| !strncmp( cmd + 1, "cp ", 3 ) || !strncmp( cmd + 1, "print ", 6 ) ) {
+			return;
+		}
+	}
+
+	// coop: how full the window gets decides whether a joiner survives a busy level
+	// start, and it is invisible on the loopback (the host acknowledges the same
+	// frame it is written). Report each new high-water mark for that client.
+	{
+		static int	high[MAX_CLIENTS];
+		const int	slot = (int)( client - svs.clients );
+		const int	used = client->reliableSequence - client->reliableAcknowledge;
+
+		if ( slot >= 0 && slot < MAX_CLIENTS && used > high[slot] ) {
+			high[slot] = used;
+			Com_DPrintf( "coop: %s: reliable window peak %i/%i (%i bytes)\n",
+				client->name, used, MAX_RELIABLE_COMMANDS, SV_ReliableBytesPending( client ) );
+		}
+	}
+
 	// if we would be losing an old command that hasn't been acknowledged,
 	// we must drop the connection
-	if ( client->reliableSequence - client->reliableAcknowledge > MAX_RELIABLE_COMMANDS ) {
+	// (was "> MAX_RELIABLE_COMMANDS": the 65th command silently overwrote the oldest one)
+	if ( client->reliableSequence - client->reliableAcknowledge >= MAX_RELIABLE_COMMANDS ) {
+		if ( client->state != CS_ACTIVE ) {
+			// coop: nothing was transmitted yet, losing this one is better than the connection
+			Com_Printf( "%s: reliable window full while loading, dropping '%s'\n", client->name, cmd + 1 );
+			return;
+		}
 		SV_DropClient( client, "Server command overflow" );
 		return;
 	}
