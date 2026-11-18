@@ -688,6 +688,7 @@ void G_InitCvars( void ) {
 	com_buildScript = gi.cvar ("com_buildscript", "0", 0);
 
 	g_TeamBeefDirectorsCut = gi.cvar( "g_TeamBeefDirectorsCut", "1", CVAR_ARCHIVE ); // Team Beef Director's Cut tweaks
+	gi.cvar( "g_coopLoadout", "1", CVAR_ARCHIVE ); // 0 story, 1 saber, 2 saber + blaster pistol
 
 	g_saberAutoDeflect1stPerson = gi.cvar( "g_saberAutoDeflect1stPerson", "0", CVAR_ARCHIVE );//Whether the saber will auto deflect missiles in first person
 	g_saberAutoBlocking = gi.cvar( "g_saberAutoBlocking", "1", CVAR_ARCHIVE|CVAR_CHEAT );//must press +block button to do any blocking

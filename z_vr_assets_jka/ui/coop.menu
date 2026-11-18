@@ -80,7 +80,7 @@
 			type				ITEM_TYPE_TEXT
 			style				WINDOW_STYLE_EMPTY
 			rect				100 72 440 24
-			text				"COOPERATIVO - REDE LOCAL"
+			text				"CO-OP - LOCAL NETWORK"
 			font				3
 			textscale			0.9
 			textalign			ITEM_ALIGN_CENTER
@@ -96,7 +96,7 @@
 			name				host_title
 			type				ITEM_TYPE_TEXT
 			rect				35 108 270 18
-			text				"HOSPEDAR FASE"
+			text				"HOST A LEVEL"
 			font				3
 			textscale			0.7
 			textalign			ITEM_ALIGN_CENTER
@@ -110,7 +110,7 @@
 		{
 			name				coopMapList
 			group				coop_lists
-			rect				35 132 270 222
+			rect				35 132 270 178
 			type				ITEM_TYPE_LISTBOX
 			style				WINDOW_STYLE_FILLED
 			elementwidth			250
@@ -133,12 +133,34 @@
 
 		itemDef
 		{
+			name				coop_loadout
+			type				ITEM_TYPE_MULTI
+			rect				45 326 250 18
+			text				"STARTING LOADOUT"
+			cvar				"g_coopLoadout"
+			cvarFloatList
+			{
+				"STORY DEFAULT" 0
+				"LIGHTSABER" 1
+				"LIGHTSABER + BLASTER" 2
+			}
+			font				2
+			textscale			0.55
+			textalign			ITEM_ALIGN_LEFT
+			textalignx			0
+			forecolor			.615 .615 .956 1
+			visible				1
+			descText			"Starting weapons given to both players"
+		}
+
+		itemDef
+		{
 			name				host_button
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_FILLED
 			rect				70 370 200 28
-			text				"HOSPEDAR"
-			descText			"Inicia a fase selecionada para dois jogadores"
+			text				"HOST"
+			descText			"Start the selected level for two players"
 			font				3
 			textscale			0.8
 			textalign			ITEM_ALIGN_CENTER
@@ -164,7 +186,7 @@
 			name				join_title
 			type				ITEM_TYPE_TEXT
 			rect				335 108 270 18
-			text				"PARTIDAS ENCONTRADAS"
+			text				"GAMES FOUND"
 			font				3
 			textscale			0.7
 			textalign			ITEM_ALIGN_CENTER
@@ -205,8 +227,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_FILLED
 			rect				350 282 110 26
-			text				"ATUALIZAR"
-			descText			"Procura novamente por partidas na mesma rede Wi-Fi"
+			text				"REFRESH"
+			descText			"Search again for games on the same Wi-Fi network"
 			font				3
 			textscale			0.65
 			textalign			ITEM_ALIGN_CENTER
@@ -231,8 +253,8 @@
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_FILLED
 			rect				480 282 110 26
-			text				"ENTRAR"
-			descText			"Entra na partida selecionada"
+			text				"JOIN"
+			descText			"Join the selected game"
 			font				3
 			textscale			0.7
 			textalign			ITEM_ALIGN_CENTER
@@ -256,7 +278,7 @@
 			name				join_help
 			type				ITEM_TYPE_TEXT
 			rect				345 330 250 50
-			text				"Os dois Quests devem estar na mesma rede. Abra esta tela depois que o host entrar na fase."
+			text				"Both Quests must be on the same network. Open this screen after the host enters the level."
 			font				2
 			textscale			0.55
 			textalign			ITEM_ALIGN_CENTER

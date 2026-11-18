@@ -63,6 +63,19 @@ vec3_t playerMaxs = {DEFAULT_MAXS_0, DEFAULT_MAXS_1, DEFAULT_MAXS_2};
 
 void SP_misc_teleporter_dest (gentity_t *ent);
 
+static void G_PrecachePlayerSaber( void )
+{
+	RegisterItem( FindItemForWeapon( WP_SABER ) );
+
+	saberInfo_t saber;
+	WP_SaberParseParms( g_saber->string, &saber );
+	if ( saber.model ) G_ModelIndex( saber.model );
+	if ( saber.brokenSaber1 ) G_ModelIndex( saber.brokenSaber1 );
+	if ( saber.brokenSaber2 ) G_ModelIndex( saber.brokenSaber2 );
+	if ( saber.skin ) G_SkinIndex( saber.skin );
+	WP_SaberFreeStrings( saber );
+}
+
 /*QUAK-ED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) KEEP_PREV DROPTOFLOOR x x x STUN_BATON NOWEAPON x
 potential spawning position for deathmatch games.
 Targets will be fired when someone spawns in on them.
@@ -76,14 +89,19 @@ void SP_info_player_deathmatch(gentity_t *ent) {
 	}
 	else
 	{
-		RegisterItem( FindItemForWeapon( WP_SABER ) );	//these are given in ClientSpawn(), but we register them now before cgame starts
-		saberInfo_t	saber;
-		WP_SaberParseParms( g_saber->string, &saber );//get saber sounds and models cached before client begins
-		if (saber.model) G_ModelIndex( saber.model );
-		if (saber.brokenSaber1) G_ModelIndex( saber.brokenSaber1 );
-		if (saber.brokenSaber2) G_ModelIndex( saber.brokenSaber2 );
-		if (saber.skin) G_SkinIndex( saber.skin );
-		WP_SaberFreeStrings(saber);
+		G_PrecachePlayerSaber();	// given in ClientSpawn(), but registered before cgame starts
+	}
+
+	// A selected co-op loadout can override STUN_BATON/NOWEAPON starts, so
+	// make those weapon assets available before either client enters the map.
+	const int coopLoadout = gi.Cvar_VariableIntegerValue( "g_coopLoadout" );
+	if ( coopLoadout >= 1 && ( ent->spawnflags & 32 ) )
+	{
+		G_PrecachePlayerSaber();
+	}
+	if ( coopLoadout >= 2 )
+	{
+		RegisterItem( FindItemForWeapon( WP_BLASTER_PISTOL ) );
 	}
 }
 
@@ -2558,6 +2576,26 @@ qboolean ClientSpawn(gentity_t *ent, SavedGameJustLoaded_e eSavedGameJustLoaded 
 			ent->client->ps.weapon = WP_NONE;
 			ent->client->ps.weaponstate = WEAPON_READY;
 			ent->client->ps.dualSabers = qfalse;
+		}
+
+		// The host's menu selection is authoritative for both players. Keep the
+		// original scripted inventory when Story Default is selected, otherwise
+		// ensure direct level starts are immediately playable for both clients.
+		if ( gi.Cvar_VariableIntegerValue( "sv_maxclients" ) > 1 )
+		{
+			const int coopLoadout = gi.Cvar_VariableIntegerValue( "g_coopLoadout" );
+			if ( coopLoadout >= 1 )
+			{
+				ent->client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_MELEE ) | ( 1 << WP_SABER );
+				ent->client->ps.weapon = WP_SABER;
+				ent->client->ps.weaponstate = WEAPON_READY;
+			}
+			if ( coopLoadout >= 2 )
+			{
+				ent->client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_BLASTER_PISTOL );
+				ent->client->ps.ammo[weaponData[WP_BLASTER_PISTOL].ammoIndex] =
+					ammoData[weaponData[WP_BLASTER_PISTOL].ammoIndex].max;
+			}
 		}
 
 		if ( ent->client->ps.stats[STAT_WEAPONS] & ( 1 << WP_SABER ) )

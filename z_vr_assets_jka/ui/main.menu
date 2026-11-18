@@ -439,8 +439,8 @@
 		{
 			name				coopbutton
 			group				othermain
-			text				"COOPERATIVO"
-			descText			"Hospede uma fase ou entre em uma partida na rede local"
+			text				"CO-OP"
+			descText			"Host a level or join a game on your local network"
 			type				ITEM_TYPE_BUTTON
 			style				WINDOW_STYLE_EMPTY
 			rect				255 392 130 24

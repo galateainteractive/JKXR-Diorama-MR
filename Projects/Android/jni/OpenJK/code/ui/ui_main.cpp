@@ -118,34 +118,34 @@ typedef struct coopMapEntry_s
 // through menu data and makes every selectable row a known campaign BSP.
 static const coopMapEntry_t ui_coopMaps[] =
 {
-	{ "Academia - Inicio",                 "academy1" },
-	{ "Academia - Treinamento",            "academy2" },
-	{ "Tier 1 - Fontes de poder",          "t1_sour" },
-	{ "Tier 1 - Surpresa",                 "t1_surprise" },
-	{ "Tier 1 - Missao fatal",             "t1_fatal" },
-	{ "Tier 1 - Perigo",                   "t1_danger" },
-	{ "Tier 1 - Trem",                     "t1_rail" },
-	{ "Hoth - Parte 1",                    "hoth2" },
-	{ "Hoth - Parte 2",                    "hoth3" },
+	{ "Academy - Beginning",               "academy1" },
+	{ "Academy - Training",                "academy2" },
+	{ "Tier 1 - Power Sources",            "t1_sour" },
+	{ "Tier 1 - Surprise",                 "t1_surprise" },
+	{ "Tier 1 - Fatal Mission",            "t1_fatal" },
+	{ "Tier 1 - Danger",                   "t1_danger" },
+	{ "Tier 1 - Train",                    "t1_rail" },
+	{ "Hoth - Part 1",                     "hoth2" },
+	{ "Hoth - Part 2",                     "hoth3" },
 	{ "Tier 2 - Rancor",                   "t2_rancor" },
-	{ "Tier 2 - Viagem",                   "t2_trip" },
-	{ "Tier 2 - Resgate",                  "t2_wedge" },
-	{ "Tier 2 - Jedi renegado",            "t2_rogue" },
-	{ "Tier 2 - Predador",                 "t2_dpred" },
-	{ "Vjun - Parte 1",                    "vjun1" },
-	{ "Vjun - Parte 2",                    "vjun2" },
-	{ "Vjun - Parte 3",                    "vjun3" },
-	{ "Tier 3 - Fenda",                    "t3_rift" },
-	{ "Tier 3 - Debandada",                "t3_stamp" },
-	{ "Tier 3 - Culto",                    "t3_hevil" },
+	{ "Tier 2 - Trip",                     "t2_trip" },
+	{ "Tier 2 - Rescue",                   "t2_wedge" },
+	{ "Tier 2 - Rogue Jedi",               "t2_rogue" },
+	{ "Tier 2 - Predator",                 "t2_dpred" },
+	{ "Vjun - Part 1",                     "vjun1" },
+	{ "Vjun - Part 2",                     "vjun2" },
+	{ "Vjun - Part 3",                     "vjun3" },
+	{ "Tier 3 - Rift",                     "t3_rift" },
+	{ "Tier 3 - Stampede",                 "t3_stamp" },
+	{ "Tier 3 - Cult",                     "t3_hevil" },
 	{ "Tier 3 - Byss",                     "t3_byss" },
-	{ "Tier 3 - Cacador de recompensas",   "t3_bounty" },
-	{ "Taspir - Parte 1",                  "taspir1" },
-	{ "Taspir - Parte 2",                  "taspir2" },
-	{ "Yavin - Parte 1",                   "yavin1" },
-	{ "Yavin - Parte 2",                   "yavin2" },
-	{ "Korriban - Parte 1",                "kor1" },
-	{ "Korriban - Parte 2",                "kor2" }
+	{ "Tier 3 - Bounty Hunter",            "t3_bounty" },
+	{ "Taspir - Part 1",                   "taspir1" },
+	{ "Taspir - Part 2",                   "taspir2" },
+	{ "Yavin - Part 1",                    "yavin1" },
+	{ "Yavin - Part 2",                    "yavin2" },
+	{ "Korriban - Part 1",                 "kor1" },
+	{ "Korriban - Part 2",                 "kor2" }
 };
 
 static int ui_coopMapSelection = 0;
@@ -463,6 +463,7 @@ vmCvar_t	ui_char_color_green;
 vmCvar_t	ui_char_color_blue;
 vmCvar_t	ui_PrecacheModels;
 vmCvar_t	ui_screenshotType;
+vmCvar_t	ui_coopLoadout;
 
 static void UI_UpdateScreenshot( void )
 {
@@ -524,6 +525,7 @@ static cvarTable_t cvarTable[] =
 	{ &ui_char_color_blue,		"ui_char_color_blue",	"", NULL, 0},
 
 	{ &ui_PrecacheModels,		"ui_PrecacheModels",	"1", NULL, CVAR_ARCHIVE},
+	{ &ui_coopLoadout,			"g_coopLoadout",		"1", NULL, CVAR_ARCHIVE},
 
 	{ &ui_screenshotType,		"ui_screenshotType",	"jpg", UI_UpdateScreenshot, CVAR_ARCHIVE }
 };
