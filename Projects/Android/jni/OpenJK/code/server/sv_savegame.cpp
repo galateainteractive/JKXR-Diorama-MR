@@ -221,43 +221,50 @@ void SV_LoadGame_f(void)
 	//
 	if (!Q_stricmp(psFilename, "*respawn"))
 	{
-		psFilename = "auto";	// default to standard respawn behaviour
-
-		// see if there's a last-loaded file to even check against as regards loading...
-		//
-		if ( sLastSaveFileLoaded[0] )
+		if ( Cvar_VariableIntegerValue( "g_soloTest" ) )
 		{
-			const char *psServerInfo = sv.configstrings[CS_SERVERINFO];
-			const char *psMapName    = Info_ValueForKey( psServerInfo, "mapname" );
+			psFilename = "solo_test";
+		}
+		else
+		{
+			psFilename = "auto";	// default to standard respawn behaviour
 
-			char *psMapNameOfAutoSave = SG_GetSaveGameMapName("auto");
-
-			if ( !Q_stricmp(psMapName,"_brig") )
-			{//if you're in the brig and there is no autosave, load the last loaded savegame
-				if ( !psMapNameOfAutoSave )
-				{
-					psFilename = sLastSaveFileLoaded;
-				}
-			}
-			else
+			// see if there's a last-loaded file to even check against as regards loading...
+			//
+			if ( sLastSaveFileLoaded[0] )
 			{
-#ifdef USE_LAST_SAVE_FROM_THIS_MAP
-				// if the map name within the name of the last save file we explicitly loaded is the same
-				//	as the current map, then use that...
-				//
-				char *psMapNameOfLastSaveFileLoaded = SG_GetSaveGameMapName(sLastSaveFileLoaded);
+				const char *psServerInfo = sv.configstrings[CS_SERVERINFO];
+				const char *psMapName    = Info_ValueForKey( psServerInfo, "mapname" );
 
-				if (!Q_stricmp(psMapName,psMapNameOfLastSaveFileLoaded))
-				{
-					psFilename = sLastSaveFileLoaded;
+				char *psMapNameOfAutoSave = SG_GetSaveGameMapName("auto");
+
+				if ( !Q_stricmp(psMapName,"_brig") )
+				{//if you're in the brig and there is no autosave, load the last loaded savegame
+					if ( !psMapNameOfAutoSave )
+					{
+						psFilename = sLastSaveFileLoaded;
+					}
 				}
 				else
-#endif
-				if (!(psMapName && psMapNameOfAutoSave && !Q_stricmp(psMapName,psMapNameOfAutoSave)))
 				{
-					// either there's no auto file, or it's from a different map to the one we've just died on...
+#ifdef USE_LAST_SAVE_FROM_THIS_MAP
+					// if the map name within the name of the last save file we explicitly loaded is the same
+					//	as the current map, then use that...
 					//
-					psFilename = sLastSaveFileLoaded;
+					char *psMapNameOfLastSaveFileLoaded = SG_GetSaveGameMapName(sLastSaveFileLoaded);
+
+					if (!Q_stricmp(psMapName,psMapNameOfLastSaveFileLoaded))
+					{
+						psFilename = sLastSaveFileLoaded;
+					}
+					else
+#endif
+					if (!(psMapName && psMapNameOfAutoSave && !Q_stricmp(psMapName,psMapNameOfAutoSave)))
+					{
+						// either there's no auto file, or it's from a different map to the one we've just died on...
+						//
+						psFilename = sLastSaveFileLoaded;
+					}
 				}
 			}
 		}

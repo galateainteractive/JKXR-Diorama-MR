@@ -1207,7 +1207,16 @@ void target_autosave_use(gentity_t *self, gentity_t *other, gentity_t *activator
 	//gi.SendServerCommand( NULL, "cp @SP_INGAME_CHECKPOINT" );
 	CG_CenterPrint( "@SP_INGAME_CHECKPOINT", SCREEN_HEIGHT * 0.25 );	//jump the network
 
-	gi.SendConsoleCommand( "wait 2;save auto\n" );
+	// Level Select has its own disposable checkpoint and never overwrites the
+	// campaign autosave.
+	if ( gi.Cvar_VariableIntegerValue( "g_soloTest" ) )
+	{
+		gi.SendConsoleCommand( "wait 2;save solo_test\n" );
+	}
+	else
+	{
+		gi.SendConsoleCommand( "wait 2;save auto\n" );
+	}
 }
 
 /*QUAKED target_autosave (1 0 0) (-4 -4 -4) (4 4 4)

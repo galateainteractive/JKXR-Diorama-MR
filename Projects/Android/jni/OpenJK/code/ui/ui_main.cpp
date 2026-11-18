@@ -148,10 +148,57 @@ static const coopMapEntry_t ui_coopMaps[] =
 	{ "Korriban - Part 2",                 "kor2" }
 };
 
+// Every campaign BSP present in the retail data. Co-op intentionally keeps
+// its smaller proven-safe list above; solo test mode may also expose academy
+// and interlude maps that assume unusual campaign state.
+static const coopMapEntry_t ui_soloMaps[] =
+{
+	{ "Academy - Beginning",               "academy1" },
+	{ "Academy - Training",                "academy2" },
+	{ "Academy - Trial",                   "academy3" },
+	{ "Academy - Trial Continued",         "academy4" },
+	{ "Academy - First Mission",           "academy5" },
+	{ "Academy - Return",                  "academy6" },
+	{ "Tier 1 - Power Sources",            "t1_sour" },
+	{ "Tier 1 - Surprise",                 "t1_surprise" },
+	{ "Tier 1 - Fatal Mission",            "t1_fatal" },
+	{ "Tier 1 - Danger",                   "t1_danger" },
+	{ "Tier 1 - Train",                    "t1_rail" },
+	{ "Tier 1 - Interlude",                "t1_inter" },
+	{ "Hoth - Part 1",                     "hoth2" },
+	{ "Hoth - Part 2",                     "hoth3" },
+	{ "Tier 2 - Rancor",                   "t2_rancor" },
+	{ "Tier 2 - Trip",                     "t2_trip" },
+	{ "Tier 2 - Rescue",                   "t2_wedge" },
+	{ "Tier 2 - Rogue Jedi",               "t2_rogue" },
+	{ "Tier 2 - Predator",                 "t2_dpred" },
+	{ "Vjun - Part 1",                     "vjun1" },
+	{ "Vjun - Part 2",                     "vjun2" },
+	{ "Vjun - Part 3",                     "vjun3" },
+	{ "Tier 3 - Rift",                     "t3_rift" },
+	{ "Tier 3 - Stampede",                 "t3_stamp" },
+	{ "Tier 3 - Cult",                     "t3_hevil" },
+	{ "Tier 3 - Byss",                     "t3_byss" },
+	{ "Tier 3 - Bounty Hunter",            "t3_bounty" },
+	{ "Taspir - Part 1",                   "taspir1" },
+	{ "Taspir - Part 2",                   "taspir2" },
+	{ "Yavin - Part 1",                    "yavin1" },
+	{ "Yavin - Part 1B",                   "yavin1b" },
+	{ "Yavin - Part 2",                    "yavin2" },
+	{ "Korriban - Part 1",                 "kor1" },
+	{ "Korriban - Part 2",                 "kor2" }
+};
+
 static int ui_coopMapSelection = 0;
+static int ui_soloMapSelection = 0;
 static int UI_CoopMapCount( void )
 {
 	return (int)( sizeof( ui_coopMaps ) / sizeof( ui_coopMaps[0] ) );
+}
+
+static int UI_SoloMapCount( void )
+{
+	return (int)( sizeof( ui_soloMaps ) / sizeof( ui_soloMaps[0] ) );
 }
 
 qboolean		Asset_Parse(char **buffer);
@@ -464,6 +511,28 @@ vmCvar_t	ui_char_color_blue;
 vmCvar_t	ui_PrecacheModels;
 vmCvar_t	ui_screenshotType;
 vmCvar_t	ui_coopLoadout;
+vmCvar_t	ui_soloWeaponPreset;
+vmCvar_t	ui_soloForcePreset;
+vmCvar_t	ui_soloCustomSaber;
+vmCvar_t	ui_soloCustomWeapon1;
+vmCvar_t	ui_soloCustomWeapon2;
+vmCvar_t	ui_soloCustomExplosive;
+vmCvar_t	ui_soloForceHeal;
+vmCvar_t	ui_soloForceJump;
+vmCvar_t	ui_soloForceSpeed;
+vmCvar_t	ui_soloForcePush;
+vmCvar_t	ui_soloForcePull;
+vmCvar_t	ui_soloForceMindTrick;
+vmCvar_t	ui_soloForceGrip;
+vmCvar_t	ui_soloForceLightning;
+vmCvar_t	ui_soloForceSaberThrow;
+vmCvar_t	ui_soloForceSaberDefense;
+vmCvar_t	ui_soloForceSaberOffense;
+vmCvar_t	ui_soloForceRage;
+vmCvar_t	ui_soloForceProtect;
+vmCvar_t	ui_soloForceAbsorb;
+vmCvar_t	ui_soloForceDrain;
+vmCvar_t	ui_soloForceSense;
 
 static void UI_UpdateScreenshot( void )
 {
@@ -526,6 +595,28 @@ static cvarTable_t cvarTable[] =
 
 	{ &ui_PrecacheModels,		"ui_PrecacheModels",	"1", NULL, CVAR_ARCHIVE},
 	{ &ui_coopLoadout,			"g_coopLoadout",		"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloWeaponPreset,		"g_soloWeaponPreset",	"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForcePreset,		"g_soloForcePreset",	"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloCustomSaber,		"g_soloCustomSaber",	"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloCustomWeapon1,		"g_soloCustomWeapon1",	"3", NULL, CVAR_ARCHIVE},
+	{ &ui_soloCustomWeapon2,		"g_soloCustomWeapon2",	"2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloCustomExplosive,	"g_soloCustomExplosive", "10", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceHeal,			"g_soloForceHeal",		"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceJump,			"g_soloForceJump",		"2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceSpeed,			"g_soloForceSpeed",		"2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForcePush,			"g_soloForcePush",		"2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForcePull,			"g_soloForcePull",		"2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceMindTrick,	"g_soloForceMindTrick", "1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceGrip,			"g_soloForceGrip",		"1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceLightning,	"g_soloForceLightning", "0", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceSaberThrow,	"g_soloForceSaberThrow", "1", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceSaberDefense, "g_soloForceSaberDefense", "2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceSaberOffense, "g_soloForceSaberOffense", "2", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceRage,			"g_soloForceRage",		"0", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceProtect,		"g_soloForceProtect",	"0", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceAbsorb,		"g_soloForceAbsorb",	"0", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceDrain,			"g_soloForceDrain",		"0", NULL, CVAR_ARCHIVE},
+	{ &ui_soloForceSense,			"g_soloForceSense",		"2", NULL, CVAR_ARCHIVE},
 
 	{ &ui_screenshotType,		"ui_screenshotType",	"jpg", UI_UpdateScreenshot, CVAR_ARCHIVE }
 };
@@ -748,6 +839,14 @@ const char *UI_FeederItemText(float feederID, int index, int column, qhandle_t *
 		if ( index >= 0 && index < UI_CoopMapCount() )
 		{
 			return ui_coopMaps[index].label;
+		}
+		return "";
+	}
+	else if (feederID == FEEDER_SOLO_MAPS)
+	{
+		if ( index >= 0 && index < UI_SoloMapCount() )
+		{
+			return ui_soloMaps[index].label;
 		}
 		return "";
 	}
@@ -1673,6 +1772,16 @@ static qboolean UI_RunMenuScript ( const char **args )
 			}
 			ui.Cmd_ExecuteText( EXEC_APPEND, va( "coop_start %s\n", ui_coopMaps[sel].map ) );
 		}
+		else if ( Q_stricmp( name, "soloStart" ) == 0 )
+		{
+			int sel = ui_soloMapSelection;
+			if ( sel < 0 || sel >= UI_SoloMapCount() )
+			{
+				sel = 0;
+			}
+			Menus_CloseAll();
+			ui.Cmd_ExecuteText( EXEC_APPEND, va( "solo_start %s\n", ui_soloMaps[sel].map ) );
+		}
 		else if ( Q_stricmp( name, "coopRefresh" ) == 0 )
 		{
 			// Rescan the LAN for co-op hosts (D2). The feeder reads cls.localServers.
@@ -1942,6 +2051,10 @@ static int UI_FeederCount(float feederID)
 	{
 		return UI_CoopMapCount();
 	}
+	else if (feederID == FEEDER_SOLO_MAPS)
+	{
+		return UI_SoloMapCount();
+	}
 	else if (feederID == FEEDER_SAVEGAMES )
 	{
 		if (s_savegame.saveFileCnt == -1)
@@ -2021,6 +2134,13 @@ static void UI_FeederSelection(float feederID, int index, itemDef_t *item)
 		if ( index >= 0 && index < UI_CoopMapCount() )
 		{
 			ui_coopMapSelection = index;
+		}
+	}
+	else if (feederID == FEEDER_SOLO_MAPS)
+	{
+		if ( index >= 0 && index < UI_SoloMapCount() )
+		{
+			ui_soloMapSelection = index;
 		}
 	}
 	else if (feederID == FEEDER_SAVEGAMES)
@@ -6860,6 +6980,10 @@ void ReadSaveDirectory (void)
 			if (Q_stricmp("auto",holdChar)==0)
 			{
 				Cvar_Set("ui_ResumeOK", "1" );
+			}
+			else if ( Q_stricmp( "solo_test", holdChar ) == 0 )
+			{
+				// Disposable Level Select checkpoint; keep it out of Load Game.
 			}
 			else
 			{	// Is this a valid file??? & Get comment of file

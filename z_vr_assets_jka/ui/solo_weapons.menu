@@ -1,0 +1,168 @@
+// Optional custom weapon kit for solo level-select mode.
+{
+	menuDef
+	{
+		name "soloWeaponMenu"
+		fullScreen 1
+		rect 0 0 640 480
+		visible 1
+		focusColor 1 1 1 1
+		descX 320
+		descY 425
+		descScale .75
+		descColor 1 .682 0 .9
+		descAlignment ITEM_ALIGN_CENTER
+		onOpen { setfocus saber_choice }
+		onESC
+		{
+			play "sound/interface/esc.wav"
+			setcvar g_soloWeaponPreset 4
+			close all
+			open soloLevelMenu
+		}
+
+		itemDef
+		{
+			name background
+			style WINDOW_STYLE_SHADER
+			rect 0 0 640 480
+			background "gfx/menus/weaponmenu_back"
+			forecolor 1 1 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name panel
+			style WINDOW_STYLE_FILLED
+			rect 120 58 400 330
+			backcolor 0 0 .18 .86
+			border 1
+			bordersize 1
+			bordercolor 0 0 .8 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name title
+			type ITEM_TYPE_TEXT
+			rect 170 76 300 24
+			text "CUSTOM WEAPONS"
+			font 3
+			textscale .9
+			textalign ITEM_ALIGN_CENTER
+			textalignx 150
+			forecolor .549 .854 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name explanation
+			type ITEM_TYPE_TEXT
+			rect 160 108 320 34
+			text "CHOOSE A LIGHTSABER, TWO WEAPONS AND ONE EXPLOSIVE. AMMUNITION STARTS FULL."
+			font 2
+			textscale .5
+			textalign ITEM_ALIGN_CENTER
+			textalignx 160
+			forecolor .65 .75 .95 1
+			visible 1
+			decoration
+			autowrapped
+		}
+
+		itemDef
+		{
+			name saber_choice
+			type ITEM_TYPE_MULTI
+			rect 165 158 310 30
+			text "LIGHTSABER"
+			cvar "g_soloCustomSaber"
+			cvarFloatList { "NO" 0 "YES" 1 }
+			font 2
+			textscale .65
+			forecolor .615 .615 .956 1
+			visible 1
+		}
+		itemDef
+		{
+			name weapon1_choice
+			type ITEM_TYPE_MULTI
+			rect 165 205 310 30
+			text "WEAPON 1"
+			cvar "g_soloCustomWeapon1"
+			cvarFloatList
+			{
+				"NONE" 0 "BLASTER PISTOL" 2 "BLASTER RIFLE" 3
+				"DISRUPTOR" 4 "BOWCASTER" 5 "HEAVY REPEATER" 6
+				"DEMP2" 7 "FLECHETTE" 8 "ROCKET LAUNCHER" 9
+				"CONCUSSION RIFLE" 13
+			}
+			font 2
+			textscale .6
+			forecolor .615 .615 .956 1
+			visible 1
+		}
+		itemDef
+		{
+			name weapon2_choice
+			type ITEM_TYPE_MULTI
+			rect 165 252 310 30
+			text "WEAPON 2"
+			cvar "g_soloCustomWeapon2"
+			cvarFloatList
+			{
+				"NONE" 0 "BLASTER PISTOL" 2 "BLASTER RIFLE" 3
+				"DISRUPTOR" 4 "BOWCASTER" 5 "HEAVY REPEATER" 6
+				"DEMP2" 7 "FLECHETTE" 8 "ROCKET LAUNCHER" 9
+				"CONCUSSION RIFLE" 13
+			}
+			font 2
+			textscale .6
+			forecolor .615 .615 .956 1
+			visible 1
+		}
+		itemDef
+		{
+			name explosive_choice
+			type ITEM_TYPE_MULTI
+			rect 165 299 310 30
+			text "EXPLOSIVE"
+			cvar "g_soloCustomExplosive"
+			cvarFloatList
+			{
+				"NONE" 0 "THERMAL DETONATOR" 10 "TRIP MINE" 11 "DET PACK" 12
+			}
+			font 2
+			textscale .6
+			forecolor .615 .615 .956 1
+			visible 1
+		}
+		itemDef
+		{
+			name done_button
+			type ITEM_TYPE_BUTTON
+			style WINDOW_STYLE_FILLED
+			rect 245 342 150 30
+			text "DONE"
+			font 3
+			textscale .72
+			textalign ITEM_ALIGN_CENTER
+			textalignx 75
+			forecolor 1 .682 0 1
+			backcolor 0 0 .35 .8
+			border 1
+			bordercolor 0 0 .8 1
+			visible 1
+			action
+			{
+				play "sound/interface/button1.wav"
+				setcvar g_soloWeaponPreset 4
+				close all
+				open soloLevelMenu
+			}
+		}
+	}
+}

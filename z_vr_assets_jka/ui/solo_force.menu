@@ -1,0 +1,132 @@
+// Optional per-power Force levels for solo level-select mode.
+{
+	menuDef
+	{
+		name "soloForceMenu"
+		fullScreen 1
+		rect 0 0 640 480
+		visible 1
+		focusColor 1 1 1 1
+		descX 320
+		descY 430
+		descScale .7
+		descColor 1 .682 0 .9
+		descAlignment ITEM_ALIGN_CENTER
+		onOpen { setfocus force_heal }
+		onESC
+		{
+			play "sound/interface/esc.wav"
+			setcvar g_soloForcePreset 5
+			close all
+			open soloLevelMenu
+		}
+
+		itemDef
+		{
+			name background
+			style WINDOW_STYLE_SHADER
+			rect 0 0 640 480
+			background "gfx/menus/forcemenu_back"
+			forecolor 1 1 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name panel
+			style WINDOW_STYLE_FILLED
+			rect 20 50 600 360
+			backcolor 0 0 .18 .82
+			border 1
+			bordersize 1
+			bordercolor 0 0 .8 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name title
+			type ITEM_TYPE_TEXT
+			rect 170 62 300 22
+			text "CUSTOM FORCE POWERS"
+			font 3
+			textscale .85
+			textalign ITEM_ALIGN_CENTER
+			textalignx 150
+			forecolor .549 .854 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name light_title
+			type ITEM_TYPE_TEXT
+			rect 35 91 270 16
+			text "LIGHT / CORE"
+			font 3
+			textscale .55
+			textalign ITEM_ALIGN_CENTER
+			textalignx 135
+			forecolor 1 .682 0 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name dark_title
+			type ITEM_TYPE_TEXT
+			rect 335 91 270 16
+			text "DARK / SABER"
+			font 3
+			textscale .55
+			textalign ITEM_ALIGN_CENTER
+			textalignx 135
+			forecolor 1 .682 0 1
+			visible 1
+			decoration
+		}
+
+		itemDef { name force_heal type ITEM_TYPE_MULTI rect 38 116 260 22 text "HEAL" cvar "g_soloForceHeal" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_jump type ITEM_TYPE_MULTI rect 38 151 260 22 text "JUMP" cvar "g_soloForceJump" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_speed type ITEM_TYPE_MULTI rect 38 186 260 22 text "SPEED" cvar "g_soloForceSpeed" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_push type ITEM_TYPE_MULTI rect 38 221 260 22 text "PUSH" cvar "g_soloForcePush" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_pull type ITEM_TYPE_MULTI rect 38 256 260 22 text "PULL" cvar "g_soloForcePull" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_mind type ITEM_TYPE_MULTI rect 38 291 260 22 text "MIND TRICK" cvar "g_soloForceMindTrick" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_protect type ITEM_TYPE_MULTI rect 38 326 260 22 text "PROTECT" cvar "g_soloForceProtect" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_absorb type ITEM_TYPE_MULTI rect 38 361 260 22 text "ABSORB" cvar "g_soloForceAbsorb" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+
+		itemDef { name force_grip type ITEM_TYPE_MULTI rect 338 116 260 22 text "GRIP" cvar "g_soloForceGrip" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_lightning type ITEM_TYPE_MULTI rect 338 151 260 22 text "LIGHTNING" cvar "g_soloForceLightning" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_rage type ITEM_TYPE_MULTI rect 338 186 260 22 text "RAGE" cvar "g_soloForceRage" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_drain type ITEM_TYPE_MULTI rect 338 221 260 22 text "DRAIN" cvar "g_soloForceDrain" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_sense type ITEM_TYPE_MULTI rect 338 256 260 22 text "SENSE" cvar "g_soloForceSense" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_throw type ITEM_TYPE_MULTI rect 338 291 260 22 text "SABER THROW" cvar "g_soloForceSaberThrow" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_defense type ITEM_TYPE_MULTI rect 338 326 260 22 text "SABER DEFENSE" cvar "g_soloForceSaberDefense" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+		itemDef { name force_offense type ITEM_TYPE_MULTI rect 338 361 260 22 text "SABER OFFENSE" cvar "g_soloForceSaberOffense" cvarFloatList { "OFF" 0 "LEVEL 1" 1 "LEVEL 2" 2 "LEVEL 3" 3 } font 2 textscale .48 forecolor .615 .615 .956 1 visible 1 }
+
+		itemDef
+		{
+			name done_button
+			type ITEM_TYPE_BUTTON
+			style WINDOW_STYLE_FILLED
+			rect 245 420 150 30
+			text "DONE"
+			font 3
+			textscale .72
+			textalign ITEM_ALIGN_CENTER
+			textalignx 75
+			forecolor 1 .682 0 1
+			backcolor 0 0 .35 .8
+			border 1
+			bordercolor 0 0 .8 1
+			visible 1
+			action
+			{
+				play "sound/interface/button1.wav"
+				setcvar g_soloForcePreset 5
+				close all
+				open soloLevelMenu
+			}
+		}
+	}
+}

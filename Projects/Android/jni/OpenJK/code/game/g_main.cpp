@@ -689,6 +689,29 @@ void G_InitCvars( void ) {
 
 	g_TeamBeefDirectorsCut = gi.cvar( "g_TeamBeefDirectorsCut", "1", CVAR_ARCHIVE ); // Team Beef Director's Cut tweaks
 	gi.cvar( "g_coopLoadout", "1", CVAR_ARCHIVE ); // 0 story, 1 saber, 2 saber + blaster pistol
+	gi.cvar( "g_soloTest", "0", 0 );
+	gi.cvar( "g_soloWeaponPreset", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForcePreset", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloCustomSaber", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloCustomWeapon1", "3", CVAR_ARCHIVE );
+	gi.cvar( "g_soloCustomWeapon2", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloCustomExplosive", "10", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceHeal", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceJump", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceSpeed", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForcePush", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForcePull", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceMindTrick", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceGrip", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceLightning", "0", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceSaberThrow", "1", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceSaberDefense", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceSaberOffense", "2", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceRage", "0", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceProtect", "0", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceAbsorb", "0", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceDrain", "0", CVAR_ARCHIVE );
+	gi.cvar( "g_soloForceSense", "2", CVAR_ARCHIVE );
 
 	g_saberAutoDeflect1stPerson = gi.cvar( "g_saberAutoDeflect1stPerson", "0", CVAR_ARCHIVE );//Whether the saber will auto deflect missiles in first person
 	g_saberAutoBlocking = gi.cvar( "g_saberAutoBlocking", "1", CVAR_ARCHIVE|CVAR_CHEAT );//must press +block button to do any blocking

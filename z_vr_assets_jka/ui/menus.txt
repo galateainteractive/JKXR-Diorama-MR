@@ -20,4 +20,7 @@
 	loadMenu { "ui/mpmap.menu" }
 	loadMenu { "ui/ngsaber.menu" }
 	loadMenu { "ui/coop.menu" }
+	loadMenu { "ui/solo.menu" }
+	loadMenu { "ui/solo_weapons.menu" }
+	loadMenu { "ui/solo_force.menu" }
 }

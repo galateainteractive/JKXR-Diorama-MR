@@ -1,0 +1,276 @@
+// Solo campaign level selector and quick test setup.
+{
+	menuDef
+	{
+		name "soloLevelMenu"
+		fullScreen 1
+		rect 0 0 640 480
+		visible 1
+		focusColor 1 1 1 1
+		descX 320
+		descY 430
+		descScale .75
+		descColor 1 .682 0 .9
+		descAlignment ITEM_ALIGN_CENTER
+
+		onOpen { setfocus soloMapList }
+		onESC
+		{
+			play "sound/interface/esc.wav"
+			close all
+			open newgamefirstMenu
+		}
+
+		itemDef
+		{
+			name background_text
+			style WINDOW_STYLE_SHADER
+			rect 0 0 160 480
+			background "gfx/menus/menu_side_text"
+			forecolor 1 1 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name background_text_b
+			style WINDOW_STYLE_SHADER
+			rect 480 0 160 480
+			background "gfx/menus/menu_side_text_right"
+			forecolor 1 1 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name background
+			style WINDOW_STYLE_SHADER
+			rect 0 0 640 480
+			background "gfx/menus/main_background"
+			forecolor 1 1 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name panel
+			style WINDOW_STYLE_FILLED
+			rect 20 58 600 360
+			backcolor 0 0 .18 .76
+			border 1
+			bordersize 1
+			bordercolor 0 0 .8 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name title
+			type ITEM_TYPE_TEXT
+			rect 100 68 440 24
+			text "SOLO - LEVEL SELECT"
+			font 3
+			textscale .9
+			textalign ITEM_ALIGN_CENTER
+			textalignx 220
+			forecolor .549 .854 1 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name level_title
+			type ITEM_TYPE_TEXT
+			rect 35 103 330 18
+			text "CHOOSE A CAMPAIGN LEVEL"
+			font 3
+			textscale .65
+			textalign ITEM_ALIGN_CENTER
+			textalignx 165
+			forecolor 1 .682 0 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name soloMapList
+			rect 35 126 330 252
+			type ITEM_TYPE_LISTBOX
+			style WINDOW_STYLE_FILLED
+			elementwidth 310
+			elementheight 18
+			elementtype LISTBOX_TEXT
+			feeder 26
+			columns 1 0 0 42
+			font 2
+			textscale .62
+			border 1
+			bordersize 1
+			bordercolor 0 0 .8 1
+			forecolor .615 .615 .956 1
+			backcolor 0 0 .5 .25
+			outlinecolor .2 .45 .8 .55
+			visible 1
+		}
+		itemDef
+		{
+			name setup_title
+			type ITEM_TYPE_TEXT
+			rect 385 103 220 18
+			text "QUICK PLAYER SETUP"
+			font 3
+			textscale .65
+			textalign ITEM_ALIGN_CENTER
+			textalignx 110
+			forecolor 1 .682 0 1
+			visible 1
+			decoration
+		}
+		itemDef
+		{
+			name weapon_preset
+			type ITEM_TYPE_MULTI
+			rect 390 138 210 28
+			text "WEAPONS"
+			cvar "g_soloWeaponPreset"
+			cvarFloatList
+			{
+				"MAP DEFAULT" 0
+				"BALANCED" 1
+				"EXPLOSIVES" 2
+				"FULL ARSENAL" 3
+				"CUSTOM" 4
+			}
+			font 2
+			textscale .53
+			forecolor .615 .615 .956 1
+			visible 1
+			descText "Choose a ready-made weapon kit"
+		}
+		itemDef
+		{
+			name edit_weapons
+			type ITEM_TYPE_BUTTON
+			style WINDOW_STYLE_FILLED
+			rect 405 178 180 25
+			text "CUSTOM WEAPONS"
+			font 3
+			textscale .58
+			textalign ITEM_ALIGN_CENTER
+			textalignx 90
+			forecolor 1 .682 0 1
+			backcolor 0 0 .35 .8
+			border 1
+			bordercolor 0 0 .8 1
+			visible 1
+			action
+			{
+				play "sound/interface/button1.wav"
+				close all
+				open soloWeaponMenu
+			}
+		}
+		itemDef
+		{
+			name force_preset
+			type ITEM_TYPE_MULTI
+			rect 390 226 210 28
+			text "FORCE"
+			cvar "g_soloForcePreset"
+			cvarFloatList
+			{
+				"MAP DEFAULT" 0
+				"BALANCED" 1
+				"LIGHT MASTER" 2
+				"DARK MASTER" 3
+				"ALL POWERS" 4
+				"CUSTOM" 5
+			}
+			font 2
+			textscale .53
+			forecolor .615 .615 .956 1
+			visible 1
+			descText "Choose a ready-made Force profile"
+		}
+		itemDef
+		{
+			name edit_force
+			type ITEM_TYPE_BUTTON
+			style WINDOW_STYLE_FILLED
+			rect 405 266 180 25
+			text "CUSTOM FORCE"
+			font 3
+			textscale .58
+			textalign ITEM_ALIGN_CENTER
+			textalignx 90
+			forecolor 1 .682 0 1
+			backcolor 0 0 .35 .8
+			border 1
+			bordercolor 0 0 .8 1
+			visible 1
+			action
+			{
+				play "sound/interface/button1.wav"
+				close all
+				open soloForceMenu
+			}
+		}
+		itemDef
+		{
+			name quick_note
+			type ITEM_TYPE_TEXT
+			rect 390 310 210 42
+			text "BALANCED IS READY TO PLAY. CUSTOM SETUP IS OPTIONAL."
+			font 2
+			textscale .48
+			textalign ITEM_ALIGN_CENTER
+			textalignx 105
+			forecolor .65 .75 .95 1
+			visible 1
+			decoration
+			autowrapped
+		}
+		itemDef
+		{
+			name back_button
+			type ITEM_TYPE_BUTTON
+			rect 55 438 130 24
+			text "BACK"
+			font 3
+			textscale .75
+			textalign ITEM_ALIGN_CENTER
+			textalignx 65
+			forecolor 1 .682 0 1
+			visible 1
+			action
+			{
+				play "sound/interface/esc.wav"
+				close all
+				open newgamefirstMenu
+			}
+		}
+		itemDef
+		{
+			name start_button
+			type ITEM_TYPE_BUTTON
+			style WINDOW_STYLE_FILLED
+			rect 420 365 150 34
+			text "START LEVEL"
+			descText "Start the selected level in solo test mode"
+			font 3
+			textscale .72
+			textalign ITEM_ALIGN_CENTER
+			textalignx 75
+			forecolor 1 .682 0 1
+			backcolor 0 0 .35 .8
+			border 1
+			bordercolor 0 0 .8 1
+			visible 1
+			action
+			{
+				play "sound/interface/button1.wav"
+				uiScript soloStart
+			}
+		}
+	}
+}

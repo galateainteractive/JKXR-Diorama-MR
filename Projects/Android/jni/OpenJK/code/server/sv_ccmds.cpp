@@ -41,6 +41,7 @@ These commands can only be entered from stdin or by a remote operator datagram
 */
 
 qboolean qbLoadTransition = qfalse;
+static qboolean sv_soloStartPending = qfalse;
 
 //=========================================================
 // don't call this directly, it should only be called from SV_Map_f() or SV_MapTransition_f()
@@ -75,7 +76,7 @@ static bool SV_Map_( ForceReload_e eForceReload )
 		return false;
 	}
 
-	if (map[0]!='_')
+	if ( map[0] != '_' && !Cvar_VariableIntegerValue( "g_soloTest" ) )
 	{
 		SG_WipeSavegame("auto");
 	}
@@ -286,6 +287,10 @@ extern void SCR_UnprecacheScreenshot();
 #endif
 static void SV_Map_f( void )
 {
+	// A regular map command returns to normal campaign semantics. solo_start
+	// marks exactly its queued map command as a configurable test-level start.
+	Cvar_Set( "g_soloTest", sv_soloStartPending ? "1" : "0" );
+	sv_soloStartPending = qfalse;
 	Cvar_Set( sCVARNAME_PLAYERSAVE, "");
 	Cvar_Set( "spawntarget", "" );
 	Cvar_Set("tier_storyinfo", "0");
@@ -526,7 +531,7 @@ static qboolean SV_EnableCoopNetwork( int requestedPlayers ) {
 	if ( want < 1 ) want = 1;
 	if ( want > MAX_CLIENTS ) want = MAX_CLIENTS;
 
-	Cvar_Set( "sv_maxclients", va( "%i", want ) );
+	Cvar_Set2( "sv_maxclients", va( "%i", want ), qtrue );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "2", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE );
 	Cvar_Set( "net_enabled", "1" );
 	NET_Restart();
@@ -594,6 +599,48 @@ static void SV_CoopStart_f( void ) {
 	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", map ) );
 }
 
+/*
+==================
+SV_SoloStart_f
+
+solo_start <map> - menu entry point for quickly testing a campaign level with
+the selected weapon and Force presets. It explicitly closes LAN hosting and
+queues a normal single-player map load.
+==================
+*/
+static void SV_SoloStart_f( void ) {
+	if ( Cmd_Argc() != 2 ) {
+		Com_Printf( "usage: solo_start <map>\n" );
+		return;
+	}
+
+	const char *map = Cmd_Argv( 1 );
+	for ( const char *p = map; *p; ++p ) {
+		const char c = *p;
+		if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
+				( c >= '0' && c <= '9' ) || c == '_' || c == '-' || c == '/' ) ) {
+			Com_Printf( "solo_start: invalid map name.\n" );
+			return;
+		}
+	}
+	if ( !map[0] ) {
+		return;
+	}
+
+	for ( int i = 1; i < MAX_CLIENTS; ++i ) {
+		if ( svs.clients[i].state >= CS_CONNECTED ) {
+			SV_DropClient( &svs.clients[i], "Host switched to solo level select" );
+		}
+	}
+	Cvar_Set2( "sv_maxclients", "1", qtrue );
+	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE );
+	Cvar_Set( "net_enabled", "0" );
+	NET_Restart();
+	sv_soloStartPending = qtrue;
+	Com_Printf( "^2Starting solo level test on %s.\n", map );
+	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", map ) );
+}
+
 void SV_AddOperatorCommands( void ) {
 	static qboolean	initialized;
 
@@ -604,6 +651,7 @@ void SV_AddOperatorCommands( void ) {
 
 	Cmd_AddCommand ("coop_host", SV_CoopHost_f);
 	Cmd_AddCommand ("coop_start", SV_CoopStart_f);
+	Cmd_AddCommand ("solo_start", SV_SoloStart_f);
 	Cmd_AddCommand ("status", SV_Status_f);
 	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f);
 	Cmd_AddCommand ("systeminfo", SV_Systeminfo_f);

@@ -536,10 +536,17 @@ static void SV_UserMove( client_t *cl, msg_t *msg ) {
 	if ( cl->state == CS_PRIMED ) {
 
 		SV_ClientEnterWorld( cl, &cmds[0], eSavedGameJustLoaded );
-		if ( sv_mapname->string[0]!='_' )
+		if ( sv_mapname->string[0] != '_' )
 		{
 			char savename[MAX_QPATH];
-			if ( eSavedGameJustLoaded == eNO )
+			if ( Cvar_VariableIntegerValue( "g_soloTest" ) )
+			{
+				if ( eSavedGameJustLoaded == eNO )
+				{
+					SG_WriteSavegame( "solo_test", qtrue );
+				}
+			}
+			else if ( eSavedGameJustLoaded == eNO )
 			{
 				SG_WriteSavegame("auto",qtrue);
 				if ( Q_stricmpn(sv_mapname->string, "academy", 7) != 0)

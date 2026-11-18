@@ -76,6 +76,257 @@ static void G_PrecachePlayerSaber( void )
 	WP_SaberFreeStrings( saber );
 }
 
+static const weapon_t g_soloPlayerWeapons[] =
+{
+	WP_SABER, WP_BLASTER_PISTOL, WP_BLASTER, WP_DISRUPTOR, WP_BOWCASTER,
+	WP_REPEATER, WP_DEMP2, WP_FLECHETTE, WP_ROCKET_LAUNCHER,
+	WP_THERMAL, WP_TRIP_MINE, WP_DET_PACK, WP_CONCUSSION
+};
+
+static qboolean G_SoloTestActive( void )
+{
+	return gi.Cvar_VariableIntegerValue( "g_soloTest" ) != 0 ? qtrue : qfalse;
+}
+
+static qboolean G_IsSoloPlayerWeapon( int weapon )
+{
+	for ( unsigned int i = 0; i < ARRAY_LEN( g_soloPlayerWeapons ); ++i )
+	{
+		if ( weapon == g_soloPlayerWeapons[i] )
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+static void G_PrecacheSoloWeapon( int weapon )
+{
+	if ( !G_IsSoloPlayerWeapon( weapon ) )
+	{
+		return;
+	}
+	if ( weapon == WP_SABER )
+	{
+		G_PrecachePlayerSaber();
+	}
+	else
+	{
+		RegisterItem( FindItemForWeapon( (weapon_t)weapon ) );
+	}
+}
+
+static void G_PrecacheSoloTestLoadout( void )
+{
+	if ( !G_SoloTestActive() )
+	{
+		return;
+	}
+
+	const int preset = gi.Cvar_VariableIntegerValue( "g_soloWeaponPreset" );
+	if ( preset == 1 )
+	{
+		G_PrecacheSoloWeapon( WP_SABER );
+		G_PrecacheSoloWeapon( WP_BLASTER_PISTOL );
+		G_PrecacheSoloWeapon( WP_BLASTER );
+		G_PrecacheSoloWeapon( WP_THERMAL );
+	}
+	else if ( preset == 2 )
+	{
+		G_PrecacheSoloWeapon( WP_SABER );
+		G_PrecacheSoloWeapon( WP_BLASTER_PISTOL );
+		G_PrecacheSoloWeapon( WP_THERMAL );
+		G_PrecacheSoloWeapon( WP_TRIP_MINE );
+		G_PrecacheSoloWeapon( WP_DET_PACK );
+	}
+	else if ( preset == 3 )
+	{
+		for ( unsigned int i = 0; i < ARRAY_LEN( g_soloPlayerWeapons ); ++i )
+		{
+			G_PrecacheSoloWeapon( g_soloPlayerWeapons[i] );
+		}
+	}
+	else if ( preset == 4 )
+	{
+		if ( gi.Cvar_VariableIntegerValue( "g_soloCustomSaber" ) )
+		{
+			G_PrecacheSoloWeapon( WP_SABER );
+		}
+		G_PrecacheSoloWeapon( gi.Cvar_VariableIntegerValue( "g_soloCustomWeapon1" ) );
+		G_PrecacheSoloWeapon( gi.Cvar_VariableIntegerValue( "g_soloCustomWeapon2" ) );
+		G_PrecacheSoloWeapon( gi.Cvar_VariableIntegerValue( "g_soloCustomExplosive" ) );
+	}
+}
+
+static void G_GiveSoloTestWeapon( gentity_t *ent, int weapon )
+{
+	if ( !G_IsSoloPlayerWeapon( weapon ) )
+	{
+		return;
+	}
+	ent->client->ps.stats[STAT_WEAPONS] |= ( 1 << weapon );
+	const int ammo = weaponData[weapon].ammoIndex;
+	if ( ammo > AMMO_NONE && ammo < AMMO_MAX )
+	{
+		ent->client->ps.ammo[ammo] = ammoData[ammo].max;
+	}
+}
+
+static void G_ApplySoloTestLoadout( gentity_t *ent )
+{
+	if ( !G_SoloTestActive() )
+	{
+		return;
+	}
+
+	const int preset = gi.Cvar_VariableIntegerValue( "g_soloWeaponPreset" );
+	if ( preset <= 0 )
+	{
+		return;
+	}
+
+	ent->client->ps.stats[STAT_WEAPONS] = ( 1 << WP_MELEE );
+	memset( ent->client->ps.ammo, 0, sizeof( ent->client->ps.ammo ) );
+	int preferredWeapon = WP_MELEE;
+
+	if ( preset == 1 )
+	{
+		G_GiveSoloTestWeapon( ent, WP_SABER );
+		G_GiveSoloTestWeapon( ent, WP_BLASTER_PISTOL );
+		G_GiveSoloTestWeapon( ent, WP_BLASTER );
+		G_GiveSoloTestWeapon( ent, WP_THERMAL );
+		preferredWeapon = WP_SABER;
+	}
+	else if ( preset == 2 )
+	{
+		G_GiveSoloTestWeapon( ent, WP_SABER );
+		G_GiveSoloTestWeapon( ent, WP_BLASTER_PISTOL );
+		G_GiveSoloTestWeapon( ent, WP_THERMAL );
+		G_GiveSoloTestWeapon( ent, WP_TRIP_MINE );
+		G_GiveSoloTestWeapon( ent, WP_DET_PACK );
+		preferredWeapon = WP_SABER;
+	}
+	else if ( preset == 3 )
+	{
+		for ( unsigned int i = 0; i < ARRAY_LEN( g_soloPlayerWeapons ); ++i )
+		{
+			G_GiveSoloTestWeapon( ent, g_soloPlayerWeapons[i] );
+		}
+		preferredWeapon = WP_SABER;
+	}
+	else if ( preset == 4 )
+	{
+		const qboolean saber = gi.Cvar_VariableIntegerValue( "g_soloCustomSaber" ) ? qtrue : qfalse;
+		const int weapon1 = gi.Cvar_VariableIntegerValue( "g_soloCustomWeapon1" );
+		const int weapon2 = gi.Cvar_VariableIntegerValue( "g_soloCustomWeapon2" );
+		const int explosive = gi.Cvar_VariableIntegerValue( "g_soloCustomExplosive" );
+		if ( saber ) G_GiveSoloTestWeapon( ent, WP_SABER );
+		G_GiveSoloTestWeapon( ent, weapon1 );
+		G_GiveSoloTestWeapon( ent, weapon2 );
+		G_GiveSoloTestWeapon( ent, explosive );
+		preferredWeapon = saber ? WP_SABER :
+			( G_IsSoloPlayerWeapon( weapon1 ) ? weapon1 :
+			( G_IsSoloPlayerWeapon( weapon2 ) ? weapon2 :
+			( G_IsSoloPlayerWeapon( explosive ) ? explosive : WP_MELEE ) ) );
+	}
+
+	ent->client->ps.weapon = preferredWeapon;
+	ent->client->ps.weaponstate = WEAPON_READY;
+}
+
+static void G_SetSoloForcePower( gentity_t *ent, int power, int levelValue )
+{
+	const int powerLevel = Com_Clampi( 0, 3, levelValue );
+	ent->client->ps.forcePowerLevel[power] = powerLevel;
+	if ( powerLevel > 0 )
+	{
+		ent->client->ps.forcePowersKnown |= ( 1 << power );
+	}
+}
+
+static void G_SetSoloCoreForce( gentity_t *ent, int levelValue )
+{
+	G_SetSoloForcePower( ent, FP_LEVITATION, levelValue );
+	G_SetSoloForcePower( ent, FP_SPEED, levelValue );
+	G_SetSoloForcePower( ent, FP_PUSH, levelValue );
+	G_SetSoloForcePower( ent, FP_PULL, levelValue );
+	G_SetSoloForcePower( ent, FP_SEE, levelValue );
+	G_SetSoloForcePower( ent, FP_SABER_DEFENSE, levelValue );
+	G_SetSoloForcePower( ent, FP_SABER_OFFENSE, levelValue );
+	G_SetSoloForcePower( ent, FP_SABERTHROW, levelValue );
+}
+
+static void G_ApplySoloTestForce( gentity_t *ent )
+{
+	if ( !G_SoloTestActive() )
+	{
+		return;
+	}
+
+	const int preset = gi.Cvar_VariableIntegerValue( "g_soloForcePreset" );
+	if ( preset <= 0 )
+	{
+		return;
+	}
+
+	memset( ent->client->ps.forcePowerLevel, 0, sizeof( ent->client->ps.forcePowerLevel ) );
+	ent->client->ps.forcePowersKnown = 0;
+
+	if ( preset == 1 )
+	{
+		G_SetSoloCoreForce( ent, 2 );
+		G_SetSoloForcePower( ent, FP_SABERTHROW, 1 );
+		G_SetSoloForcePower( ent, FP_HEAL, 1 );
+		G_SetSoloForcePower( ent, FP_TELEPATHY, 1 );
+		G_SetSoloForcePower( ent, FP_GRIP, 1 );
+	}
+	else if ( preset == 2 )
+	{
+		G_SetSoloCoreForce( ent, 3 );
+		G_SetSoloForcePower( ent, FP_HEAL, 3 );
+		G_SetSoloForcePower( ent, FP_TELEPATHY, 3 );
+		G_SetSoloForcePower( ent, FP_PROTECT, 3 );
+		G_SetSoloForcePower( ent, FP_ABSORB, 3 );
+	}
+	else if ( preset == 3 )
+	{
+		G_SetSoloCoreForce( ent, 3 );
+		G_SetSoloForcePower( ent, FP_GRIP, 3 );
+		G_SetSoloForcePower( ent, FP_LIGHTNING, 3 );
+		G_SetSoloForcePower( ent, FP_RAGE, 3 );
+		G_SetSoloForcePower( ent, FP_DRAIN, 3 );
+	}
+	else if ( preset == 4 )
+	{
+		for ( int power = 0; power < NUM_FORCE_POWERS; ++power )
+		{
+			G_SetSoloForcePower( ent, power, 3 );
+		}
+	}
+	else if ( preset == 5 )
+	{
+		G_SetSoloForcePower( ent, FP_HEAL, gi.Cvar_VariableIntegerValue( "g_soloForceHeal" ) );
+		G_SetSoloForcePower( ent, FP_LEVITATION, gi.Cvar_VariableIntegerValue( "g_soloForceJump" ) );
+		G_SetSoloForcePower( ent, FP_SPEED, gi.Cvar_VariableIntegerValue( "g_soloForceSpeed" ) );
+		G_SetSoloForcePower( ent, FP_PUSH, gi.Cvar_VariableIntegerValue( "g_soloForcePush" ) );
+		G_SetSoloForcePower( ent, FP_PULL, gi.Cvar_VariableIntegerValue( "g_soloForcePull" ) );
+		G_SetSoloForcePower( ent, FP_TELEPATHY, gi.Cvar_VariableIntegerValue( "g_soloForceMindTrick" ) );
+		G_SetSoloForcePower( ent, FP_GRIP, gi.Cvar_VariableIntegerValue( "g_soloForceGrip" ) );
+		G_SetSoloForcePower( ent, FP_LIGHTNING, gi.Cvar_VariableIntegerValue( "g_soloForceLightning" ) );
+		G_SetSoloForcePower( ent, FP_SABERTHROW, gi.Cvar_VariableIntegerValue( "g_soloForceSaberThrow" ) );
+		G_SetSoloForcePower( ent, FP_SABER_DEFENSE, gi.Cvar_VariableIntegerValue( "g_soloForceSaberDefense" ) );
+		G_SetSoloForcePower( ent, FP_SABER_OFFENSE, gi.Cvar_VariableIntegerValue( "g_soloForceSaberOffense" ) );
+		G_SetSoloForcePower( ent, FP_RAGE, gi.Cvar_VariableIntegerValue( "g_soloForceRage" ) );
+		G_SetSoloForcePower( ent, FP_PROTECT, gi.Cvar_VariableIntegerValue( "g_soloForceProtect" ) );
+		G_SetSoloForcePower( ent, FP_ABSORB, gi.Cvar_VariableIntegerValue( "g_soloForceAbsorb" ) );
+		G_SetSoloForcePower( ent, FP_DRAIN, gi.Cvar_VariableIntegerValue( "g_soloForceDrain" ) );
+		G_SetSoloForcePower( ent, FP_SEE, gi.Cvar_VariableIntegerValue( "g_soloForceSense" ) );
+	}
+
+	ent->client->ps.forcePowerMax = FORCE_POWER_MAX;
+	ent->client->ps.forcePower = ent->client->ps.forcePowerMax;
+}
+
 /*QUAK-ED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) KEEP_PREV DROPTOFLOOR x x x STUN_BATON NOWEAPON x
 potential spawning position for deathmatch games.
 Targets will be fired when someone spawns in on them.
@@ -103,6 +354,7 @@ void SP_info_player_deathmatch(gentity_t *ent) {
 	{
 		RegisterItem( FindItemForWeapon( WP_BLASTER_PISTOL ) );
 	}
+	G_PrecacheSoloTestLoadout();
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) KEEP_PREV DROPTOFLOOR x x x STUN_BATON NOWEAPON x
@@ -2581,7 +2833,12 @@ qboolean ClientSpawn(gentity_t *ent, SavedGameJustLoaded_e eSavedGameJustLoaded 
 		// The host's menu selection is authoritative for both players. Keep the
 		// original scripted inventory when Story Default is selected, otherwise
 		// ensure direct level starts are immediately playable for both clients.
-		if ( gi.Cvar_VariableIntegerValue( "sv_maxclients" ) > 1 )
+		if ( G_SoloTestActive() )
+		{
+			G_ApplySoloTestLoadout( ent );
+			G_ApplySoloTestForce( ent );
+		}
+		else if ( gi.Cvar_VariableIntegerValue( "sv_maxclients" ) > 1 )
 		{
 			const int coopLoadout = gi.Cvar_VariableIntegerValue( "g_coopLoadout" );
 			if ( coopLoadout >= 1 )
