@@ -627,9 +627,14 @@ static void SV_SoloStart_f( void ) {
 		return;
 	}
 
-	for ( int i = 1; i < MAX_CLIENTS; ++i ) {
-		if ( svs.clients[i].state >= CS_CONNECTED ) {
-			SV_DropClient( &svs.clients[i], "Host switched to solo level select" );
+	// The main menu has no allocated server client array yet. When switching
+	// from an active co-op game, only inspect the slots that were allocated.
+	if ( svs.clients && sv_maxclients ) {
+		const int clientSlots = Com_Clampi( 0, MAX_CLIENTS, sv_maxclients->integer );
+		for ( int i = 1; i < clientSlots; ++i ) {
+			if ( svs.clients[i].state >= CS_CONNECTED ) {
+				SV_DropClient( &svs.clients[i], "Host switched to solo level select" );
+			}
 		}
 	}
 	Cvar_Set2( "sv_maxclients", "1", qtrue );
