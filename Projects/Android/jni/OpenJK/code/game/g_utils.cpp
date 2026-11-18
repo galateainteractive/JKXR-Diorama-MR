@@ -1591,12 +1591,33 @@ static qboolean G_IsTriggerUsable(gentity_t* self, gentity_t* other)
 #define TABLETOP_TRIGGER_STEP   8.0f
 extern qboolean eweb_can_be_used( gentity_t *self, gentity_t *other, gentity_t *activator );
 
+static qboolean IsBoardableVehicleTarget(gentity_t *hit)
+{
+	if (!hit || !hit->client || hit->client->NPC_class != CLASS_VEHICLE ||
+		!hit->m_pVehicle || !hit->m_pVehicle->m_pVehicleInfo ||
+		hit->health <= 0) {
+		return qfalse;
+	}
+
+	Vehicle_t *vehicle = hit->m_pVehicle;
+	return (vehicle->m_iDieTime == 0 && vehicle->m_pPilot == NULL &&
+		vehicle->m_iBoarding == 0) ? qtrue : qfalse;
+}
+
 static qboolean IsUsableSweepTarget(gentity_t *hit, gentity_t *ent,
 	qboolean allowDirectUseTargets)
 {
 	if ((hit->contents & CONTENTS_TRIGGER) &&
 		hit->e_TouchFunc == touchF_Touch_Multi) {
 		return G_IsTriggerUsable(hit, ent);
+	}
+
+	// The stock eye ray special-cases vehicles, but the wider tabletop body
+	// sweep used when that narrow ray misses previously did not.  After an
+	// eject the rider is normally beside and below the bike's centre, so make
+	// an empty, settled vehicle an explicit nearby interaction target.
+	if (allowDirectUseTargets && IsBoardableVehicleTarget(hit)) {
+		return qtrue;
 	}
 
 	// The stock fallback only considered button triggers.  Tabletop also needs
@@ -1752,12 +1773,15 @@ static qboolean TryTabletopNearbyUse(bool offHand, gentity_t *ent,
 			"stage=tabletop-nearby-activate entity=%d class=%s mode=%s target=%s",
 			target->s.number,
 			target->classname ? target->classname : "none",
-			((target->contents & CONTENTS_TRIGGER) &&
-				target->e_TouchFunc == touchF_Touch_Multi) ? "trigger" : "use",
+			IsBoardableVehicleTarget(target) ? "vehicle" :
+				(((target->contents & CONTENTS_TRIGGER) &&
+					target->e_TouchFunc == touchF_Touch_Multi) ? "trigger" : "use"),
 			target->target ? target->target : "none");
 	}
 #endif
-	if ((target->contents & CONTENTS_TRIGGER) &&
+	if (IsBoardableVehicleTarget(target)) {
+		target->m_pVehicle->m_pVehicleInfo->Board(target->m_pVehicle, ent);
+	} else if ((target->contents & CONTENTS_TRIGGER) &&
 		target->e_TouchFunc == touchF_Touch_Multi) {
 		GEntity_TouchFunc(target, ent, &triggerTrace);
 	} else {
