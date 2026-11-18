@@ -1769,7 +1769,9 @@ void CG_CoopSound_f( void )
 	const char	*path = CG_Argv( 5 );
 
 #if defined(__ANDROID__)
-	if ( channel == CHAN_VOICE || channel == CHAN_VOICE_ATTEN || channel == CHAN_VOICE_GLOBAL )
+	const bool traceVoice =
+		channel == CHAN_VOICE || channel == CHAN_VOICE_ATTEN || channel == CHAN_VOICE_GLOBAL;
+	if ( traceVoice )
 	{
 		__android_log_print( ANDROID_LOG_INFO, "JKXR-VOICE",
 			"received: ent=%d channel=%d index=%d custom=%d path='%s'",
@@ -1785,16 +1787,40 @@ void CG_CoopSound_f( void )
 	if ( index > 0 && index < MAX_SOUNDS && cgs.sound_precache[index] )
 	{
 		cgi_S_StartSound( NULL, entNum, channel, cgs.sound_precache[index] );
+#if defined(__ANDROID__)
+		if ( traceVoice )
+		{
+			__android_log_print( ANDROID_LOG_INFO, "JKXR-VOICE",
+				"playback: precache index=%d handle=%d", index, cgs.sound_precache[index] );
+		}
+#endif
 	}
 	else if ( path[0] )
 	{
 		if ( customSet >= 0 )
 		{
-			CG_TryPlayCustomSound( NULL, entNum, (soundChannel_t)channel, path, customSet );
+			const qboolean played = CG_TryPlayCustomSound(
+				NULL, entNum, (soundChannel_t)channel, path, customSet );
+#if defined(__ANDROID__)
+			if ( traceVoice )
+			{
+				__android_log_print( ANDROID_LOG_INFO, "JKXR-VOICE",
+					"playback: custom set=%d path='%s' played=%d",
+					customSet, path, played );
+			}
+#endif
 		}
 		else
 		{
-			cgi_S_StartSound( NULL, entNum, channel, cgi_S_RegisterSound( path ) );
+			const sfxHandle_t sound = cgi_S_RegisterSound( path );
+			cgi_S_StartSound( NULL, entNum, channel, sound );
+#if defined(__ANDROID__)
+			if ( traceVoice )
+			{
+				__android_log_print( ANDROID_LOG_INFO, "JKXR-VOICE",
+					"playback: path='%s' handle=%d", path, sound );
+			}
+#endif
 		}
 	}
 }

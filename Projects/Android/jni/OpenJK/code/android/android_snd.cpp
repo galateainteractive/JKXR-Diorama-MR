@@ -84,11 +84,16 @@ static int dmasize = 0;
 
 #define OPENSL_BUFF_LEN 1024
 #define OPENSL_SAMPLE_RATE_HZ 48000
+#define ENGINE_SAMPLE_RATE_HZ 44100
 #define AUDIO_RESUME_STABLE_MS 250
 #define AUDIO_STALL_TIMEOUT_MS 1500
 #define AUDIO_RECOVERY_COOLDOWN_MS 2000
 
 static unsigned char play_buffer[OPENSL_BUFF_LEN];
+// The legacy MP3 decoder can only feed the mixer at 44.1, 22.05 or 11.025 kHz.
+// Quest's native output is 48 kHz, so keep the game mixer at full-quality
+// 44.1 kHz and resample only at the OpenSL boundary.
+static unsigned int audio_resample_phase = 0;
 
 static std::atomic<bool> audio_output_ready(false);
 static std::atomic<unsigned int> audio_callback_serial(0);
@@ -154,49 +159,46 @@ void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 		return;
 	}
 
-	int pos = (dmapos * (dma.samplebits/8));
-	if (pos >= dmasize)
-		dmapos = pos = 0;
-
-	int len = OPENSL_BUFF_LEN;
-	int factor = 2*2;
-	int FrameCount = (unsigned int)OPENSL_BUFF_LEN / factor;
+	const int bytesPerSample = dma.samplebits / 8;
+	const int bytesPerFrame = bytesPerSample * dma.channels;
+	const int frameCount = OPENSL_BUFF_LEN / bytesPerFrame;
 
 	if (!snd_inited)  /* shouldn't happen, but just in case... */
 	{
-		memset(play_buffer, '\0', len);
+		memset(play_buffer, '\0', OPENSL_BUFF_LEN);
 		pthread_mutex_unlock(&dma_mutex);
 		return;
 	}
-	else
-	{
-		int tobufend = dmasize - pos;  /* bytes to buffer's end. */
-		int len1 = len;
-		int len2 = 0;
 
-		if (len1 > tobufend)
+	short *output = reinterpret_cast<short *>(play_buffer);
+	const short *input = reinterpret_cast<const short *>(dma.buffer);
+	int sourceFrameOffset = 0;
+
+	for (int outputFrame = 0; outputFrame < frameCount; ++outputFrame)
+	{
+		for (int channel = 0; channel < dma.channels; ++channel)
 		{
-			len1 = tobufend;
-			len2 = len - len1;
+			const int sampleIndex =
+				(dmapos + sourceFrameOffset * dma.channels + channel) % dma.samples;
+			const int nextSampleIndex = (sampleIndex + dma.channels) % dma.samples;
+			const int sample = input[sampleIndex];
+			const int nextSample = input[nextSampleIndex];
+			const long long interpolated = sample +
+				((long long)(nextSample - sample) * audio_resample_phase) /
+				OPENSL_SAMPLE_RATE_HZ;
+			output[outputFrame * dma.channels + channel] = (short)interpolated;
 		}
-		memcpy(play_buffer, dma.buffer + pos, len1);
-		if (len2 <= 0)
-			dmapos += (len1 / (dma.samplebits/8));
-		else  /* wraparound? */
-		{
-			memcpy(play_buffer+len1, dma.buffer, len2);
-			dmapos = (len2 / (dma.samplebits/8));
-		}
+
+		audio_resample_phase += ENGINE_SAMPLE_RATE_HZ;
+		sourceFrameOffset += audio_resample_phase / OPENSL_SAMPLE_RATE_HZ;
+		audio_resample_phase %= OPENSL_SAMPLE_RATE_HZ;
 	}
 
-	if (dmapos >= dmasize)
-		dmapos = 0;
+	dmapos = (dmapos + sourceFrameOffset * dma.channels) % dma.samples;
 
 	SLresult result;
-	//LOGI("Frame count = %d",FrameCount);
-	if (FrameCount == 0)
-		FrameCount = 1;
-	result = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, play_buffer,FrameCount * factor);
+	result = (*bqPlayerBufferQueue)->Enqueue(
+		bqPlayerBufferQueue, play_buffer, frameCount * bytesPerFrame);
 	if (result == SL_RESULT_SUCCESS)
 	{
 		audio_callback_serial.fetch_add(1, std::memory_order_relaxed);
@@ -388,11 +390,12 @@ int SNDDMA_Init( int sampleFrequencyInKHz ) {
 	}
 
 	dmapos = 0;
+	audio_resample_phase = 0;
 	dma.samplebits = 16;
 	dma.channels = 2;
 	dma.samples = 1024*16;
 	dma.submission_chunk = 1024*2;
-	dma.speed = OPENSL_SAMPLE_RATE_HZ;
+	dma.speed = ENGINE_SAMPLE_RATE_HZ;
 	dmasize = (dma.samples * (dma.samplebits/8));
 	dma.buffer = (byte*)calloc(1, dmasize);
 	if (!dma.buffer)
@@ -405,8 +408,8 @@ int SNDDMA_Init( int sampleFrequencyInKHz ) {
 	audio_callback_serial.store(0, std::memory_order_relaxed);
 	audio_observed_callback_serial = 0;
 	audio_last_progress_time = Sys_Milliseconds();
-	Com_Printf("OpenSL: requested s_khz=%d, using native Quest output at %d Hz\n",
-		sampleFrequencyInKHz, OPENSL_SAMPLE_RATE_HZ);
+	Com_Printf("OpenSL: requested s_khz=%d, mixing at %d Hz for MP3 compatibility and outputting at %d Hz\n",
+		sampleFrequencyInKHz, ENGINE_SAMPLE_RATE_HZ, OPENSL_SAMPLE_RATE_HZ);
 
 	if (audio_app_active && !OpenSL_CreateOutput())
 	{
@@ -443,6 +446,7 @@ void SNDDMA_Shutdown( void ) {
 	}
 	dmasize = 0;
 	dmapos = 0;
+	audio_resample_phase = 0;
 }
 
 void SNDDMA_SetAppState(qboolean active)
