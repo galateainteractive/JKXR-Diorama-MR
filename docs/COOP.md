@@ -1,4 +1,4 @@
-# Two-player LAN co-op POC
+# Experimental two-player LAN co-op
 
 The experimental co-op flow is available from **Co-op** on the main
 menu. It is designed for two Meta Quest headsets on the same Wi-Fi network and
@@ -22,5 +22,5 @@ The host owns the campaign simulation, mission scripts, AI, and map changes.
 4. Select the host and choose **Join**.
 
 Both installations must use the same co-op build and compatible game data.
-The initial POC uses LAN discovery and supports exactly two players. Spatial
+The current alpha uses LAN discovery and supports exactly two players. Spatial
 colocation is not included; each headset positions the diorama independently.

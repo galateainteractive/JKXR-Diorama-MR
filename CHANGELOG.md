@@ -4,6 +4,38 @@ All notable Diorama MR changes will be documented in this file.
 
 ## Unreleased
 
+## 0.1.0-alpha.5 - 2026-11-25
+
+### Added
+
+- Added experimental two-player Jedi Academy campaign co-op for two Meta Quest
+  headsets on the same LAN, including in-headset host discovery, joining,
+  synchronized campaign state, remote players, enemies, animation, world
+  changes, music, dialogue, and per-headset diorama rendering.
+- Added selectable co-op starting loadouts for weapons, ammunition, inventory,
+  and Force powers while retaining a story-default option.
+- Added a solo level-select menu for launching campaign maps directly without
+  advancing through an existing save.
+- Added tabletop joystick controls for speeders, mounts, remote/emplaced
+  turrets, and contextual re-entry into nearby vehicles.
+
+### Fixed
+
+- Restored MP3 music and campaign dialogue while preserving the Quest-native
+  48 kHz output path through 44.1-to-48 kHz boundary resampling.
+- Fixed guest crashes, missing BSP/world rendering, animation timing, saber and
+  jump behavior, remote colors, map bootstrap state, PVS culling, and permanent
+  campaign-state synchronization across the two co-op headsets.
+- Fixed solo level-select startup and save-load compatibility regressions.
+
+### Changed
+
+- Replaced the inherited Team Beef cow launcher icon with centered Jedi Academy
+  Diorama MR artwork and changed the Quest launcher label to
+  **Jedi Academy Diorama MR**.
+- Updated the public package to Android version code `97` and release version
+  `0.1.0-alpha.5`.
+
 ## 0.1.0-alpha.4 - 2026-11-13
 
 ### Fixed

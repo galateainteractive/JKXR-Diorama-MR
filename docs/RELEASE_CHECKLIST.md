@@ -34,6 +34,9 @@
   `versionCode` `95`.
 - [x] Advance the Quest audio, spatial sound, and tabletop fog fixes to
   `0.1.0-alpha.4` with Android `versionCode` `96`.
+- [x] Advance LAN co-op, solo level select, loadouts, tabletop vehicle controls,
+  restored campaign audio, and launcher branding to `0.1.0-alpha.5` with
+  Android `versionCode` `97`.
 
 ## Branding and documentation
 
@@ -54,7 +57,7 @@
 - [x] Build the development alpha APK with the permanent package identifier and a
   development signing key.
 - [x] Build the public APK with the permanent release signing key.
-- [x] Update the Windows installer to embed the `0.1.0-alpha.4` APK.
+- [x] Update the Windows installer to embed the `0.1.0-alpha.5` APK.
 - [x] Use versioned release filenames for both APK and Windows installer.
 - [ ] Confirm that Steam, GOG, registry, disk search, and manual folder selection
   all find valid Jedi Academy installations.

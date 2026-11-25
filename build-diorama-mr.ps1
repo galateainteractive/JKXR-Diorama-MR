@@ -13,8 +13,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $androidProject = Join-Path $projectRoot 'Projects\Android'
 $repositoryContainer = Split-Path -Parent $projectRoot
-$productVersion = '0.1.0-alpha.4-coop.24-centered-icon'
-$androidVersionCode = 115
+$productVersion = '0.1.0-alpha.5'
+$androidVersionCode = 97
 $androidManifest = Join-Path $androidProject 'AndroidManifest.xml'
 
 $manifestText = Get-Content -LiteralPath $androidManifest -Raw

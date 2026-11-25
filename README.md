@@ -50,6 +50,12 @@ Quest application.
 - Player-focused visibility, effects, NPC, door, and interaction processing.
 - Controller-based Force and weapon aiming adapted for the miniature view.
 - Stable 2D presentation for cutscenes and scripted cameras.
+- Experimental two-player Jedi Academy campaign co-op for two Quest headsets
+  on the same LAN, with in-headset hosting, discovery, joining, and loadouts.
+- Solo level select for quickly testing or replaying campaign maps without
+  advancing through a save first.
+- Tabletop-friendly joystick controls for speeders, mounts, and emplaced
+  turrets, including contextual vehicle re-entry.
 - Automatic control-frame rebuilding after loads, deaths, respawns, scripted
   transitions, and switches back from immersive VR.
 
@@ -57,7 +63,7 @@ Quest application.
 
 - [Installation](docs/INSTALLATION.md)
 - [Diorama MR controls](docs/CONTROLS.md)
-- [Two-player LAN co-op POC](docs/COOP.md)
+- [Experimental two-player LAN co-op](docs/COOP.md)
 - [Configuration and console variables](docs/CONFIGURATION.md)
 - [Differences from immersive VR](docs/VR_MODE.md)
 - [Known limitations](docs/KNOWN_ISSUES.md)

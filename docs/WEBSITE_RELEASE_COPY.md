@@ -56,10 +56,10 @@ complete corresponding source code for this exact release is available here:
 Source archive: `[SOURCE_ARCHIVE_URL]`
 
 GitHub tag:
-`https://github.com/galateainteractive/JKXR-Diorama-MR/tree/v0.1.0-alpha.4`
+`https://github.com/galateainteractive/JKXR-Diorama-MR/tree/v0.1.0-alpha.5`
 
 License:
-`https://github.com/galateainteractive/JKXR-Diorama-MR/blob/v0.1.0-alpha.4/LICENSE.txt`
+`https://github.com/galateainteractive/JKXR-Diorama-MR/blob/v0.1.0-alpha.5/LICENSE.txt`
 
 ## Installation
 
@@ -82,6 +82,10 @@ The first clean launch defaults to **Diorama MR** at the minimum miniature
 scale. The game also includes a **VR** mode based on the original JKXR immersive
 presentation. Open **Setup > Diorama / VR** to switch between them.
 
+The main menu also includes experimental two-player **Co-op** for two Quest
+headsets on the same Wi-Fi network, plus **Level Select** for launching campaign
+maps directly in solo play. Both headsets must run the same co-op release.
+
 Select **View Diorama MR Controls** on that page for the current controls and
 interaction instructions. The legacy **Controls > Help** route remains
 available as a secondary path.
@@ -92,13 +96,13 @@ installation and saves. Back up important saves before alpha updates.
 
 ## Version
 
-Version: `0.1.0-alpha.4`
+Version: `0.1.0-alpha.5`
 
-Android version code: `96`
+Android version code: `97`
 
 Package: `com.galateainteractive.jkxrdioramamr`
 
-Release date: `November 13, 2026`
+Release date: `November 25, 2026`
 
 ## File verification
 

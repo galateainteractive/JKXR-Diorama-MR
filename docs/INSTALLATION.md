@@ -65,11 +65,12 @@ Diorama MR uses the Android package identifier
 `/sdcard/JKXR` data. Saves, settings, and game files are not migrated between
 the two applications automatically.
 
-Private alpha APKs currently use a development signing key. Before public
-distribution, the project still needs a permanent release signing key. An APK
-signed with that future key cannot update a development-signed installation;
-the application must be uninstalled first. The separate game-data folder is
-not removed by a normal Android application uninstall.
+Published alpha APKs use the permanent Galatea signing key and update earlier
+public releases in place. Local development and co-op test builds use a
+different key and cannot update a public installation (or be updated by one)
+in place; switch signing tracks by uninstalling the application first. The
+separate game-data folder is not removed by a normal Android application
+uninstall.
 
 ## First launch
 
