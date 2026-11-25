@@ -25,6 +25,15 @@ $RECYCLE.BIN/
 *.p12
 *.pfx
 *.jks
+*.pem
+*.key
+*.keystore
+*.mobileprovision
+.env
+.env.*
+!.env.example
+credentials*.json
+secrets*.json
 *-release-key.keystore
 artifacts/
 *.ap_

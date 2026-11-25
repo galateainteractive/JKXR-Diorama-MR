@@ -15,6 +15,15 @@ $androidProject = Join-Path $projectRoot 'Projects\Android'
 $repositoryContainer = Split-Path -Parent $projectRoot
 $productVersion = '0.1.0-alpha.4-coop.24-centered-icon'
 $androidVersionCode = 115
+$androidManifest = Join-Path $androidProject 'AndroidManifest.xml'
+
+$manifestText = Get-Content -LiteralPath $androidManifest -Raw
+$expectedVersionName = 'android:versionName="' + [regex]::Escape($productVersion) + '"'
+$expectedVersionCode = 'android:versionCode="' + $androidVersionCode + '"'
+if ($manifestText -notmatch $expectedVersionName -or
+        $manifestText -notmatch $expectedVersionCode) {
+    throw "AndroidManifest.xml must match release $productVersion (versionCode $androidVersionCode)."
+}
 
 function Get-FixedDriveRoots {
     [System.IO.DriveInfo]::GetDrives() |

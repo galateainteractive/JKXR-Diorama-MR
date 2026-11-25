@@ -9,17 +9,22 @@ an issue, or included in a release archive.
 
 ## Recommended automatic setup
 
-For the Galatea workstation, run:
+Choose two private locations outside the repository. Prefer a recovery location
+on a separate encrypted drive or other protected device:
 
 ```powershell
-.\setup-automatic-release-signing.ps1
+.\setup-automatic-release-signing.ps1 `
+  -PrimaryDirectory "$env:USERPROFILE\Documents\Galatea Private\Android Signing" `
+  -BackupDirectory "E:\Galatea Signing Recovery"
 ```
 
 This creates a cryptographically random password without displaying it, stores
-the everyday configuration protected by the current Windows account under the
-user's Documents folder, and creates a separate recovery backup under
-`F:\Codex\_private`. It then builds the public APK and installer. Neither private
-location is part of the Git repository or release artifacts.
+the everyday configuration protected by the current Windows account, and
+creates a separate recovery backup. It then builds the public APK and installer.
+Neither private location is part of the Git repository or release artifacts.
+If the directory parameters are omitted, both locations default to separate
+folders under the current user's Documents folder; copy the recovery folder to
+a different protected device before publishing.
 
 Later public builds require only:
 
